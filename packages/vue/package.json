@@ -1,0 +1,107 @@
+{
+  "name": "@easytable/vue",
+  "version": "0.0.5",
+  "description": "Vue table component",
+  "author": "https://github.com/kohaiy",
+  "license": "MIT",
+  "homepage": "https://github.com/kohaiy/easytable#readme",
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:kohaiy/easytable.git"
+  },
+  "keywords": [
+    "vue",
+    "table",
+    "grid",
+    "vue-component",
+    "components",
+    "list",
+    "scrolling",
+    "infinite",
+    "virtualized",
+    "edit",
+    "expand",
+    "radio",
+    "checkbox",
+    "sort",
+    "filter",
+    "fixed",
+    "selection",
+    "ellipsis",
+    "header",
+    "body",
+    "footer",
+    "span"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "exports": {
+    ".": {
+      "types": "./libs/index.d.ts",
+      "import": "./libs/es/index.js",
+      "require": "./libs/cjs/index.js"
+    },
+    "./libs/theme-default/*": {
+      "import": "./libs/theme-default/*",
+      "require": "./libs/theme-default/*"
+    },
+    "./libs/locale/*": {
+      "import": "./libs/locale/*",
+      "require": "./libs/locale/*"
+    },
+    "./libs/theme-dark/*": {
+      "import": "./libs/theme-dark/*",
+      "require": "./libs/theme-dark/*"
+    },
+    "./packages/theme-default/*": {
+      "import": "./libs/packages/theme-default/*",
+      "require": "./libs/packages/theme-default/*"
+    },
+    "./packages/theme-dark/*": {
+      "import": "./libs/packages/theme-dark/*",
+      "require": "./libs/packages/theme-dark/*"
+    }
+  },
+  "main": "./libs/umd/easytable-vue.js",
+  "module": "./libs/es/index.js",
+  "files": [
+    "README.md",
+    "libs"
+  ],
+  "scripts": {
+    "gulp": "gulp",
+    "build:css": "lessc ../theme-default/index.less libs/theme-default/index.css && lessc ../theme-dark/index.less libs/theme-dark/index.css",
+    "build:lang": "tsc ../common/locale/lang/*.ts --isolatedModules --target es6 --moduleResolution node --declaration --outDir libs/locale/lang",
+    "build:vite": "vite build",
+    "build": "pnpm build:vite && pnpm build:css && pnpm build:lang && pnpm gulp",
+    "publish": "node ./build/publish.js"
+  },
+  "dependencies": {
+    "@easytable/common": "workspace:^1.0.0",
+    "@easytable/ve-checkbox": "workspace:^1.0.0",
+    "@easytable/ve-checkbox-group": "workspace:^1.0.0",
+    "@easytable/ve-contextmenu": "workspace:^1.0.0",
+    "@easytable/ve-dropdown": "workspace:^1.0.0",
+    "@easytable/ve-icon": "workspace:^1.0.0",
+    "@easytable/ve-loading": "workspace:^1.0.0",
+    "@easytable/ve-locale": "workspace:^1.0.0",
+    "@easytable/ve-pagination": "workspace:^1.0.0",
+    "@easytable/ve-radio": "workspace:^1.0.0",
+    "@easytable/ve-select": "workspace:^1.0.0",
+    "@easytable/ve-table": "workspace:^1.0.0"
+  },
+  "devDependencies": {
+    "fs-extra": "^11.2.0",
+    "gulp": "^4.0.2",
+    "less": "^4.1.2",
+    "vite-plugin-dts": "^3.7.2"
+  },
+  "docVersions": [
+    {
+      "label": "0.0.5",
+      "value": "0.0.5"
+    }
+  ]
+}

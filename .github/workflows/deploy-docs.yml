@@ -1,0 +1,46 @@
+name: deploy docs
+permissions:
+  contents: write
+# This workflow is triggered on pushes to the repository.
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/deploy-docs.yml
+      - 'docs/**'
+      - package.json
+
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@master
+        with:
+          ref: main
+
+      - name: Setup Node
+        uses: actions/setup-node@v1
+        with:
+          node-version: 16.x
+
+      - name: Install PNPM
+        run: |
+          npm i -g pnpm@7
+
+      - name: Install env
+        run: |
+          cd docs
+          pnpm install
+
+      - name: Build doc
+        run: |
+          cd docs
+          pnpm run build:gh-pages
+
+      - name: Deploy Doc 🚀
+        uses: JamesIves/github-pages-deploy-action@4.1.1
+        with:
+          branch: gh-pages
+          folder: ./docs/dist
+          clean: false
