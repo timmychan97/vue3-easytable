@@ -166,6 +166,10 @@ Example:
 
 ## 如何贡献
 
+Use pnpm 10
+```pnpm env use --global 20```
+node version 20
+
 如果你希望参与贡献，欢迎
 [Pull Request](https://github.com/kohaiy/easytable/pulls)
 
