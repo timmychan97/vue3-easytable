@@ -57,7 +57,7 @@
     }
   },
   "resolutions": {
-    "@babel/traverse": "7.17.9"
+    "@babel/traverse": "7.25.0"
   },
   "lint-staged": {
     "*.{ts,tsx,vue}": "eslint . --fix"
