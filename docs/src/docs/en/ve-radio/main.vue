@@ -1,7 +1,7 @@
 <script>
+import API from './api.md'
 import Base from './base.md'
 import Controlled from './controlled.md'
-import API from './api.md'
 
 export default {
   components: {

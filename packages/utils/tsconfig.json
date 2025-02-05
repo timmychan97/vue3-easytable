@@ -20,7 +20,8 @@
     "skipLibCheck": true
   },
   "include": [
-    "src/**/*.ts", "dom/resize-event.ts"
+    "src/**/*.ts",
+    "dom/resize-event.ts"
   ],
   "exclude": [
     "node_modules"

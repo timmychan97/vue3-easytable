@@ -3,10 +3,10 @@
 引入 `VeTable`
 
 ```javascript
-import Vue from "vue";
-import { VeTable } from "vue-easytable";
+import Vue from 'vue'
+import { VeTable } from 'vue-easytable'
 
-Vue.use(VeTable);
+Vue.use(VeTable)
 ```
 
 使用

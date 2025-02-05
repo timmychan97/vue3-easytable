@@ -1,5 +1,5 @@
-import { getValByUnit } from '@easytable/common/utils/index.js'
 import emitter from '@easytable/common/mixins/emitter'
+import { getValByUnit } from '@easytable/common/utils/index.js'
 import { clsName, getFixedTotalWidthByColumnKey } from '../util'
 
 import { COMPS_NAME } from '../util/constant'
@@ -161,8 +161,9 @@ export default defineComponent({
         if (
           rowData[rowKeyFieldName] === rowKey
           && column.key === colKey
-        )
+        ) {
           result[clsName('cell-selection')] = true
+        }
       }
 
       return result

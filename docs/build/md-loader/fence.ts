@@ -8,8 +8,9 @@ export default (md: markdownit) => {
     const prevToken = tokens[idx - 1]
     const isInDemoContainer
       = prevToken
-      && prevToken.nesting === 1
-      && prevToken.info.trim().match(/^demo\s*(.*)$/)
+        && prevToken.nesting === 1
+        // eslint-disable-next-line regexp/no-super-linear-backtracking
+        && prevToken.info.trim().match(/^demo\s*(.*)$/)
     if (token.info === 'html' && isInDemoContainer) {
       return `<template #highlight><pre v-pre><code class="html">${md.utils.escapeHtml(
         token.content,

@@ -26,21 +26,21 @@ export default defineComponent({
       const { version, exampleScript, exampleTpl, exampleStyle } = this
       const resourcesTpl
                 = '<scr'
-                + 'ipt src="//unpkg.com/vue@3/dist/vue.global.js"></scr'
-                + 'ipt>'
-                + '\n<scr'
-                + `ipt src="//unpkg.com/@easytable/vue@${version}/libs/umd/easytable-vue.js"></scr`
-                + 'ipt>'
+                  + 'ipt src="//unpkg.com/vue@3/dist/vue.global.js"></scr'
+                  + 'ipt>'
+                  + '\n<scr'
+                  + `ipt src="//unpkg.com/@easytable/vue@${version}/libs/umd/easytable-vue.js"></scr`
+                  + 'ipt>'
       let jsTpl = (exampleScript || '')
         .replace(/export default/, 'var Main =')
         .trim()
       const htmlTpl = `${resourcesTpl}\n<div id="app">\n${exampleTpl.replace('<template>', '').replace('</template>', '').trim()}\n</div>`
       const cssTpl = `@import url("//unpkg.com/@easytable/vue@${version}/libs/theme-default/index.css");\n${(
-                exampleStyle || ''
-            ).trim()}\n`
+        exampleStyle || ''
+      ).trim()}\n`
       jsTpl = jsTpl
         ? `${jsTpl
-                  }\nVue.createApp(Main).use(EasytableVue.useVeTable()).mount(\'#app\')`
+        }\nVue.createApp(Main).use(EasytableVue.useVeTable()).mount(\'#app\')`
         : 'Vue.createApp().use(EasytableVue.useVeTable()).mount(\'#app\')'
       const data = {
         js: jsTpl,
@@ -49,7 +49,7 @@ export default defineComponent({
       }
       const form
                 = document.getElementById('fiddle-form')
-                || document.createElement('form')
+                  || document.createElement('form')
       while (form.firstChild)
         form.removeChild(form.firstChild)
 

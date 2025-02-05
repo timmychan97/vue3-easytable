@@ -1,9 +1,9 @@
 <script>
-import Explain from './explain.md'
-import Usage from './usage.md'
+import API from './api.md'
 import Base from './base.md'
 import Collection from './collection.vue'
-import API from './api.md'
+import Explain from './explain.md'
+import Usage from './usage.md'
 
 export default {
   components: {

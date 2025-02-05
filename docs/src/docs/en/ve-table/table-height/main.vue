@@ -1,8 +1,8 @@
 <script>
-import Explain from './explain.md'
 import AutoHeight from './auto-height.md'
-import FixedHeight from './fixed-height.md'
 import CalcHeight from './calc-height.md'
+import Explain from './explain.md'
+import FixedHeight from './fixed-height.md'
 
 export default {
   name: 'BasicMain',

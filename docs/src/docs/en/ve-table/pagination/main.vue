@@ -1,7 +1,7 @@
 <script>
-import Explain from './explain.md'
 import Basic from './basic.md'
 import Checkbox from './checkbox.md'
+import Explain from './explain.md'
 
 export default {
   name: 'BasicMain',

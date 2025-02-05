@@ -1,6 +1,6 @@
 <script>
-import Base from './base.md'
 import API from './api.md'
+import Base from './base.md'
 
 export default {
   components: { Base, API },

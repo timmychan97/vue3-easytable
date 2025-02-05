@@ -1,6 +1,6 @@
 <script>
-import { db } from '../db'
 import tpl from '@/comp/api-tpl.vue'
+import { db } from '../db'
 
 export default {
   components: { Tpl: tpl },

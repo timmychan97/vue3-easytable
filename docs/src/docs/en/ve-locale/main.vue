@@ -1,8 +1,8 @@
 <script>
-import Usage from './usage.md'
-import SwitchLang from './switch-lang.md'
-import CoverLang from './cover-lang.md'
 import Api from './api.md'
+import CoverLang from './cover-lang.md'
+import SwitchLang from './switch-lang.md'
+import Usage from './usage.md'
 
 export default {
   components: {

@@ -1,9 +1,9 @@
 <script>
 import API from '../api/instance-methods.vue'
 import Explain from './explain.md'
-import ScrollTo from './scroll-to.md'
 import ScrollToColKey from './scroll-to-col-key.md'
 import ScrollToRowKey from './scroll-to-row-key.md'
+import ScrollTo from './scroll-to.md'
 
 export default {
   name: 'BasicMain',

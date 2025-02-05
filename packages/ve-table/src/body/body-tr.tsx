@@ -1,8 +1,8 @@
 import VueDomResizeObserver from '@easytable/common/comps/resize-observer'
 import emitter from '@easytable/common/mixins/emitter'
 import { isEmptyValue } from '@easytable/common/utils'
-import { COMPS_CUSTOM_ATTRS, COMPS_NAME, EMIT_EVENTS } from '../util/constant'
 import { clsName, getEmitEventName } from '../util'
+import { COMPS_CUSTOM_ATTRS, COMPS_NAME, EMIT_EVENTS } from '../util/constant'
 import BodyTd from './body-td'
 
 export default defineComponent({

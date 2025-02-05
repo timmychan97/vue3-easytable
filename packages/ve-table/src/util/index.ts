@@ -1,9 +1,9 @@
-import { MOUSE_EVENT_CLICK_TYPE } from '@easytable/common/utils/constant'
 import {
   isEmptyArray,
   isEmptyValue,
   isFunction,
 } from '@easytable/common/utils'
+import { MOUSE_EVENT_CLICK_TYPE } from '@easytable/common/utils/constant'
 import { getRandomId } from '@easytable/common/utils/random'
 import {
   AUTOFILLING_DIRECTION,
@@ -438,8 +438,8 @@ export function setHeaderContextmenuOptions({
 
     const colCount
             = selectionRangeIndexes.endColIndex
-            - selectionRangeIndexes.startColIndex
-            + 1
+              - selectionRangeIndexes.startColIndex
+              + 1
 
     const { contextmenus, beforeShow } = contextmenuHeaderOption
 
@@ -575,12 +575,12 @@ export function setBodyContextmenuOptions({
 
     const rowCount
             = selectionRangeIndexes.endRowIndex
-            - selectionRangeIndexes.startRowIndex
-            + 1
+              - selectionRangeIndexes.startRowIndex
+              + 1
     const colCount
             = selectionRangeIndexes.endColIndex
-            - selectionRangeIndexes.startColIndex
-            + 1
+              - selectionRangeIndexes.startColIndex
+              + 1
 
     const { contextmenus, beforeShow } = contextmenuBodyOption
 
@@ -853,8 +853,9 @@ export function isCellInSelectionRange({
   if (
     colKeys.includes(cellData.colKey)
     && rowKeys.includes(cellData.rowKey)
-  )
+  ) {
     return true
+  }
 
   return false
 }
@@ -1288,8 +1289,9 @@ export function cellAutofill({
           if (
             cellSelectionTableDataRowIndex
             > cellSelectionTableData.length - 1
-          )
+          ) {
             cellSelectionTableDataRowIndex = 0
+          }
 
           tableData[rowIndex][fieldName]
                         = cellSelectionTableData[cellSelectionTableDataRowIndex][
@@ -1383,7 +1385,7 @@ export function cellAutofill({
             cellSelectionTableDataColIndex
             > sourceSelectionRangeIndexes.startColIndex
             + (sourceSelectionRangeIndexes.endColIndex
-            - sourceSelectionRangeIndexes.startColIndex)
+              - sourceSelectionRangeIndexes.startColIndex)
           ) {
             cellSelectionTableDataColIndex
                             = sourceSelectionRangeIndexes.startColIndex
@@ -1569,8 +1571,9 @@ export function cancelColumnFixed({
       if (
         colItem.fixed === fixedType
         && !isOperationColumn(colItem.key, colgroups)
-      )
+      ) {
         colItem.fixed = ''
+      }
     }
     else {
       if (colItem.fixed === fixedType)

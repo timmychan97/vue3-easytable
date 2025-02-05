@@ -256,14 +256,14 @@ export default defineComponent({
                       <div class="proficiency-span-container">
                         <span
                           class={
-                                                        `proficiency-span ${
-                                                    colorClass}`
-                                                    }
+                            `proficiency-span ${
+                              colorClass}`
+                          }
                           style={
-                                                        `width:${
-                                                        cellData
-                          }%;`
-                                                    }
+                            `width:${
+                              cellData
+                            }%;`
+                          }
                         >
                           {cellData}
                           %
@@ -305,9 +305,9 @@ export default defineComponent({
                         <span
                           class="skill-span"
                           style={
-                                                        `background-color:${
-                                                        skill.color}`
-                                                    }
+                            `background-color:${
+                              skill.color}`
+                          }
                         >
                           {skill.name}
                         </span>

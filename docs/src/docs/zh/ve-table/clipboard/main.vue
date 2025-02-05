@@ -1,8 +1,8 @@
 <script>
 import API from '../api/clipboard-option-props.vue'
+import Base from './base.md'
 import Explain from './explain.md'
 import ShortCuts from './shortcuts.md'
-import Base from './base.md'
 
 export default {
   name: 'BasicMain',

@@ -5,11 +5,11 @@
 你可以通过 `VeLocal` 组件实现多语言支持，使用 `VeLocal.use` 方法可以切换当前使用的语言。
 
 ```javascript
-import { VeLocale } from "vue-easytable";
+import { VeLocale } from 'vue-easytable'
 // 引入英文语言包
-import enUS from "vue-easytable/libs/locale/lang/en-US.js";
+import enUS from 'vue-easytable/libs/locale/lang/en-US.js'
 
-VeLocale.use(enUS);
+VeLocale.use(enUS)
 ```
 
 :::anchor 修改语言包
@@ -17,15 +17,15 @@ VeLocale.use(enUS);
 通过 `VeLocale.update` 方法可以实现文案的修改和扩展。
 
 ```javascript
-import { VeLocale } from "vue-easytable";
+import { VeLocale } from 'vue-easytable'
 
 const lang = {
-    pagination: {
-        goto: "跳转到",
-    },
-};
+  pagination: {
+    goto: '跳转到',
+  },
+}
 
-VeLocale.update(lang);
+VeLocale.update(lang)
 ```
 
 :::anchor CDN 方式加载语言文件

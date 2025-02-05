@@ -68,7 +68,7 @@ function eidt() {
       if (result) {
         result
           = locale[currentDocLang.value].eidtDemoUrlPrefix
-          + result
+            + result
         window.open(result, '_blank')
       }
     }

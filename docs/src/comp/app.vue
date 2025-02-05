@@ -1,12 +1,12 @@
 <script>
+import { getVersions } from '@/service/index.js'
+import { getDocTheme, setDocTheme } from '@/utils/cookies'
 import { version as latestVersion } from '../../../package.json'
+import clickoutside from './directives/clickoutside.js'
 import locale from './locale'
 import I18nMixins from './mixins/i18n-mixins'
-import ThemeSwitchMixins from './mixins/theme-switch-mixins.js'
-import clickoutside from './directives/clickoutside.js'
-import { getDocTheme, setDocTheme } from '@/utils/cookies'
 
-import { getVersions } from '@/service/index.js'
+import ThemeSwitchMixins from './mixins/theme-switch-mixins.js'
 
 export default {
   directives: {
@@ -140,8 +140,9 @@ export default {
         && matched.some(
           x => x.path === `/${this.currentDocLang}${item.path}`,
         )
-      )
+      ) {
         result = 'link-active'
+      }
 
       return result
     },

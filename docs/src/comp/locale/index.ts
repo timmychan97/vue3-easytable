@@ -1,5 +1,5 @@
-import zhCN from '@easytable/vue/libs/locale/lang/zh-CN'
 import enUS from '@easytable/vue/libs/locale/lang/en-US'
+import zhCN from '@easytable/vue/libs/locale/lang/zh-CN'
 
 export default {
   zh: {

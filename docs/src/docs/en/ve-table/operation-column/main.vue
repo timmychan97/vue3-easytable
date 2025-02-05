@@ -1,6 +1,6 @@
 <script>
-import Explain from './explain.md'
 import Base from './base.md'
+import Explain from './explain.md'
 
 export default {
   name: 'BasicMain',

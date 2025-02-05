@@ -19,7 +19,7 @@ const resizeHandler = function (entries: any) {
 }
 
 /* istanbul ignore next */
-export const addResizeListener = function (element: HTMLElement & Record<string, any>, fn: Function) {
+export const addResizeListener = function (element: HTMLElement & Record<string, any>, fn: () => void) {
   if (!element.__resizeListeners__) {
     element.__resizeListeners__ = []
     element.__ro__ = new ResizeObserver(resizeHandler)
@@ -29,7 +29,7 @@ export const addResizeListener = function (element: HTMLElement & Record<string,
 }
 
 /* istanbul ignore next */
-export const removeResizeListener = function (element: HTMLElement & Record<string, any>, fn: Function) {
+export const removeResizeListener = function (element: HTMLElement & Record<string, any>, fn: () => void) {
   if (!element || !element.__resizeListeners__)
     return
   element.__resizeListeners__.splice(

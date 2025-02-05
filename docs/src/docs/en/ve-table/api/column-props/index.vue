@@ -1,9 +1,9 @@
 <script>
+import tpl from '@/comp/api-tpl.vue'
 import { db } from '../db'
 import EllipsisProps from './ellipsis-props'
-import FilterProps from './filter-props'
 import FilterCustomProps from './filter-custom-props'
-import tpl from '@/comp/api-tpl.vue'
+import FilterProps from './filter-props'
 
 export default {
   components: { Tpl: tpl },

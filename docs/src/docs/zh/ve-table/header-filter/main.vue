@@ -1,10 +1,10 @@
 <script>
 import API from '../api/column-props/filter-props.vue'
-import Explain from './explain.md'
-import SingleFilter from './single-filter.md'
-import MutilFilter from './mutil-filter.md'
-import MixtureFilter from './mixture-filter.md'
 import CustomIcon from './custom-icon.md'
+import Explain from './explain.md'
+import MixtureFilter from './mixture-filter.md'
+import MutilFilter from './mutil-filter.md'
+import SingleFilter from './single-filter.md'
 
 export default {
   name: 'BasicMain',

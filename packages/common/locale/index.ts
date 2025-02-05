@@ -1,6 +1,6 @@
+import type { LocaleMessage } from './types'
 import locale from '@easytable/ve-locale'
 import { isFunction } from '../utils/index'
-import type { LocaleMessage } from './types'
 
 /*
  * @createI18N

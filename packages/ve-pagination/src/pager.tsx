@@ -1,6 +1,6 @@
-import VeIcon from '@easytable/ve-icon'
-import { createLocale } from '@easytable/common/utils/index'
 import { ICON_NAMES } from '@easytable/common/utils/constant'
+import { createLocale } from '@easytable/common/utils/index'
+import VeIcon from '@easytable/ve-icon'
 import { clsName } from './util'
 import { LOCALE_COMP_NAME } from './util/constant'
 

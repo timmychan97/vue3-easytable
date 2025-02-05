@@ -5,11 +5,11 @@
 You can implement multilingual support using the `VeLocal` component, using `VeLocal.use` method toggles the currently used language.
 
 ```javascript
-import { VeLocale } from "vue-easytable";
+import { VeLocale } from 'vue-easytable'
 // import language
-import enUS from "vue-easytable/libs/locale/lang/en-US.js";
+import enUS from 'vue-easytable/libs/locale/lang/en-US.js'
 
-VeLocale.use(enUS);
+VeLocale.use(enUS)
 ```
 
 :::anchor Override Default Configs
@@ -17,15 +17,15 @@ VeLocale.use(enUS);
 Use `Locale.update` method to modify the default configs.
 
 ```javascript
-import { VeLocale } from "vue-easytable";
+import { VeLocale } from 'vue-easytable'
 
 const lang = {
-    pagination: {
-        goto: "goto",
-    },
-};
+  pagination: {
+    goto: 'goto',
+  },
+}
 
-VeLocale.update(lang);
+VeLocale.update(lang)
 ```
 
 :::anchor Using By CDN

@@ -1,17 +1,17 @@
 <script>
-import FooterSummary from '../footer-summary/virtual-scroll.md'
 import API from '../api/virtual-scroll-option-props.vue'
-import Explain from './explain.md'
-import Base from './base.md'
+import FooterSummary from '../footer-summary/virtual-scroll.md'
 import AutoHeight from './auto-height.md'
-import RowCheckbox from './row-checkbox.md'
-import RowRadio from './row-radio.md'
-import RowExpand from './row-expand.md'
-import RowExpandTable from './row-expand-table.md'
+import Base from './base.md'
 import ColumnFixed from './column-fixed.md'
-import RowIndex from './row-index.md'
 import CombineLazyLoad from './combine-lazy-load.md'
 import DynamicEnable from './dynamic-enable.md'
+import Explain from './explain.md'
+import RowCheckbox from './row-checkbox.md'
+import RowExpandTable from './row-expand-table.md'
+import RowExpand from './row-expand.md'
+import RowIndex from './row-index.md'
+import RowRadio from './row-radio.md'
 
 export default {
   name: 'BasicMain',

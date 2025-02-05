@@ -1,10 +1,10 @@
 <script>
-import API1 from '../api/contextmenu-header-option-props'
 import API2 from '../api/contextmenu-body-option-props'
-import Explain from './explain.md'
-import ContextmenuTypes from './contextmenu-types.md'
+import API1 from '../api/contextmenu-header-option-props'
 import Base from './base.md'
+import ContextmenuTypes from './contextmenu-types.md'
 import Custom from './custom.md'
+import Explain from './explain.md'
 
 export default {
   name: 'BasicMain',

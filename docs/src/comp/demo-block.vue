@@ -1,12 +1,12 @@
 <script lang="ts" setup>
+import CodeSandBoxOnline from '@/comp/online-edit/code-sand-box/index'
+
+import { stripScript, stripStyle, stripTemplate } from '@/utils/index'
 // 最外层
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, toRefs, useSlots, watch } from 'vue'
-
 import { version } from '../../../package.json'
 import locale from './locale'
 import useI18n from './mixins/i18n-mixins'
-import { stripScript, stripStyle, stripTemplate } from '@/utils/index'
-import CodeSandBoxOnline from '@/comp/online-edit/code-sand-box/index'
 
 // const version = '0.0.1'
 
@@ -115,7 +115,7 @@ function scrollHandler() {
   // 44px 为自身高度
   data.fixedControl
                 = bottom > document.documentElement.clientHeight
-                && top + 44 <= document.documentElement.clientHeight
+                  && top + 44 <= document.documentElement.clientHeight
 
   controlEl.value!.style.left = data.fixedControl
     ? `${left}px`

@@ -1,8 +1,8 @@
 <script lang="ts">
-import Explain from './explain.md'
 import AutoWidth from './auto-width.md'
-import FixedWidth from './fixed-width.md'
 import CalcWidth from './calc-width.md'
+import Explain from './explain.md'
+import FixedWidth from './fixed-width.md'
 import PercentWidth from './percent-width.md'
 
 export default {

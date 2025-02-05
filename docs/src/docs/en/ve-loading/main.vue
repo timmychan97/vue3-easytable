@@ -1,10 +1,10 @@
 <script>
-import Usage from './usage.md'
-import Container from './container.md'
-import Fullscreen from './fullscreen.md'
-import Custom from './custom.md'
-import Collection from './collection.vue'
 import Api from './api.md'
+import Collection from './collection.vue'
+import Container from './container.md'
+import Custom from './custom.md'
+import Fullscreen from './fullscreen.md'
+import Usage from './usage.md'
 
 export default {
   components: {

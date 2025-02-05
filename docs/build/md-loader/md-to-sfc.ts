@@ -3,17 +3,18 @@ fork by https://github.com/ElemeFE/element/blob/dev/build/md-loader/index.js
 */
 // const { getOptions } = require("loader-utils");
 import path from 'node:path'
+import { renderContent } from './config'
 import {
   genInlineComponentText,
   stripScript,
   stripStyle,
   stripTemplate,
 } from './util'
-import { renderContent } from './config'
 
 // https://regexr.com/47jlq
 const IMPORT_RE
-  = /import\s+?(?:(?:(?:[\w*\s{},]*)\s+from\s+?)|)(?:(?:".*?")|(?:'.*?'))[\s]*?(?:;|$|)/g
+// eslint-disable-next-line regexp/no-super-linear-backtracking
+  = /import\s+?(?:[\w*\s{},]*\sfrom\s+)?(?:".*?"|'.*?')\s*(?:;|$)/g
 
 export default function mdToSfc(source: string, filename: string) {
   const content = renderContent(source, path.basename(filename))

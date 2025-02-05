@@ -1,6 +1,6 @@
-import { defineComponent } from 'vue'
-import { cloneDeep, debounce } from 'lodash'
-import VeContextmenu from '@easytable/ve-contextmenu'
+import VueDomResizeObserver from '@easytable/common/comps/resize-observer'
+import clickoutside from '@easytable/common/directives/clickoutside'
+import emitter from '@easytable/common/mixins/emitter'
 import {
   createLocale,
   getValByUnit,
@@ -13,42 +13,25 @@ import {
   scrollTo,
 } from '@easytable/common/utils'
 import { KEY_CODES, MOUSE_EVENT_CLICK_TYPE } from '@easytable/common/utils/constant'
-import { getScrollbarWidth } from '@easytable/common/utils/scroll-bar'
+import { isInputKeyCode } from '@easytable/common/utils/event-key-codes'
+import Hooks from '@easytable/common/utils/hooks-manager'
+import { getMouseEventClickType } from '@easytable/common/utils/mouse-event'
 import {
   cancelAnimationTimeout,
   requestAnimationTimeout,
 } from '@easytable/common/utils/request-animation-timeout'
-import Hooks from '@easytable/common/utils/hooks-manager'
-import { getMouseEventClickType } from '@easytable/common/utils/mouse-event'
-import emitter from '@easytable/common/mixins/emitter'
-import clickoutside from '@easytable/common/directives/clickoutside'
-import VueDomResizeObserver from '@easytable/common/comps/resize-observer'
-import { isInputKeyCode } from '@easytable/common/utils/event-key-codes'
+import { getScrollbarWidth } from '@easytable/common/utils/scroll-bar'
+import VeContextmenu from '@easytable/ve-contextmenu'
+import { cloneDeep, debounce } from 'lodash'
 import mitt from 'mitt'
-import {
-  cancelColumnFixed,
-  cellAutofill,
-  clsName,
-  createEmptyRowData,
-  getColKeysByHeaderColumn,
-  getColumnByColkey,
-  getEmitEventName,
-  getLeftmostColKey,
-  getNotFixedTotalWidthByColumnKey,
-  getRowKey,
-  getSelectionRangeData,
-  getSelectionRangeIndexes,
-  getSelectionRangeKeys,
-  initGroupColumns,
-  isCellInSelectionRange,
-  isClearSelectionByBodyCellRightClick,
-  isContextmenuPanelClicked,
-  isOperationColumn,
-  recursiveRemoveColumnByKey,
-  setBodyContextmenuOptions,
-  setColumnFixed,
-  setHeaderContextmenuOptions,
-} from './util/index.js'
+import { defineComponent } from 'vue'
+import Body from './body'
+import Colgroup from './colgroup'
+import ColumnResizer from './column-resizer'
+import EditInput from './editor'
+import Footer from './footer'
+import Header from './header'
+import Selection from './selection'
 import {
   onAfterCopy,
   onAfterCut,
@@ -73,13 +56,30 @@ import {
   INSTANCE_METHODS,
   LOCALE_COMP_NAME,
 } from './util/constant.js'
-import Colgroup from './colgroup'
-import Header from './header'
-import Body from './body'
-import Footer from './footer'
-import EditInput from './editor'
-import Selection from './selection'
-import ColumnResizer from './column-resizer'
+import {
+  cancelColumnFixed,
+  cellAutofill,
+  clsName,
+  createEmptyRowData,
+  getColKeysByHeaderColumn,
+  getColumnByColkey,
+  getEmitEventName,
+  getLeftmostColKey,
+  getNotFixedTotalWidthByColumnKey,
+  getRowKey,
+  getSelectionRangeData,
+  getSelectionRangeIndexes,
+  getSelectionRangeKeys,
+  initGroupColumns,
+  isCellInSelectionRange,
+  isClearSelectionByBodyCellRightClick,
+  isContextmenuPanelClicked,
+  isOperationColumn,
+  recursiveRemoveColumnByKey,
+  setBodyContextmenuOptions,
+  setColumnFixed,
+  setHeaderContextmenuOptions,
+} from './util/index.js'
 
 const t = createLocale(LOCALE_COMP_NAME)
 
@@ -719,15 +719,17 @@ export default defineComponent({
 
       const { cellSelectionOption, rowKeyFieldName } = this
 
-      if (isEmptyValue(rowKeyFieldName))
+      if (isEmptyValue(rowKeyFieldName)) {
         result = false
+      }
 
       else if (
         cellSelectionOption
         && isBoolean(cellSelectionOption.enable)
         && cellSelectionOption.enable === false
-      )
+      ) {
         result = false
+      }
 
       return result
     },
@@ -1520,11 +1522,13 @@ export default defineComponent({
         if (
           !isEmptyValue(normalEndCell.rowKey)
           && !isEmptyValue(normalEndCell.colKey)
-        )
+        ) {
           result = CURRENT_CELL_SELECTION_TYPES.RANGE
+        }
 
-        else
+        else {
           result = CURRENT_CELL_SELECTION_TYPES.SINGLE
+        }
       }
 
       this.currentCellSelectionType = result
@@ -1838,14 +1842,14 @@ export default defineComponent({
           if (isVirtualScroll) {
             diff
                             = headerTotalHeight
-                            - (trOffsetTop
-                            - (containerScrollTop - parentOffsetTop))
+                              - (trOffsetTop
+                                - (containerScrollTop - parentOffsetTop))
           }
           else {
             diff
                             = containerScrollTop
-                            + headerTotalHeight
-                            - trOffsetTop
+                              + headerTotalHeight
+                              - trOffsetTop
           }
 
           if (diff > 0)
@@ -1857,17 +1861,17 @@ export default defineComponent({
           if (isVirtualScroll) {
             diff
                             = trOffsetTop
-                            - (containerScrollTop - parentOffsetTop)
-                            + trClientHeight
-                            + footerTotalHeight
-                            - containerClientHeight
+                              - (containerScrollTop - parentOffsetTop)
+                              + trClientHeight
+                              + footerTotalHeight
+                              - containerClientHeight
           }
           else {
             diff
                             = trOffsetTop
-                            + trClientHeight
-                            + footerTotalHeight
-                            - (containerClientHeight + containerScrollTop)
+                              + trClientHeight
+                              + footerTotalHeight
+                              - (containerClientHeight + containerScrollTop)
           }
 
           if (diff >= 0)
@@ -2053,9 +2057,9 @@ export default defineComponent({
       if (start >= 1) {
         const size
                     = this.virtualScrollPositions[start].top
-                    - (this.virtualScrollPositions[start - aboveCount]
-                      ? this.virtualScrollPositions[start - aboveCount].top
-                      : 0)
+                      - (this.virtualScrollPositions[start - aboveCount]
+                        ? this.virtualScrollPositions[start - aboveCount].top
+                        : 0)
         startOffset
                     = this.virtualScrollPositions[start - 1].bottom - size
       }
@@ -2711,8 +2715,9 @@ export default defineComponent({
         if (
           JSON.stringify(colKeys)
           !== JSON.stringify([currentCell.colKey])
-        )
+        ) {
           this.$refs[this.cellSelectionRef].clearCurrentCellRect()
+        }
 
         this.$refs[this.cellSelectionRef].clearNormalEndCellRect()
       }
@@ -2902,8 +2907,9 @@ export default defineComponent({
         editingCell
         && editingCell.rowKey === rowKey
         && editingCell.colKey === colKey
-      )
+      ) {
         return false
+      }
 
       if (isCellEditing)
         this[INSTANCE_METHODS.STOP_EDITING_CELL]()
@@ -3505,8 +3511,9 @@ export default defineComponent({
         || isEmptyValue(startColKey)
         || isEmptyValue(endRowKey)
         || isEmptyValue(endColKey)
-      )
+      ) {
         return false
+      }
 
       this.cellSelectionCurrentCellChange({
         rowKey: startRowKey,
@@ -3705,8 +3712,9 @@ export default defineComponent({
       if (
         editingCell.rowKey === rowKey
         && editingCell.colKey === colKey
-      )
+      ) {
         return false
+      }
 
       const currentColumn = colgroups.find(x => x.key === colKey)
       // 当前列是否可编辑
@@ -4102,7 +4110,7 @@ export default defineComponent({
           {enableCellSelection && <EditInput {...editInputProps} />}
           {/* contextmenu */}
           {(this.enableHeaderContextmenu
-          || this.enableBodyContextmenu) && (
+            || this.enableBodyContextmenu) && (
             <VeContextmenu {...contextmenuProps} />
           )}
           {/* column resizer */}

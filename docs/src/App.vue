@@ -1,12 +1,12 @@
 <script setup lang="ts">
+import { getVersions } from '@/service/index'
+import { getDocTheme, setDocTheme } from '@/utils/cookies'
 import { VeLocale } from '@easytable/vue'
 import { version as latestVersion } from '../../packages/vue/package.json'
+import vClickoutside from './comp/directives/clickoutside'
 import locale from './comp/locale'
 import useI18n from './comp/mixins/i18n-mixins'
 import useThemeSwitch from './comp/mixins/theme-switch-mixins'
-import vClickoutside from './comp/directives/clickoutside'
-import { getDocTheme, setDocTheme } from '@/utils/cookies'
-import { getVersions } from '@/service/index'
 
 const route = useRoute()
 const router = useRouter()
@@ -126,8 +126,9 @@ function activeMenuClass(item: any) {
     && matched.some(
       x => x.path === `/${currentDocLang.value}${item.path}`,
     )
-  )
+  ) {
     result = 'link-active'
+  }
 
   return result
 }

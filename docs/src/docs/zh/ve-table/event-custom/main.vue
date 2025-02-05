@@ -1,12 +1,12 @@
 <script>
-import OnFooterRow from '../footer-summary/on-footer-row.md'
-import OnFooterCell from '../footer-summary/on-footer-cell.md'
 import API from '../api/event-custom-option-props.vue'
+import OnFooterCell from '../footer-summary/on-footer-cell.md'
+import OnFooterRow from '../footer-summary/on-footer-row.md'
 import Explain from './explain.md'
-import OnBodyRow from './on-body-row.md'
 import OnBodyCell from './on-body-cell.md'
-import OnHeaderRow from './on-header-row.md'
+import OnBodyRow from './on-body-row.md'
 import OnHeaderCell from './on-header-cell.md'
+import OnHeaderRow from './on-header-row.md'
 
 export default {
   name: 'EventCustom',

@@ -1,8 +1,8 @@
 <script>
 import API from '../api/column-width-resize-option-props.vue'
-import Explain from './explain.md'
 import Basic from './basic.md'
 import DisableResizing from './disable-resizing.md'
+import Explain from './explain.md'
 
 export default {
   name: 'BasicMain',

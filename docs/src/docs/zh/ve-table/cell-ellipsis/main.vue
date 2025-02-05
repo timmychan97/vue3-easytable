@@ -1,9 +1,9 @@
 <script lang="ts" setup>
 import API from '../api/column-props/ellipsis-props.vue'
-import Explain from './explain.md'
 import Base from './base.md'
-import Ellipsis from './ellipsis.md'
 import EllipsisLine from './ellipsis-line.md'
+import Ellipsis from './ellipsis.md'
+import Explain from './explain.md'
 
 defineOptions({
   name: 'BasicMain',

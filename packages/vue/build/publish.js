@@ -1,5 +1,5 @@
-const { resolve } = require('node:path')
 const { exec } = require('node:child_process')
+const { resolve } = require('node:path')
 const { move, copyFile, writeFile, readFile, remove } = require('fs-extra')
 
 async function handlePublish() {

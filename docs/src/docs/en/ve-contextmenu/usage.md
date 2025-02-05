@@ -3,10 +3,10 @@
 import `VeContextmenu`
 
 ```javascript
-import Vue from "vue";
-import { VeContextmenu } from "vue-easytable";
+import Vue from 'vue'
+import { VeContextmenu } from 'vue-easytable'
 
-Vue.use(VeContextmenu);
+Vue.use(VeContextmenu)
 ```
 
 use

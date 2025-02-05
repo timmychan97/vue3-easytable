@@ -1,15 +1,15 @@
 <script>
 import API from '../api/expand-option-props.vue'
-import Explain from './explain.md'
 import Base from './base.md'
-import ExpandTrigger from './expand-trigger.md'
-import ExpandColumn from './expand-column.md'
-import Expandable from './expandable.md'
 import DefaultExpand from './default-expand.md'
+import ExpandChart from './expand-chart.md'
+import ExpandColumn from './expand-column.md'
 import ExpandControl from './expand-control.md'
 import ExpandEvent from './expand-event.md'
-import ExpandChart from './expand-chart.md'
 import ExpandTable from './expand-table.md'
+import ExpandTrigger from './expand-trigger.md'
+import Expandable from './expandable.md'
+import Explain from './explain.md'
 
 export default {
   name: 'CustomCell',

@@ -1,10 +1,10 @@
-import VeSelect from '@easytable/ve-select'
-import VeIcon from '@easytable/ve-icon'
-import { createLocale } from '@easytable/common/utils/index'
 import { ICON_NAMES } from '@easytable/common/utils/constant'
-import { COMPS_NAME, EMIT_EVENTS, LOCALE_COMP_NAME } from './util/constant'
-import { clsName } from './util'
+import { createLocale } from '@easytable/common/utils/index'
+import VeIcon from '@easytable/ve-icon'
+import VeSelect from '@easytable/ve-select'
 import Pager from './pager'
+import { clsName } from './util'
+import { COMPS_NAME, EMIT_EVENTS, LOCALE_COMP_NAME } from './util/constant'
 
 const t = createLocale(LOCALE_COMP_NAME)
 
@@ -300,10 +300,10 @@ export default defineComponent({
     const template = (
       <ul class="ve-pagination">
         {
-      this.layout.map((item) => {
-        return comps[item]
-      })
-    }
+          this.layout.map((item) => {
+            return comps[item]
+          })
+        }
       </ul>
     )
 

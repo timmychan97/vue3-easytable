@@ -1,5 +1,5 @@
-import { COMPS_NAME, EMIT_EVENTS } from './util/constant'
 import { provideCheckboxGroup } from './uses'
+import { COMPS_NAME, EMIT_EVENTS } from './util/constant'
 
 export default defineComponent({
   name: COMPS_NAME.VE_CHECKBOX_GROUP,

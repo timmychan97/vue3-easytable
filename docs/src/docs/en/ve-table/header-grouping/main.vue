@@ -1,7 +1,7 @@
 <script>
 import Explain from './explain.md'
-import GroupingHeader from './grouping-header.md'
 import GroupingHeaderFixedColumn from './grouping-header-fixed-column.md'
+import GroupingHeader from './grouping-header.md'
 
 export default {
   name: 'BasicMain',

@@ -1,8 +1,8 @@
 <script lang="ts" setup>
 import type { PropType } from 'vue'
+import { goTobyAnchorId } from '@/utils/index'
 import locale from './locale'
 import useI18n from './mixins/i18n-mixins'
-import { goTobyAnchorId } from '@/utils/index'
 
 const props = defineProps({
   catalogData: {

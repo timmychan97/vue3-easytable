@@ -1,8 +1,8 @@
-import { nextTick } from 'vue'
 import { addClass, removeClass } from '@easytable/common/utils/dom'
-import { COMPS_NAME, SPIN_NAMES } from './util/constant'
+import { nextTick } from 'vue'
 import VeLoading from './loading'
 import { clsName } from './util'
+import { COMPS_NAME, SPIN_NAMES } from './util/constant'
 
 type VeLoadingProps = NonNullable<Partial<(typeof VeLoading)['__defaults']>>
 

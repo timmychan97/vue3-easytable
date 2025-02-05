@@ -1,6 +1,6 @@
-import { debounce } from 'lodash'
 import emitter from '@easytable/common/mixins/emitter'
 import { isBoolean, isEmptyValue } from '@easytable/common/utils/index'
+import { debounce } from 'lodash'
 import {
   clsName,
   getColKeysByFixedTypeWithinColKeys,
@@ -151,8 +151,9 @@ export default defineComponent({
               < virtualScrollVisibleIndexs.start
               || currentCell.rowIndex
               > virtualScrollVisibleIndexs.end
-            )
+            ) {
               result = false
+            }
           }
 
           if (
@@ -161,15 +162,16 @@ export default defineComponent({
           ) {
             if (
               (currentCell.rowIndex
-              < virtualScrollVisibleIndexs.start
-              && normalEndCell.rowIndex
-              < virtualScrollVisibleIndexs.start)
+                < virtualScrollVisibleIndexs.start
+                && normalEndCell.rowIndex
+                < virtualScrollVisibleIndexs.start)
               || (currentCell.rowIndex
-              > virtualScrollVisibleIndexs.end
-              && normalEndCell.rowIndex
-              > virtualScrollVisibleIndexs.end)
-            )
+                > virtualScrollVisibleIndexs.end
+                && normalEndCell.rowIndex
+                > virtualScrollVisibleIndexs.end)
+            ) {
               result = false
+            }
           }
         }
       }
@@ -186,8 +188,9 @@ export default defineComponent({
           && !directionY
           && isBoolean(directionX)
           && !directionX
-        )
+        ) {
           result = false
+        }
       }
       else {
         result = false
@@ -211,8 +214,9 @@ export default defineComponent({
         if (
           colgroups[index + 1].fixed === COLUMN_FIXED_TYPE.RIGHT
           && colgroups[index].fixed !== COLUMN_FIXED_TYPE.RIGHT
-        )
+        ) {
           isLastColumn = true
+        }
       }
 
       let isLastRow = false
@@ -575,9 +579,9 @@ export default defineComponent({
                 */
         if (
           (isCurrentCellOverflow
-          && !this.cellSelectionRect.currentCellRect.height)
+            && !this.cellSelectionRect.currentCellRect.height)
           || (isNormalEndCellOverflow
-          && !this.cellSelectionRect.normalEndCellRect.height)
+            && !this.cellSelectionRect.normalEndCellRect.height)
         ) {
           const mackUpRectParams = {
             tableLeft,
@@ -798,9 +802,9 @@ export default defineComponent({
       if (leftmostColKey === currentCell.colKey) {
         borders.borderWidth
                     = normalEndCellRect.left
-                    - currentCellRect.left
-                    + normalEndCellRect.width
-                    + 1
+                      - currentCellRect.left
+                      + normalEndCellRect.width
+                      + 1
 
         borders.topBorder.left = currentCellRect.left - 1
         borders.bottomBorder.left = currentCellRect.left - 1
@@ -812,9 +816,9 @@ export default defineComponent({
       else if (leftmostColKey === normalEndCell.colKey) {
         borders.borderWidth
                     = currentCellRect.left
-                    - normalEndCellRect.left
-                    + currentCellRect.width
-                    + 1
+                      - normalEndCellRect.left
+                      + currentCellRect.width
+                      + 1
 
         borders.topBorder.left = normalEndCellRect.left - 1
         borders.rightBorder.left
@@ -827,8 +831,8 @@ export default defineComponent({
       if (normalEndCellRect.top > currentCellRect.top) {
         borders.borderHeight
                     = normalEndCellRect.top
-                    - currentCellRect.top
-                    + normalEndCellRect.height
+                      - currentCellRect.top
+                      + normalEndCellRect.height
 
         borders.topBorder.top = currentCellRect.top - 1
         borders.rightBorder.top = currentCellRect.top
@@ -840,8 +844,8 @@ export default defineComponent({
       else if (normalEndCellRect.top <= currentCellRect.top) {
         borders.borderHeight
                     = currentCellRect.top
-                    - normalEndCellRect.top
-                    + currentCellRect.height
+                      - normalEndCellRect.top
+                      + currentCellRect.height
 
         borders.topBorder.top = normalEndCellRect.top - 1
         borders.rightBorder.top = normalEndCellRect.top
@@ -1000,16 +1004,17 @@ export default defineComponent({
         borders.borderWidth = areaPostions.borderWidth
         borders.borderHeight
                     = autoFillEndCellRect.top
-                    - areaPostions.bottomBorder.top
-                    + autoFillEndCellRect.height
+                      - areaPostions.bottomBorder.top
+                      + autoFillEndCellRect.height
 
         borders.rightBorder.top = areaPostions.bottomBorder.top
         borders.rightBorder.left = areaPostions.rightBorder.left
         if (
           currentCellSelectionType
           === CURRENT_CELL_SELECTION_TYPES.SINGLE
-        )
+        ) {
           borders.rightBorder.left++
+        }
 
         borders.leftBorder.top = areaPostions.bottomBorder.top
         borders.leftBorder.left = areaPostions.leftBorder.left
@@ -1039,8 +1044,9 @@ export default defineComponent({
         if (
           currentCellSelectionType
           === CURRENT_CELL_SELECTION_TYPES.SINGLE
-        )
+        ) {
           borders.rightBorder.left++
+        }
 
         borders.leftBorder.top = autoFillEndCellRect.top
         borders.leftBorder.left = areaPostions.leftBorder.left
@@ -1062,9 +1068,9 @@ export default defineComponent({
 
         borders.borderWidth
                     = autoFillEndCellRect.left
-                    - areaPostions.rightBorder.left
-                    + autoFillEndCellRect.width
-                    + 1
+                      - areaPostions.rightBorder.left
+                      + autoFillEndCellRect.width
+                      + 1
         borders.borderHeight = areaPostions.borderHeight
 
         borders.topBorder.top = areaPostions.topBorder.top
@@ -1116,16 +1122,18 @@ export default defineComponent({
         if (
           autofillingDirection === AUTOFILLING_DIRECTION.LEFT
           || autofillingDirection === AUTOFILLING_DIRECTION.RIGHT
-        )
+        ) {
           return false
+        }
       }
 
       if (isBoolean(directionY) && !directionY) {
         if (
           autofillingDirection === AUTOFILLING_DIRECTION.UP
           || autofillingDirection === AUTOFILLING_DIRECTION.DOWN
-        )
+        ) {
           return false
+        }
       }
 
       const totalColKeys = getColKeysByRangeColKeys({
@@ -1560,7 +1568,7 @@ export default defineComponent({
 
     const fixedLeftAutoFillArea
             = fixedLeftSelectionCurrent.autoFillArea
-            || fixedLeftSelectionArea.autoFillArea
+              || fixedLeftSelectionArea.autoFillArea
 
     // middle
     const middleSelectionCurrent = this.getSelectionCurrent({
@@ -1572,7 +1580,7 @@ export default defineComponent({
 
     const middleAutoFillArea
             = middleSelectionCurrent.autoFillArea
-            || middleSelectionArea.autoFillArea
+              || middleSelectionArea.autoFillArea
 
     // fixed right
     const fixedRightSelectionCurrent = this.getSelectionCurrent({
@@ -1584,7 +1592,7 @@ export default defineComponent({
 
     const fixedRightAutoFillArea
             = fixedRightSelectionCurrent.autoFillArea
-            || fixedRightSelectionArea.autoFillArea
+              || fixedRightSelectionArea.autoFillArea
 
     return (
       <div

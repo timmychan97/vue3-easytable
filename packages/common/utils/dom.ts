@@ -4,7 +4,7 @@ https://github.com/ElemeFE/element
 */
 
 const trim = function (string: string) {
-  return (string || '').replace(/^[\s\uFEFF]+|[\s\uFEFF]+$/g, '')
+  return (string || '').replace(/^\s+|\s+$/g, '')
 }
 
 // add class
@@ -172,10 +172,10 @@ export function getMousePosition(event: MouseEvent) {
   else {
     x
             = ((doc && doc.scrollLeft) || (body && body.scrollLeft) || 0)
-            - ((doc && doc.clientLeft) || (body && body.clientLeft) || 0)
+              - ((doc && doc.clientLeft) || (body && body.clientLeft) || 0)
     y
             = ((doc && doc.scrollTop) || (body && body.scrollTop) || 0)
-            - ((doc && doc.clientTop) || (body && body.clientTop) || 0)
+              - ((doc && doc.clientTop) || (body && body.clientTop) || 0)
   }
   x += event.clientX
   y += event.clientY

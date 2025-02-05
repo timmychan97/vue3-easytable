@@ -1,10 +1,10 @@
 <script>
-import SingleSelect from './single-select.md'
+import API from './api.md'
+import callbackMethods from './callback-methods.md'
+import CustomContent from './custom-content.md'
 import MultipleSelect from './multiple-select.md'
 import Operation from './operation.md'
-import CustomContent from './custom-content.md'
-import callbackMethods from './callback-methods.md'
-import API from './api.md'
+import SingleSelect from './single-select.md'
 
 export default {
   components: {

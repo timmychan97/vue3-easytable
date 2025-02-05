@@ -1,9 +1,9 @@
 <script>
 import API from '../api/row-style-option-props.vue'
-import Explain from './explain.md'
-import RowStripe from './row-stripe.md'
-import HoverHighlight from './hover-highlight.md'
 import ClickHighlight from './click-highlight.md'
+import Explain from './explain.md'
+import HoverHighlight from './hover-highlight.md'
+import RowStripe from './row-stripe.md'
 
 export default {
   name: 'BasicMain',

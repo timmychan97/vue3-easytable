@@ -1,7 +1,7 @@
-import VeIcon from '@easytable/ve-icon'
-import { getValByUnit, isEmptyValue } from '@easytable/common/utils'
 import emitter from '@easytable/common/mixins/emitter'
+import { getValByUnit, isEmptyValue } from '@easytable/common/utils'
 import { ICON_NAMES } from '@easytable/common/utils/constant'
+import VeIcon from '@easytable/ve-icon'
 import {
   clsName,
   getColKeysByHeaderColumn,
@@ -9,9 +9,9 @@ import {
   getFixedTotalWidthByColumnKey,
 } from '../util'
 import { COLUMN_TYPES, COMPS_NAME, EMIT_EVENTS } from '../util/constant'
+import HeaderCheckboxContent from './header-checkbox-content'
 import HeaderFilterContent from './header-filter-content'
 import HeaderFilterCustomContent from './header-filter-custom-content'
-import HeaderCheckboxContent from './header-checkbox-content'
 
 export default defineComponent({
   name: COMPS_NAME.VE_TABLE_THADER_Th,
@@ -298,7 +298,7 @@ export default defineComponent({
           if (
             (fixed === 'left' && columnIndex > 0)
             || (fixed === 'right'
-            && columnIndex < colgroups.length - 1)
+              && columnIndex < colgroups.length - 1)
           ) {
             totalWidth = getFixedTotalWidthByColumnKey({
               colgroups,
@@ -599,9 +599,10 @@ export default defineComponent({
 
         if (
           this.isSortableCloumn
-            && e.target instanceof HTMLTableCellElement
-        )
+          && e.target instanceof HTMLTableCellElement
+        ) {
           this.sortChange()
+        }
       },
       onDblclick: (e) => {
         this.cellDblclick(e, dblclick)

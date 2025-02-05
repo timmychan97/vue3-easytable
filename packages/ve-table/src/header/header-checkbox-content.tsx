@@ -1,7 +1,7 @@
-import VeCheckbox from '@easytable/ve-checkbox'
 import emitter from '@easytable/common/mixins/emitter'
-import { COMPS_NAME, EMIT_EVENTS } from '../util/constant'
+import VeCheckbox from '@easytable/ve-checkbox'
 import { clsName } from '../util'
+import { COMPS_NAME, EMIT_EVENTS } from '../util/constant'
 
 export default defineComponent({
   name: COMPS_NAME.VE_TABLE_HEADER_CHECKBOX_CONTENT,

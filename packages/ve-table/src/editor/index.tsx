@@ -1,11 +1,11 @@
-import { debounce } from 'lodash'
-import emitter from '@easytable/common/mixins/emitter'
 import focus from '@easytable/common/directives/focus.js'
+import emitter from '@easytable/common/mixins/emitter'
 import { autoResize } from '@easytable/common/utils/auto-resize'
-import { isEmptyValue } from '@easytable/common/utils/index.js'
 import { getCaretPosition, setCaretPosition } from '@easytable/common/utils/dom'
-import { COMPS_NAME, EMIT_EVENTS, HOOKS_NAME } from '../util/constant'
+import { isEmptyValue } from '@easytable/common/utils/index.js'
+import { debounce } from 'lodash'
 import { clsName, getFixedTotalWidthByColumnKey } from '../util'
+import { COMPS_NAME, EMIT_EVENTS, HOOKS_NAME } from '../util/constant'
 import { INSTANCE_METHODS } from './constant'
 
 export default defineComponent({
@@ -112,8 +112,9 @@ export default defineComponent({
       if (
         !isEmptyValue(currentCell.rowKey)
         && !isEmptyValue(currentCell.colKey)
-      )
+      ) {
         result = colgroups.find(x => x.key === currentCell.colKey)
+      }
 
       return result
     },

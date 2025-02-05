@@ -1,6 +1,6 @@
 <script>
-import Explain from './explain.md'
 import Base from './base.md'
+import Explain from './explain.md'
 import Ranking from './ranking.md'
 
 export default {

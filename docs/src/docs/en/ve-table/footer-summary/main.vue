@@ -1,13 +1,13 @@
 <script>
-import Explain from './explain.md'
 import Base from './base.md'
-import CustomCell from './custom-cell.md'
-import CellStyle from './cell-style.md'
 import CellSpan from './cell-span.md'
-import OnFooterRow from './on-footer-row.md'
-import OnFooterCell from './on-footer-cell.md'
-import FooterFixed from './footer-fixed.md'
+import CellStyle from './cell-style.md'
+import CustomCell from './custom-cell.md'
+import Explain from './explain.md'
 import FooterColumnFixed from './footer-column-fixed.md'
+import FooterFixed from './footer-fixed.md'
+import OnFooterCell from './on-footer-cell.md'
+import OnFooterRow from './on-footer-row.md'
 import VirtualScroll from './virtual-scroll.md'
 
 export default {

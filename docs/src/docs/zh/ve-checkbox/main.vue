@@ -1,8 +1,8 @@
 <script>
-import checkboxSingle from './checkbox-single.md'
-import checkboxMultipleSimple from './checkbox-multiple-simple.md'
-import checkboxMultipleAdvanced from './checkbox-multiple-advanced.md'
 import API from './api.md'
+import checkboxMultipleAdvanced from './checkbox-multiple-advanced.md'
+import checkboxMultipleSimple from './checkbox-multiple-simple.md'
+import checkboxSingle from './checkbox-single.md'
 
 export default {
   components: {

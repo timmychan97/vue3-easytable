@@ -16,5 +16,9 @@ export default antfu({
     '**/font/*.js',
     '**/*.spec.js',
     '**/*.spec.jsx',
+    '**/*.md',
+    '**.md',
+    '**/*.js',
+    '*.js',
   ],
 })

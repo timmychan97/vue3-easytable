@@ -1,7 +1,7 @@
 import emitter from '@easytable/common/mixins/emitter'
 import VeRadio from '@easytable/ve-radio'
-import { COMPS_NAME, EMIT_EVENTS } from '../util/constant'
 import { clsName } from '../util'
+import { COMPS_NAME, EMIT_EVENTS } from '../util/constant'
 
 export default defineComponent({
   name: COMPS_NAME.VE_TABLE_BODY_RADIO_CONTENT,
@@ -43,8 +43,9 @@ export default defineComponent({
       if (
         Array.isArray(disableSelectedRowKeys)
         && disableSelectedRowKeys.includes(rowKey)
-      )
+      ) {
         result = true
+      }
 
       return result
     },

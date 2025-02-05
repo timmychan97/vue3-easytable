@@ -1,5 +1,5 @@
-import { getTextContentOfVNode, isBoolean, isEmptyValue, isNumber } from '@easytable/common/utils/index'
 import emitter from '@easytable/common/mixins/emitter'
+import { getTextContentOfVNode, isBoolean, isEmptyValue, isNumber } from '@easytable/common/utils/index'
 import { clsName, getRowKeysByRangeRowKeys } from '../util'
 
 import {
@@ -9,9 +9,9 @@ import {
   EMIT_EVENTS,
   EXPAND_TRIGGER_TYPES,
 } from '../util/constant'
-import ExpandTrIcon from './expand-tr-icon'
-import BodyRadioContent from './body-radio-content'
 import BodyCheckboxContent from './body-checkbox-content'
+import BodyRadioContent from './body-radio-content'
+import ExpandTrIcon from './expand-tr-icon'
 
 export default defineComponent({
   name: COMPS_NAME.VE_TABLE_BODY_TD,

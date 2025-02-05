@@ -58,14 +58,15 @@ export function decodeSpreadsheetStr(str: string) {
           if (
             str.length === 0
             || (str.match(/^[\t\r\n]/) && quoteNo % 2 === 0)
-          )
+          ) {
             isStillCell = false
+          }
         }
 
         nextCell = nextCell
           .replace(/^"/, '')
           .replace(/"$/, '')
-          .replace(/["]*/g, match =>
+          .replace(/"*/g, match =>
             Array.from({ length: Math.floor(match.length / 2) })
               .fill('"')
               .join(''))

@@ -1,7 +1,7 @@
 <script>
 import API from '../api/column-hidden-option-props.vue'
-import Explain from './explain.md'
 import DefaultHiddenColumnKeys from './default-hidden-column.md'
+import Explain from './explain.md'
 import InstanceMethods from './instance-methods.md'
 
 export default {

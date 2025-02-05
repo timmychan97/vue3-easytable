@@ -1,5 +1,5 @@
 import { mount } from '@vue/test-utils'
-import { createApp, nextTick } from 'vue'
+import { nextTick } from 'vue'
 import vueEasytable from '../../packages/vue/src/index'
 
 /**

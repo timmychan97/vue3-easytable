@@ -1,19 +1,12 @@
-// vite.config.ts
-import { URL, fileURLToPath } from 'node:url'
-import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import vueJsx from '@vitejs/plugin-vue-jsx'
+import { defineConfig } from 'vite'
 
 const vite_config_default = defineConfig({
   plugins: [
     vue(),
     vueJsx(),
   ],
-  resolve: {
-    alias: {
-      '@': fileURLToPath(new URL('./src', 'file:///Users/kohai/projects/git/vue-easytable-next/docs/vite.config.ts')),
-    },
-  },
 })
 export {
   vite_config_default as default,

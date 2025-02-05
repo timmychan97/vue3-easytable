@@ -1,11 +1,11 @@
 <script>
 import API from '../api/cell-selection-option-props.vue'
-import Explain from './explain.md'
-import ShortCuts from './shortcuts.md'
 import Base from './base.md'
 import DisableSelection from './disable-selection.md'
-import SingleSelectionInstanceMethods from './single-selection-instance-methods.md'
+import Explain from './explain.md'
 import RangeSelectionInstanceMethods from './range-selection-instance-methods.md'
+import ShortCuts from './shortcuts.md'
+import SingleSelectionInstanceMethods from './single-selection-instance-methods.md'
 
 export default {
   name: 'CellSelection',

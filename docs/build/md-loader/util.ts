@@ -8,6 +8,7 @@ export function stripScript(content: string) {
 }
 
 export function stripStyle(content: string) {
+  // eslint-disable-next-line regexp/no-super-linear-backtracking
   const result = content.match(/<(style)[\s\S]*>([\s\S]+)<\/\1>/)
   return result && result[2] ? result[2].trim() : ''
 }

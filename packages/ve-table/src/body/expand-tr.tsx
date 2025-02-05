@@ -107,14 +107,14 @@ export default defineComponent({
       const { expandOption } = this
       const result
                 = expandOption.render
-                && expandOption.render(
-                  {
-                    row: this.rowData,
-                    column: this.expandColumn,
-                    rowIndex: this.rowIndex,
-                  },
-                  h,
-                )
+                  && expandOption.render(
+                    {
+                      row: this.rowData,
+                      column: this.expandColumn,
+                      rowIndex: this.rowIndex,
+                    },
+                    h,
+                  )
 
       return result
     },

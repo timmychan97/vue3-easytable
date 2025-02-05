@@ -19,16 +19,16 @@ yarn add vue-easytable
 Write the following in main.js：
 
 ```javascript
-import Vue from "vue";
-import "vue-easytable/libs/theme-default/index.css"; // import style
-import VueEasytable from "vue-easytable"; // import library
+import Vue from 'vue'
+import VueEasytable from 'vue-easytable' // import library
+import 'vue-easytable/libs/theme-default/index.css' // import style
 
-Vue.use(VueEasytable);
+Vue.use(VueEasytable)
 
 new Vue({
-    el: "#app",
-    render: (h) => h(App),
-});
+  el: '#app',
+  render: h => h(App),
+})
 ```
 
 The above code completes the introduction of vue-easytable.Don't forget to import style files.
@@ -38,23 +38,23 @@ The above code completes the introduction of vue-easytable.Don't forget to impor
 Write the following in main.js：
 
 ```javascript
-import Vue from "vue";
-import "vue-easytable/libs/theme-default/index.css"; // import style
+import Vue from 'vue'
+import { VeIcon, VeLoading, VeLocale, VePagination, VeTable } from 'vue-easytable' // import library
 
-import { VeTable, VePagination, VeIcon, VeLoading, VeLocale } from "vue-easytable"; // import library
+import 'vue-easytable/libs/theme-default/index.css' // import style
 
-Vue.use(VeTable);
-Vue.use(VePagination);
-Vue.use(VeIcon);
-Vue.use(VeLoading);
+Vue.use(VeTable)
+Vue.use(VePagination)
+Vue.use(VeIcon)
+Vue.use(VeLoading)
 
-Vue.prototype.$veLoading = VeLoading;
-Vue.prototype.$veLocale = VeLocale;
+Vue.prototype.$veLoading = VeLoading
+Vue.prototype.$veLocale = VeLocale
 
 new Vue({
-    el: "#app",
-    render: (h) => h(App),
-});
+  el: '#app',
+  render: h => h(App),
+})
 ```
 
 #### Example

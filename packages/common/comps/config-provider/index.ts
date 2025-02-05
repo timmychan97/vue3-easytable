@@ -1,6 +1,6 @@
-import { provideLocale } from '@easytable/ve-locale'
 import type { PropType } from 'vue'
 import type { LocaleMessage } from '../../locale/types'
+import { provideLocale } from '@easytable/ve-locale'
 
 export default defineComponent({
   name: 'EtConfigProvider',

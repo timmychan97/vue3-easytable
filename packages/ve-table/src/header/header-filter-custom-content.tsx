@@ -1,9 +1,9 @@
-import VeDropdown from '@easytable/ve-dropdown'
-import VeIcon from '@easytable/ve-icon'
 import { isBoolean, isFunction } from '@easytable/common/utils'
 import { ICON_NAMES } from '@easytable/common/utils/constant'
-import { COMPS_NAME } from '../util/constant'
+import VeDropdown from '@easytable/ve-dropdown'
+import VeIcon from '@easytable/ve-icon'
 import { clsName } from '../util'
+import { COMPS_NAME } from '../util/constant'
 
 export default defineComponent({
   name: COMPS_NAME.VE_TABLE_HEADER_FILTER_CUSTOM_CONTENT,
@@ -24,8 +24,9 @@ export default defineComponent({
         if (
           column.filterCustom
           && isBoolean(column.filterCustom.defaultVisible)
-        )
+        ) {
           this.internalVisible = column.filterCustom.defaultVisible
+        }
       },
       immediate: true,
       deep: true,

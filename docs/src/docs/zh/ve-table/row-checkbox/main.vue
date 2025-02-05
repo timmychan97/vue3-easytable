@@ -1,13 +1,13 @@
 <script>
 import API from '../api/checkbox-option-props.vue'
-import Explain from './explain.md'
 import Base from './base.md'
-import SelectedDefault from './selected-default.md'
-import SelectedColumn from './selected-column.md'
-import SelectedDisable from './selected-disable.md'
-import SelectedControl from './selected-control.md'
-import SelectedRowClick from './selected-row-click.md'
+import Explain from './explain.md'
 import SelectedAllHide from './selected-all-hide.md'
+import SelectedColumn from './selected-column.md'
+import SelectedControl from './selected-control.md'
+import SelectedDefault from './selected-default.md'
+import SelectedDisable from './selected-disable.md'
+import SelectedRowClick from './selected-row-click.md'
 
 export default {
   name: 'BasicMain',

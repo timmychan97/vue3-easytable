@@ -86,16 +86,16 @@ yarn add vue-easytable
 Write the following in main.js:
 
 ```javascript
-import Vue from "vue";
-import "vue-easytable/libs/theme-default/index.css";
-import VueEasytable from "vue-easytable";
+import Vue from 'vue'
+import VueEasytable from 'vue-easytable'
+import 'vue-easytable/libs/theme-default/index.css'
 
-Vue.use(VueEasytable);
+Vue.use(VueEasytable)
 
 new Vue({
-    el: "#app",
-    render: (h) => h(App),
-});
+  el: '#app',
+  render: h => h(App),
+})
 ```
 
 Example:

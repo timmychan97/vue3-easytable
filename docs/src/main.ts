@@ -1,24 +1,18 @@
 // import './assets/main.css'
 
-import { createApp } from 'vue'
+import Anchor from '@/comp/anchor.vue'
+import DemoBlock from '@/comp/demo-block.vue'
+
+// import 'md-powerpack'
+import { ElButton, ElDatePicker, ElIcon, ElInput, ElInputNumber, ElRadio, ElRadioGroup, ElSelect } from 'element-plus'
+
+// Progress 进度条
+
 import hljs from 'highlight.js'
 
 import NProgress from 'nprogress'
 
-// Progress 进度条
-
-import 'highlight.js/styles/color-brewer.css'
-
-// Progress 进度条 样式
-import 'nprogress/nprogress.css'
-
-import '@/css/index.less'
-import '@/css/custom.less'
-import '@/comp/app.less'
-
-// import 'md-powerpack'
-import { ElButton, ElDatePicker, ElIcon, ElInput, ElInputNumber, ElRadio, ElRadioGroup, ElSelect } from 'element-plus'
-import 'element-plus/theme-chalk/index.css'
+import { createApp } from 'vue'
 import {
   // VeCheckbox,
   // VeCheckboxGroup,
@@ -31,19 +25,24 @@ import {
   // VeRadio,
   // VeSelect,
   useVeTable,
-  version,
 // } from '@easytable/vue'
 } from '../../packages/vue/src/index'
+import App from './App.vue'
+
+import router from './router'
+import 'highlight.js/styles/color-brewer.css'
+// Progress 进度条 样式
+import 'nprogress/nprogress.css'
 
 // import '@easytable/vue/packages/theme-dark/index.less'
 
 // import './css/table-reset.less'
 
+import '@/css/index.less'
+import '@/css/custom.less'
+import '@/comp/app.less'
+import 'element-plus/theme-chalk/index.css'
 import '../../packages/theme-default/index.less'
-import App from './App.vue'
-import router from './router'
-import DemoBlock from '@/comp/demo-block.vue'
-import Anchor from '@/comp/anchor.vue'
 
 // console.log(VeTable);
 const app = createApp(App)

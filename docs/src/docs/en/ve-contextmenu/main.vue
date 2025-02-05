@@ -1,8 +1,8 @@
 <script>
-import Usage from './usage.md'
+import Api from './api.md'
 import Base from './base.md'
 
-import Api from './api.md'
+import Usage from './usage.md'
 
 export default {
   components: {

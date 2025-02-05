@@ -25,17 +25,17 @@ yarn add @easytable/vue
 在 main.js 中写入以下内容：
 
 ```javascript
-import { createApp } from "vue";
-// 引入样式
-import "@easytable/vue/libs/theme-default/index.css";
 // 引入组件库
-import { useVeTable } from "@easytable/vue";
+import { useVeTable } from '@easytable/vue'
+import { createApp } from 'vue'
+// 引入样式
+import '@easytable/vue/libs/theme-default/index.css'
 
 createApp({
-  render: (h) => h(App),
+  render: h => h(App),
 })
-.use(useVeTable())
-.mount('#app')
+  .use(useVeTable())
+  .mount('#app')
 ```
 
 以上代码便完成了 @easytable/vue 的引入。别忘了引入样式文件。
@@ -45,24 +45,24 @@ createApp({
 在 main.js 中写入以下内容：
 
 ```javascript
-import { createApp } from "vue";
-// 引入样式
-import "@easytable/vue/libs/theme-default/index.css";
 // 引入组件库
-import { VeTable, VePagination, VeIcon, VeLoading, VeLocale } from "@easytable/vue";
+import { VeIcon, VeLoading, VeLocale, VePagination, VeTable } from '@easytable/vue'
+import { createApp } from 'vue'
+// 引入样式
+import '@easytable/vue/libs/theme-default/index.css'
 
-Vue.use(VeTable);
-Vue.use(VePagination);
-Vue.use(VeIcon);
-Vue.use(VeLoading);
+Vue.use(VeTable)
+Vue.use(VePagination)
+Vue.use(VeIcon)
+Vue.use(VeLoading)
 
-Vue.prototype.$veLoading = VeLoading;
-Vue.prototype.$veLocale = VeLocale;
+Vue.prototype.$veLoading = VeLoading
+Vue.prototype.$veLocale = VeLocale
 
 new Vue({
-    el: "#app",
-    render: (h) => h(App),
-});
+  el: '#app',
+  render: h => h(App),
+})
 ```
 
 #### 示例

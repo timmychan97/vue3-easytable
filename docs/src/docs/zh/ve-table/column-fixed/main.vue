@@ -1,9 +1,9 @@
 <script>
-import Explain from './explain.md'
+import ColumnFixedAutoWidth from './column-fixed-auto-width.md'
+import ColumnFixedLeftRight from './column-fixed-left-right.md'
 import ColumnFixedLeft from './column-fixed-left.md'
 import ColumnFixedRight from './column-fixed-right.md'
-import ColumnFixedLeftRight from './column-fixed-left-right.md'
-import ColumnFixedAutoWidth from './column-fixed-auto-width.md'
+import Explain from './explain.md'
 
 export default {
   name: 'BasicMain',

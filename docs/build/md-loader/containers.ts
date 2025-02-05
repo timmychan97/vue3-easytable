@@ -3,9 +3,11 @@ import mdContainer from 'markdown-it-container'
 export default (md: markdownit, options: any) => {
   md.use(mdContainer, 'demo', {
     validate(params: string) {
+      // eslint-disable-next-line regexp/no-super-linear-backtracking
       return params.trim().match(/^demo\s*(.*)$/)
     },
     render(tokens: any[], idx: number) {
+      // eslint-disable-next-line regexp/no-super-linear-backtracking
       const m = tokens[idx].info.trim().match(/^demo\s*(.*)$/)
       if (tokens[idx].nesting === 1) {
         const description = m && m.length > 1 ? m[1] : ''
@@ -22,9 +24,11 @@ export default (md: markdownit, options: any) => {
 
   md.use(mdContainer, 'anchor', {
     validate(params: string) {
+      // eslint-disable-next-line regexp/no-super-linear-backtracking
       return params.trim().match(/^anchor\s*(.*)$/)
     },
     render(tokens: any[], idx: number) {
+      // eslint-disable-next-line regexp/no-super-linear-backtracking
       const m = tokens[idx].info.trim().match(/^anchor\s*(.*)$/)
       if (tokens[idx].nesting === 1) {
         const label = m && m.length > 1 ? m[1] : ''

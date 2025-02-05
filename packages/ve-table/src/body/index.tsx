@@ -1,7 +1,7 @@
-import { defineComponent } from 'vue'
 import VueDomResizeObserver from '@easytable/common/comps/resize-observer'
-import { getValByUnit } from '@easytable/common/utils'
 import emitter from '@easytable/common/mixins/emitter'
+import { getValByUnit } from '@easytable/common/utils'
+import { defineComponent } from 'vue'
 import {
   clsName,
   getDomResizeObserverCompKey,
@@ -14,9 +14,9 @@ import {
   EXPAND_TRIGGER_TYPES,
 } from '../util/constant'
 
-import ExpandTr from './expand-tr'
-import BodyTrScrolling from './body-tr-scrolling'
 import BodyTr from './body-tr'
+import BodyTrScrolling from './body-tr-scrolling'
+import ExpandTr from './expand-tr'
 
 export default defineComponent({
   name: COMPS_NAME.VE_TABLE_BODY,
@@ -208,7 +208,7 @@ export default defineComponent({
           if (
             (fixed === 'left' && columnIndex > 0)
             || (fixed === 'right'
-            && columnIndex < colgroups.length - 1)
+              && columnIndex < colgroups.length - 1)
           ) {
             totalWidth = getFixedTotalWidthByColumnKey({
               colgroups,
@@ -240,7 +240,7 @@ export default defineComponent({
     isControlledExpand() {
       return (
         this.expandOption
-          && Array.isArray(this.expandOption.expandedRowKeys)
+        && Array.isArray(this.expandOption.expandedRowKeys)
       )
     },
 
@@ -308,10 +308,11 @@ export default defineComponent({
       if (this.allRowKeys.length > 0) {
         if (
           this.internalCheckboxSelectedRowKeys.length
-            + this.disableCheckboxUnselectedRowKeys.length
-            === this.allRowKeys.length
-        )
+          + this.disableCheckboxUnselectedRowKeys.length
+          === this.allRowKeys.length
+        ) {
           return true
+        }
       }
 
       return false

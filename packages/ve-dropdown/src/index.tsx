@@ -1,16 +1,16 @@
-import { defineComponent } from 'vue'
-import VeCheckbox from '@easytable/ve-checkbox'
-import VeRadio from '@easytable/ve-radio'
+import type { VeDropdownItem } from './type'
 import clickoutside from '@easytable/common/directives/clickoutside'
 import { isBoolean, isFunction } from '@easytable/common/utils'
-import { getRandomId } from '@easytable/common/utils/random'
 import {
   getViewportOffset,
   getViewportOffsetWithinContainer,
 } from '@easytable/common/utils/dom'
-import { clsName } from './util/index'
+import { getRandomId } from '@easytable/common/utils/random'
+import VeCheckbox from '@easytable/ve-checkbox'
+import VeRadio from '@easytable/ve-radio'
+import { defineComponent } from 'vue'
 import { COMPS_NAME, EMIT_EVENTS } from './util/constant'
-import type { VeDropdownItem } from './type'
+import { clsName } from './util/index'
 
 export default defineComponent({
   name: COMPS_NAME.VE_DROPDOWN,
@@ -378,9 +378,9 @@ export default defineComponent({
         } = isAppendToBody
           ? getViewportOffset(triggerEl)
           : getViewportOffsetWithinContainer(
-            triggerEl,
-            popperAppendToEl,
-          )
+              triggerEl,
+              popperAppendToEl,
+            )
 
         let panelX = 0
         let panelY = 0
@@ -405,17 +405,17 @@ export default defineComponent({
         if (triggerElBottom >= currentPanelHeight) {
           panelY
                         = triggerElTop
-                        + triggerElHeight
-                        + defaultInstance
-                        + scrollTop
+                          + triggerElHeight
+                          + defaultInstance
+                          + scrollTop
         }
         // 下方高度不够显示在鼠标点击上方
         else {
           panelY
                         = triggerElTop
-                        - currentPanelHeight
-                        - defaultInstance
-                        + scrollTop
+                          - currentPanelHeight
+                          - defaultInstance
+                          + scrollTop
         }
 
         rootEl.style.left = `${panelX}px`
@@ -619,7 +619,7 @@ export default defineComponent({
             >
               {this.showRadio
                 ? (
-                  <VeRadio {...radioProps}>{item.label}</VeRadio>
+                    <VeRadio {...radioProps}>{item.label}</VeRadio>
                   )
                 : (
                     item.label

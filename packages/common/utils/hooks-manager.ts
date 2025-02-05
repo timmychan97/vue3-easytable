@@ -3,7 +3,7 @@ hook system
 
 */
 export default class Hooks {
-  hooks: Record<string, Function[]>
+  hooks: Record<string, (() => void)[]>
   constructor() {
     // ...
 
@@ -28,7 +28,7 @@ export default class Hooks {
    * @param {string} hookName The hook name.
    * @param {Function} callback The listener function to add.
    */
-  addHook(hookName: string, callback: Function) {
+  addHook(hookName: string, callback: () => void) {
     // let hooks: Function[]
 
     if (!this.hooks[hookName])

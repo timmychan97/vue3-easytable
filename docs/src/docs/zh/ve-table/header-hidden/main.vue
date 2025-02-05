@@ -1,6 +1,6 @@
 <script lang="ts" setup>
-import Explain from './explain.md'
 import Base from './base.md'
+import Explain from './explain.md'
 
 defineOptions({
   name: 'BasicMain',

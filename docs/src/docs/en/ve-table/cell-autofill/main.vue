@@ -1,8 +1,8 @@
 <script>
 import API from '../api/cell-autofill-option-props.vue'
-import Explain from './explain.md'
-import Base from './base.md'
 import AutofillDirection from './autofill-direction.md'
+import Base from './base.md'
+import Explain from './explain.md'
 
 export default {
   name: 'CellSelection',

@@ -1,10 +1,10 @@
 <script lang="ts" setup>
 import type { RouteLocationNormalizedLoaded } from 'vue-router'
-import Footer from './footer.vue'
-import useI18n from './../mixins/i18n-mixins'
 import catolog from '@/comp/catalog.vue'
 import routers from '@/router/locale/index'
 import { goTobyAnchorId } from '@/utils/index'
+import useI18n from './../mixins/i18n-mixins'
+import Footer from './footer.vue'
 
 const { currentDocLang } = useI18n()
 const router = useRouter()
@@ -26,11 +26,11 @@ function goBackTop() {
 function handleScroll() {
   const scrollTop
         = document.documentElement.scrollTop
-        || window.pageYOffset
-        || document.body.scrollTop
+          || window.pageYOffset
+          || document.body.scrollTop
         // eslint-disable-next-line ts/ban-ts-comment
         // @ts-expect-error
-        || window.scrollHeight
+          || window.scrollHeight
 
   data.showBackTop = scrollTop > 600
 }

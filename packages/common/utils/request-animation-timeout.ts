@@ -13,7 +13,7 @@ export const cancelAnimationTimeout = (frame: any) => caf(frame.id)
  *
  * Credit: Joe Lambert (https://gist.github.com/joelambert/1002116#file-requesttimeout-js)
  */
-export function requestAnimationTimeout(callback: Function, delay: number) {
+export function requestAnimationTimeout(callback: () => void, delay: number) {
   let start: number
   // wait for end of processing current event handler, because event handler may be long
   Promise.resolve().then(() => {

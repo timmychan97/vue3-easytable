@@ -1,11 +1,11 @@
 <script>
 import API from '../api/radio-option-props.vue'
-import Explain from './explain.md'
 import Base from './base.md'
+import Explain from './explain.md'
 import RadioColumn from './radio-column.md'
+import SelectedControl from './selected-control.md'
 import SelectedDefault from './selected-default.md'
 import SelectedDisable from './selected-disable.md'
-import SelectedControl from './selected-control.md'
 import SelectedRowClick from './selected-row-click.md'
 
 export default {

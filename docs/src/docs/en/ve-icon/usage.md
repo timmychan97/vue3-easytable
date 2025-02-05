@@ -3,16 +3,17 @@
 import `VeIcon`
 
 ```javascript
-import Vue from "vue";
-import { VeIcon } from "vue-easytable";
+import Vue from 'vue'
+import { VeIcon } from 'vue-easytable'
 
-Vue.use(VeIcon);
+Vue.use(VeIcon)
 ```
 
 use
 
 ```javascript
 <template>
-    <ve-icon name="double-right-arrow" />;
+  <ve-icon name="double-right-arrow" />
+  ;
 </template>
 ```

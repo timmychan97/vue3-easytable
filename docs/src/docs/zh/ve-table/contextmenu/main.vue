@@ -1,10 +1,10 @@
 <script>
-import API1 from '../api/contextmenu-header-option-props.vue'
 import API2 from '../api/contextmenu-body-option-props.vue'
-import Explain from './explain.md'
-import ContextmenuTypes from './contextmenu-types.md'
+import API1 from '../api/contextmenu-header-option-props.vue'
 import Base from './base.md'
+import ContextmenuTypes from './contextmenu-types.md'
 import Custom from './custom.md'
+import Explain from './explain.md'
 
 export default {
   name: 'BasicMain',

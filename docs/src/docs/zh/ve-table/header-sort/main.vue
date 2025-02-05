@@ -1,8 +1,8 @@
 <script>
 import API from '../api/sort-option-props.vue'
 import Explain from './explain.md'
-import SingleSort from './single-sort.md'
 import MultiSort from './multi-sort.md'
+import SingleSort from './single-sort.md'
 import SortAlways from './sort-always.md'
 
 export default {

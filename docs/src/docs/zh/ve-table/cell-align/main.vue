@@ -1,6 +1,6 @@
 <script>
-import Explain from './explain.md'
 import BasicAlign from './basic-align.md'
+import Explain from './explain.md'
 
 export default {
   name: 'CellAlign',

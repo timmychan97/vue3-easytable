@@ -1,6 +1,7 @@
+import type { LocaleMessage } from '@easytable/common/locale/types'
+
 // This file is auto gererated by build/build-entry.js
 import type { Plugin } from 'vue'
-
 import VeCheckbox from '@easytable/ve-checkbox'
 import VeCheckboxGroup from '@easytable/ve-checkbox-group'
 import VeContextmenu from '@easytable/ve-contextmenu'
@@ -12,7 +13,6 @@ import VePagination from '@easytable/ve-pagination'
 import VeRadio from '@easytable/ve-radio'
 import VeSelect from '@easytable/ve-select'
 import VeTable from '@easytable/ve-table/src'
-import type { LocaleMessage } from '@easytable/common/locale/types'
 
 const version = '0.0.5'
 const components = [
@@ -55,7 +55,6 @@ const useVeTable = function (options?: { locale?: LocaleMessage }): Plugin {
 
 export {
   useVeTable,
-  version,
   VeCheckbox,
   VeCheckboxGroup,
   VeContextmenu,
@@ -65,6 +64,7 @@ export {
   VeLocale,
   VePagination,
   VeRadio,
+  version,
   VeSelect,
   VeTable,
 }

@@ -1,6 +1,6 @@
 import { ICON_NAMES } from '@easytable/common/utils/constant'
-import { computed, defineComponent } from 'vue'
 import VeIcon from '@easytable/ve-icon'
+import { computed, defineComponent } from 'vue'
 import { clsName } from '../util'
 import { COLUMN_TYPES, COMPS_NAME } from '../util/constant'
 

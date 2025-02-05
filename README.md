@@ -86,15 +86,15 @@ yarn add @easytable/vue
 Write the following in main.js:
 
 ```javascript
-import { createApp } from 'vue';
-import '@easytable/vue/libs/theme-default/index.css';
-import { useVeTable } from '@easytable/vue';
+import { useVeTable } from '@easytable/vue'
+import { createApp } from 'vue'
+import '@easytable/vue/libs/theme-default/index.css'
 
 createApp({
-  render: (h) => h(App),
+  render: h => h(App),
 })
-.use(useVeTable())
-.mount('#app');
+  .use(useVeTable())
+  .mount('#app')
 ```
 
 Example:

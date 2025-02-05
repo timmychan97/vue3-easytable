@@ -1,11 +1,10 @@
-import { defineComponent } from 'vue'
-import VeIcon from '@easytable/ve-icon'
-import { cloneDeep, debounce } from 'lodash'
+import eventsOutside from '@easytable/common/directives/events-outside'
 import { ICON_NAMES } from '@easytable/common/utils/constant'
 import { getMousePosition, getViewportOffset } from '@easytable/common/utils/dom'
 import { getRandomId } from '@easytable/common/utils/random'
-import eventsOutside from '@easytable/common/directives/events-outside'
-import { clsName } from './util/index'
+import VeIcon from '@easytable/ve-icon'
+import { cloneDeep, debounce } from 'lodash'
+import { defineComponent } from 'vue'
 import {
   COMPS_NAME,
   CONTEXTMENU_NODE_TYPES,
@@ -13,6 +12,7 @@ import {
   INIT_DATA,
   INSTANCE_METHODS,
 } from './util/constant'
+import { clsName } from './util/index'
 
 export interface Option {
   id: string | number

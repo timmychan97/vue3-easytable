@@ -1,13 +1,13 @@
 /* thanks for  https://github.com/tobiasahlin/SpinKit */
 
-import { COMPS_NAME } from './util/constant'
-import { clsName } from './util'
-import Plane from './plane'
 import Bounce from './bounce'
-import Wave from './wave'
-import Pulse from './pulse'
 import Flow from './flow'
 import Grid from './grid'
+import Plane from './plane'
+import Pulse from './pulse'
+import { clsName } from './util'
+import { COMPS_NAME } from './util/constant'
+import Wave from './wave'
 
 const TYPE_MAP = {
   plane: Plane,

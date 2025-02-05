@@ -51,7 +51,7 @@ export function isObject(val) {
 * @desc is function
 * @param {any} val
 */
-export function isFunction(val: any): val is Function
+export function isFunction(val: any): val is (() => void)
 export function isFunction(val: any) {
   return (typeof val === 'function')
 }

@@ -1,7 +1,7 @@
+import type { VeDropdownItem } from 'packages/ve-dropdown/src/type'
+import { ICON_NAMES } from '@easytable/common/utils/constant'
 import VeDropdown from '@easytable/ve-dropdown'
 import VeIcon from '@easytable/ve-icon'
-import { ICON_NAMES } from '@easytable/common/utils/constant'
-import type { VeDropdownItem } from 'packages/ve-dropdown/src/type'
 import { COMPS_NAME, EMIT_EVENTS } from './util/constant'
 import { clsName } from './util/index'
 
