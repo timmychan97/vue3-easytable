@@ -2,12 +2,6 @@ import type { LocaleMessage } from './types'
 import locale from '@easytable/ve-locale'
 import { isFunction } from '../utils/index'
 
-/*
- * @createI18N
- * @desc create i18n
- * @param {string} compName
- * @return {array<function>}
- */
 export function createI18N(compName: keyof LocaleMessage) {
   return function (path: string, ...args: any[]) {
     let result = ''

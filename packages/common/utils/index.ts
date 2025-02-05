@@ -1,134 +1,94 @@
-import { createI18N } from '../locale/index'
+import type { VNodeNormalizedChildren } from 'vue'
+import { createI18N } from '../locale'
 
-/*
- * @createLocale
- * @desc create namespace by comp name
- * @param {string} compName
- * @return {function}
+/**
+ * @desc create locale namespace by component name
  */
 export function createLocale(compName: string) {
   return createI18N(compName)
 }
 
-/*
- * @isEmptyArray
- * @desc  is empty array
- * @param {array} arr
- */
-export function isEmptyArray(arr) {
-  return !(Array.isArray(arr) && arr.length > 0)
+export function isArray(arr: unknown) {
+  return Array.isArray(arr)
 }
 
-/*
- * @isEmptyValue
- * @desc  is empty value
- * @param {array} arr
- */
-export function isEmptyValue(value) {
+export function isEmptyArray(arr: unknown) {
+  return !(isArray(arr) && arr.length > 0)
+}
+
+export function isEmptyValue(value: unknown) {
   return !(value !== '' && value !== undefined && value !== null)
 }
 
-/*
- * @isDefined
- * @desc is defined
- * @param {any} val
- */
-export function isDefined(val) {
+export function isDefined(val: unknown) {
   return val !== undefined && val !== null
 }
 
-/*
- * @isObject
- * @desc is object
- * @param {any} val
- */
-export function isObject(val) {
+export function isObject(val: unknown) {
   return val !== null && typeof val === 'object'
 }
 
-/*
-* @isFunction
-* @desc is function
-* @param {any} val
-*/
-export function isFunction(val: any): val is (() => void)
-export function isFunction(val: any) {
-  return (typeof val === 'function')
+export function isFunction(val: (() => void) | unknown) {
+  return typeof val === 'function'
 }
 
-/*
- * @isBoolean
- * @desc is boolean
- * @param {any} val
- */
-export function isBoolean(val) {
+export function isBoolean(val: unknown) {
   return typeof val === 'boolean'
 }
 
-/*
- * @isNumber
- * @desc is number
- * @param {any} val
- */
-export function isNumber(val) {
+export function isString(val: unknown) {
+  return typeof val === 'string'
+}
+
+export function isNumber(val: unknown) {
   return typeof val === 'number'
 }
 
-/*
- * @isTrue
- * @desc is equal true
- * @param {any} val
- */
-export function isTrue(val) {
+export function isTrue(val: unknown) {
   return isBoolean(val) && val
 }
 
-/*
- * @isFalse
- * @desc is equal false
- * @param {any} val
- */
-export function isFalse(val) {
+export function isFalse(val: unknown) {
   return isBoolean(val) && !val
 }
 
-/*
- * @getValByUnit
- * @desc  get value by unit
- * @param {number|string} width - 宽度
- */
 export function getValByUnit(width: number | string) {
   return typeof width === 'number' ? `${width}px` : width
 }
 
-/*
- * @scrollTo
- * @desc element scrollTo https://developer.mozilla.org/zh-CN/docs/Web/API/Element/scrollTo
- * @param {element} el - element
- * @param {object} option - scroll option
+/**
+ * https://developer.mozilla.org/en-US/docs/Web/API/Element/scrollTo
  */
-export function scrollTo(el, option) {
+export function scrollTo(el: Element, option: ScrollToOptions) {
   if (isFunction(el.scrollTo)) {
     el.scrollTo(option)
   }
   else {
     const { top, left } = option
-    el.scrollTop = top
-    el.scrollLeft = left
+    el.scrollTop = top ?? 0
+    el.scrollLeft = left ?? 0
   }
 }
 
-export function getTextContentOfVNode(vNode: any): string {
+type VNodeLeaf = string | number | boolean | null | undefined | void
+
+export function getTextContentOfVNode(vNode: VNode | VNodeNormalizedChildren | VNodeLeaf): string {
+  if (isNumber(vNode))
+    return vNode.toString()
+  if (isBoolean(vNode))
+    return vNode.toString()
+  if (isString(vNode))
+    return vNode
   if (!vNode)
     return ''
-  if (typeof vNode === 'string')
-    return vNode
 
-  if (Array.isArray(vNode))
-    return vNode.map(item => getTextContentOfVNode(item)).join('')
+  if (isArray(vNode))
+    return vNode.map(e => getTextContentOfVNode(e)).join('')
+  if (typeof vNode === 'object' && vNode.children)
+    return ''
 
   if (vNode.children)
-    return getTextContentOfVNode(vNode.children)
+    return getTextContentOfVNode(vNode.children as VNodeNormalizedChildren)
 
   return ''
 }
