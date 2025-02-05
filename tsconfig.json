@@ -2,6 +2,7 @@
   "compilerOptions": {
     "target": "esnext",
     "jsx": "preserve",
+    "jsxImportSource": "vue", // https://github.com/vuejs/language-tools/issues/3856#issuecomment-1902599415
     "lib": [
       "esnext",
       "dom",
