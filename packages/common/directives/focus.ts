@@ -1,6 +1,3 @@
-/*
-element focus
-*/
 import type { Directive } from 'vue'
 
 const focus: Directive = {
