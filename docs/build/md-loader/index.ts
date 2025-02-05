@@ -1,7 +1,7 @@
 import type { PluginOption } from 'vite'
 import mdToSfc from './md-to-sfc'
 
-const fileRegex = /\.$/
+const fileRegex = /\.md$/
 
 export default function mdLoader(): PluginOption {
   return {

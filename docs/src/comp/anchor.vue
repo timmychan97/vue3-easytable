@@ -1,5 +1,4 @@
 <script lang="ts" setup>
-// import { slugify } from 'transliteration'
 import { goTobyAnchorId } from '../utils/index'
 import locale from './locale'
 import useI18n from './mixins/i18n-mixins'

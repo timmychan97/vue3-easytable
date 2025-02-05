@@ -1,4 +1,5 @@
 import type { VeDropdownItem } from 'packages/ve-dropdown/src/type'
+import type { JSX } from 'vue/jsx-runtime'
 import { ICON_NAMES } from '@easytable/common/utils/constant'
 import VeDropdown from '@easytable/ve-dropdown'
 import VeIcon from '@easytable/ve-icon'

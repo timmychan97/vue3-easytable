@@ -67,3 +67,6 @@ Based on vue2.x flexible table components.
 ### How to contribute
 
 If you want to contribute,just create a [Pull Request](https://github.com/huangshuwei/vue-easytable/pulls)
+
+<script>
+    </script>
