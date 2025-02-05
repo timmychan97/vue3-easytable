@@ -16,6 +16,5 @@ export default antfu({
     '**/font/*.js',
     '**/*.spec.js',
     '**/*.spec.jsx',
-    './packages/vue/libs',
   ],
 })
