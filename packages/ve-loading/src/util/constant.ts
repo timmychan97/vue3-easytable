@@ -1,10 +1,7 @@
-// prefix
 export const PREFIX_CLS = 've-loading-'
 
-// emit events
 export const EMIT_EVENTS = {}
 
-// comps name
 export const COMPS_NAME = {
   VE_LOADING: 'VeLoading',
   VE_LOADING_PLANE: 'VeLoadingPlane',

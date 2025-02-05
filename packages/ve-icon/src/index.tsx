@@ -23,7 +23,6 @@ export default defineComponent({
   },
 
   computed: {
-    // icon style
     iconStyle() {
       const { color, size } = this
 
@@ -35,7 +34,6 @@ export default defineComponent({
       return result
     },
 
-    // icon name
     iconClass() {
       const { name } = this
 

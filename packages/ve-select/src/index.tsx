@@ -66,7 +66,6 @@ export default defineComponent({
       internalOptions: [] as VeDropdownItem[],
 
       inputValue: '',
-      // dorpdown visible
       dropdownVisible: false,
     }
   },
@@ -85,7 +84,6 @@ export default defineComponent({
     },
   },
   methods: {
-    // 初始化
     init() {
       this.internalOptions = Object.assign([], this.modelValue)
     },

@@ -141,7 +141,6 @@ export default defineComponent({
     }
   },
   computed: {
-    // is dropdown visible
     isDropdownVisible() {
       return this.isControlled ? this.visible : this.internalVisible
     },
@@ -157,7 +156,6 @@ export default defineComponent({
 
       return result
     },
-    // selected labels
     selectedLabels() {
       return this.internalOptions
         .filter(x => x.selected)
@@ -242,7 +240,6 @@ export default defineComponent({
     window.removeEventListener('resize', this.changDropdownPanelPosition)
   },
   methods: {
-    // 初始化
     init() {
       this.internalOptions = Object.assign([], this.modelValue)
 
@@ -277,7 +274,6 @@ export default defineComponent({
       this.hideDropDown()
     },
 
-    // show dropdown
     showDropDown() {
       const { rootId, dropdownItemsPanelId } = this
 
@@ -305,7 +301,6 @@ export default defineComponent({
       this.$emit(EMIT_EVENTS.VISIBLE_CHANGE, nextVisible)
     },
 
-    // hide dropdown
     hideDropDown() {
       const nextVisible = false
 
@@ -319,6 +314,7 @@ export default defineComponent({
         this.internalVisible = false
         this.removeOrEmptyRootPanel()
       }, 150)
+      // FIXME: change setTimeout to nextTick or something?
     },
 
     // before visible change callback
@@ -336,7 +332,6 @@ export default defineComponent({
       }
     },
 
-    // remove or emoty root panel
     removeOrEmptyRootPanel() {
       const { rootId } = this
 
@@ -345,7 +340,6 @@ export default defineComponent({
         rootEl.innerHTML = ''
     },
 
-    // change dropdown panel position
     changDropdownPanelPosition() {
       const {
         defaultInstance,
@@ -367,7 +361,6 @@ export default defineComponent({
         if (!popperAppendToEl)
           return false
 
-        // is append to body
         const isAppendToBody = appendToElTagName === 'BODY'
 
         const {
@@ -434,22 +427,18 @@ export default defineComponent({
       this.inputValue = result || ''
     },
 
-    // dropdown panel click
     dropdownPanelClick() {
       this.isDropdownShowTriggerClicked = true
       this.dropdownShowToggle()
     },
 
-    // dropdown show toggle
     dropdownShowToggle() {
       if (this.isDropdownVisible)
         this.hideDropDown()
-
       else
         this.showDropDown()
     },
 
-    // single select option click
     singleSelectOptionClick(e: MouseEvent, item: VeDropdownItem) {
       this.internalOptions = this.internalOptions.map((x) => {
         if (item.label === x.label)
@@ -478,15 +467,11 @@ export default defineComponent({
       return clsName(`items-li-a-${this.textAlign}`)
     },
 
-    // dropdown click outSide
     dropdownClickOutside() {
-      /*
-            是否显示触发器被点击了（被点击将忽略 clickOutside 事件）
-            */
+      // 是否显示触发器被点击了（被点击将忽略 clickOutside 事件）
       setTimeout(() => {
         if (this.isDropdownShowTriggerClicked)
           this.isDropdownShowTriggerClicked = false
-
         else
           this.hideDropDown()
       })
@@ -504,7 +489,6 @@ export default defineComponent({
       this.$emit(EMIT_EVENTS.ITEM_SELECT_CHANGE, this.internalOptions)
     },
 
-    // get random id
     getRandomIdWithPrefix() {
       return clsName(getRandomId())
     },
@@ -525,6 +509,7 @@ export default defineComponent({
         return false
       }
       else {
+        // FIXME: What is this comment below here? Remove?
         // fixed unit test error: [Vue warn]: Error in v-on handler: "TypeError: Failed to execute 'appendChild' on 'Node': parameter 1 is not of type 'Node'."
         this.$nextTick(() => {
           const containerEl = document.createElement('div')
@@ -658,7 +643,7 @@ export default defineComponent({
                 'max-width': `${getMaxWidth}px`,
               }}
             >
-              {/* custome content */}
+              {/* custom content */}
               {isCustomContent && this.$slots['custom-content']?.()}
               {/* not custom content */}
               {!isCustomContent && (

@@ -133,19 +133,14 @@ export default defineComponent({
   },
 
   methods: {
-    // get random id
     getRandomIdWithPrefix() {
       return clsName(getRandomId())
     },
 
-    // has children
     hasChildren(option: InternalOption) {
       return Array.isArray(option.children) && option.children.length > 0
     },
 
-    /*
-        get panel option by menu id
-        */
     getPanelOptionByMenuId(options: InternalOption[], menuId: InternalOption['id']): InternalOption[] | undefined {
       for (let i = 0; i < options.length; i++) {
         if (options[i].id === menuId)
@@ -162,7 +157,6 @@ export default defineComponent({
       }
     },
 
-    // get parent contextmenu panel element
     getParentContextmenuPanelEl(contextmenuPanelId: PanelOption['parentId']) {
       let result
 
@@ -179,7 +173,6 @@ export default defineComponent({
       return result
     },
 
-    // create panel by hover
     createPanelByHover({ event, menu }: { event: MouseEvent, menu: InternalOption }) {
       const { internalOptions, panelOptions } = this
 
@@ -234,7 +227,6 @@ export default defineComponent({
       }
     },
 
-    // create panels option
     createPanelOptions({ options, currentMenu }: { options: InternalOption[], currentMenu?: InternalOption }) {
       const { hasChildren, rootContextmenuId } = this
 
@@ -257,7 +249,6 @@ export default defineComponent({
       }
     },
 
-    // create internal options recursion
     createInternalOptionsRecursion(options: Option, deep = 0) {
       const opts = options as InternalOption
       opts.id = this.getRandomIdWithPrefix()
@@ -272,14 +263,12 @@ export default defineComponent({
       return opts
     },
 
-    // create internal options
     createInternalOptions() {
       this.internalOptions = cloneDeep(this.options).map((option) => {
         return this.createInternalOptionsRecursion(option)
       })
     },
 
-    // show root contextmenu panel
     showRootContextmenuPanel(event: MouseEvent) {
       event.preventDefault()
       const { rootContextmenuId } = this
@@ -296,7 +285,6 @@ export default defineComponent({
       }
     },
 
-    // show contextmenu panel
     showContextmenuPanel({ event, contextmenuId, isRootContextmenu }: { event: MouseEvent, contextmenuId: string | number, isRootContextmenu?: boolean }) {
       const { getParentContextmenuPanelEl } = this
 
@@ -403,7 +391,6 @@ export default defineComponent({
       }
     },
 
-    // empty contextmenu panels
     emptyContextmenuPanels() {
       /*
             wait for children panel clicked by setTimeout
@@ -438,13 +425,11 @@ export default defineComponent({
       })
     },
 
-    // reset contextmeny
     resetContextmenu() {
       this.panelOptions = []
       this.createPanelOptions({ options: this.internalOptions })
     },
 
-    // add context menu panel to body
     addContextmenuPanelToBody({ contextmenuId }: { contextmenuId: string | number }) {
       const contextmenuPanelEl = document.querySelector(
         `#${contextmenuId}`,
@@ -462,7 +447,6 @@ export default defineComponent({
       }
     },
 
-    // add root contextmenu panel to body
     addRootContextmenuPanelToBody() {
       if (this.rootContextmenuId) {
         this.addContextmenuPanelToBody({
@@ -471,7 +455,6 @@ export default defineComponent({
       }
     },
 
-    // register contextmenu event
     registerContextmenuEvent() {
       const { eventTarget } = this
 
@@ -490,7 +473,6 @@ export default defineComponent({
       }
     },
 
-    // unregister contextmen event
     removeContextmenuEvent() {
       if (this.eventTargetEl) {
         this.eventTargetEl.removeEventListener(

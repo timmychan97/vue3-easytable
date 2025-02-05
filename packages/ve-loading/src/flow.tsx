@@ -19,7 +19,6 @@ export default defineComponent({
     },
   },
   computed: {
-    // spin style
     spinStyle() {
       const { width, height } = this
 

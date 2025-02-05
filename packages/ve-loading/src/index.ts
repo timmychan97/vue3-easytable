@@ -22,16 +22,13 @@ const defaultOptions: VeLoadingProps = {
   parent__: null,
 }
 
-// parent relative class
 const PARENT_RELATIVE_CLASS = clsName('parent-relative')
-// parent lock class
 const PARENT_LOCK_CLASS = clsName('parent-lock')
 
-// create instance
 function createInstance(options: VeLoadingProps = {}) {
   const app = createApp(VeLoading, options)
   const instance = app.mount(document.createElement('div')) as InstanceType<typeof VeLoading>
-  // show
+
   const show = function () {
     nextTick(() => {
       if (instance.lock && instance.parent__)
@@ -41,7 +38,6 @@ function createInstance(options: VeLoadingProps = {}) {
     })
   }
 
-  // close
   const close = function () {
     nextTick(() => {
       if (instance.lock && instance.parent__)
@@ -51,7 +47,6 @@ function createInstance(options: VeLoadingProps = {}) {
     })
   }
 
-  // destroy
   const destroy = function () {
     if (instance.parent__) {
       removeClass(instance.parent__, PARENT_RELATIVE_CLASS)
@@ -73,7 +68,6 @@ function createInstance(options: VeLoadingProps = {}) {
   }
 }
 
-// check spin name
 function checkSpinName(name: VeLoadingProps['name']) {
   if (!name || !Object.values(SPIN_NAMES).includes(name))
     console.error(`${name} is not found in ${COMPS_NAME.VE_LOADING}.`)

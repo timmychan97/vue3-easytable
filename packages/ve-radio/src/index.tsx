@@ -13,7 +13,6 @@ export default defineComponent({
       type: String,
       default: null,
     },
-    // is disabled checked
     disabled: Boolean,
     // 是否是可控组件
     isControlled: {
@@ -57,7 +56,6 @@ export default defineComponent({
   },
 
   methods: {
-    // checked change
     checkedChange(event: Event) {
       if (this.disabled)
         return false
@@ -71,7 +69,6 @@ export default defineComponent({
       this.$emit(EMIT_EVENTS.ON_RADIO_CHANGE, isChecked)
     },
 
-    // get label content
     getLabelContent() {
       const { label, $slots } = this
 

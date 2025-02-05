@@ -1,4 +1,3 @@
-// prefix
 export const PREFIX_CLS = 've-table-'
 
 // locale comp name
@@ -52,7 +51,6 @@ export const CURRENT_CELL_SELECTION_TYPES = {
   RANGE: 'range',
 }
 
-// emit events
 export const EMIT_EVENTS = {
   // body-cell-width-change
   BODY_CELL_WIDTH_CHANGE: 'on-body-cell-width-change',
@@ -159,7 +157,6 @@ export const HOOKS_NAME = {
   BODY_CELL_MOUSEMOVE: 'body-cell-mousemove',
 }
 
-// comps name
 export const COMPS_NAME = {
   VE_TABLE: 'VeTable',
 
