@@ -1,6 +1,6 @@
 <script>
 import API from '../api/expand-option-props.vue'
-import Base from './base.md'
+import BaseMd from './base.md'
 import DefaultExpand from './default-expand.md'
 import ExpandChart from './expand-chart.md'
 import ExpandColumn from './expand-column.md'
@@ -15,7 +15,7 @@ export default {
   name: 'CustomCell',
   components: {
     Explain,
-    Base,
+    BaseMd,
     ExpandTrigger,
     ExpandColumn,
     Expandable,
@@ -33,7 +33,7 @@ export default {
   <div>
     <h2>行展开</h2>
     <Explain />
-    <Base />
+    <BaseMd />
     <ExpandTrigger />
     <ExpandColumn />
     <Expandable />

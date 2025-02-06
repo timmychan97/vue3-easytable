@@ -1,13 +1,13 @@
 <script>
 import Api from './api.md'
-import Base from './base.md'
+import BaseMd from './base.md'
 
 import Usage from './usage.md'
 
 export default {
   components: {
     Usage,
-    Base,
+    BaseMd,
     Api,
   },
 }
@@ -17,7 +17,7 @@ export default {
   <div>
     <h2>Contextmenu</h2>
     <Usage />
-    <Base />
+    <BaseMd />
     <Api />
   </div>
 </template>

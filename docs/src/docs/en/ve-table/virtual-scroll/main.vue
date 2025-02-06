@@ -2,7 +2,7 @@
 import API from '../api/virtual-scroll-option-props.vue'
 import FooterSummary from '../footer-summary/virtual-scroll.md'
 import AutoHeight from './auto-height.md'
-import Base from './base.md'
+import BaseMd from './base.md'
 import ColumnFixed from './column-fixed.md'
 import CombineLazyLoad from './combine-lazy-load.md'
 import DynamicEnable from './dynamic-enable.md'
@@ -17,7 +17,7 @@ export default {
   name: 'BasicMain',
   components: {
     Explain,
-    Base,
+    BaseMd,
     AutoHeight,
     RowCheckbox,
     RowRadio,
@@ -37,7 +37,7 @@ export default {
   <div>
     <h2>Virtual Scroll</h2>
     <Explain />
-    <Base />
+    <BaseMd />
     <AutoHeight />
     <RowIndex />
     <RowCheckbox />

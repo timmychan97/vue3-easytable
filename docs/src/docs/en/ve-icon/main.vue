@@ -1,6 +1,6 @@
 <script>
 import API from './api.md'
-import Base from './base.md'
+import BaseMd from './base.md'
 import Collection from './collection.vue'
 import Explain from './explain.md'
 import Usage from './usage.md'
@@ -9,7 +9,7 @@ export default {
   components: {
     Explain,
     Usage,
-    Base,
+    BaseMd,
     Collection,
     API,
   },
@@ -21,7 +21,7 @@ export default {
     <h2>Icon</h2>
     <Explain />
     <Usage />
-    <Base />
+    <BaseMd />
     <Collection />
     <API />
   </div>

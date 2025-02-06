@@ -1,6 +1,6 @@
 <script>
 import API from '../api/clipboard-option-props.vue'
-import Base from './base.md'
+import BaseMd from './base.md'
 import Explain from './explain.md'
 import ShortCuts from './shortcuts.md'
 
@@ -9,7 +9,7 @@ export default {
   components: {
     Explain,
     ShortCuts,
-    Base,
+    BaseMd,
     API,
   },
 }
@@ -20,7 +20,7 @@ export default {
     <h2>剪贴板</h2>
     <Explain />
     <ShortCuts />
-    <Base />
+    <BaseMd />
     <API title="API" anchor="API" desc="clipboardOption 剪贴板配置" />
   </div>
 </template>

@@ -1,6 +1,6 @@
 <script>
 import API from '../api/cell-selection-option-props.vue'
-import Base from './base.md'
+import BaseMd from './base.md'
 import DisableSelection from './disable-selection.md'
 import Explain from './explain.md'
 import RangeSelectionInstanceMethods from './range-selection-instance-methods.md'
@@ -12,7 +12,7 @@ export default {
   components: {
     Explain,
     ShortCuts,
-    Base,
+    BaseMd,
     DisableSelection,
     SingleSelectionInstanceMethods,
     RangeSelectionInstanceMethods,
@@ -26,7 +26,7 @@ export default {
     <h2>Cell Selection</h2>
     <Explain />
     <ShortCuts />
-    <Base />
+    <BaseMd />
     <DisableSelection />
     <SingleSelectionInstanceMethods />
     <RangeSelectionInstanceMethods />

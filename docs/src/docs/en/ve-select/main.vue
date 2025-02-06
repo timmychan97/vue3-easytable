@@ -1,9 +1,9 @@
 <script>
 import API from './api.md'
-import Base from './base.md'
+import BaseMd from './base.md'
 
 export default {
-  components: { Base, API },
+  components: { BaseMd, API },
   data() {
     return {
       selectItems1: [
@@ -30,7 +30,7 @@ export default {
 
 <template>
   <div>
-    <Base />
+    <BaseMd />
     <API />
   </div>
 </template>

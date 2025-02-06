@@ -1,7 +1,7 @@
 <script>
 import API2 from '../api/contextmenu-body-option-props'
 import API1 from '../api/contextmenu-header-option-props'
-import Base from './base.md'
+import BaseMd from './base.md'
 import ContextmenuTypes from './contextmenu-types.md'
 import Custom from './custom.md'
 import Explain from './explain.md'
@@ -11,7 +11,7 @@ export default {
   components: {
     Explain,
     ContextmenuTypes,
-    Base,
+    BaseMd,
     Custom,
     API1,
     API2,
@@ -24,7 +24,7 @@ export default {
     <h2>Contextmenu</h2>
     <Explain />
     <ContextmenuTypes />
-    <Base />
+    <BaseMd />
     <Custom />
     <API1
       anchor="API contextmenuHeaderOption"

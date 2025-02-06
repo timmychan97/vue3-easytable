@@ -1,5 +1,5 @@
 <script>
-import Base from './base.md'
+import BaseMd from './base.md'
 import Explain from './explain.md'
 import HeaderFixedDisabled from './header-fixed-disabled.md'
 
@@ -7,7 +7,7 @@ export default {
   name: 'BasicMain',
   components: {
     Explain,
-    Base,
+    BaseMd,
     HeaderFixedDisabled,
   },
 }
@@ -17,7 +17,7 @@ export default {
   <div>
     <h2>Header Fixed</h2>
     <Explain />
-    <Base />
+    <BaseMd />
     <HeaderFixedDisabled />
   </div>
 </template>

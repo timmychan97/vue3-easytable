@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import API from '../api/edit-option-props.vue'
-import Base from './base.md'
+import BaseMd from './base.md'
 import CombineColumnFixed from './combine-column-fixed.md'
 import CombineElementUi from './combine-element-ui.md'
 import Explain from './explain.md'
@@ -17,7 +17,7 @@ defineOptions({
     <h2>单元格编辑</h2>
     <Explain />
     <ShortCuts />
-    <Base />
+    <BaseMd />
     <InstanceMethods />
     <CombineColumnFixed />
     <CombineElementUi />

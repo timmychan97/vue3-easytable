@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import API from '../api/column-props/ellipsis-props.vue'
-import Base from './base.md'
+import BaseMd from './base.md'
 import EllipsisLine from './ellipsis-line.md'
 import Ellipsis from './ellipsis.md'
 import Explain from './explain.md'
@@ -14,7 +14,7 @@ defineOptions({
   <div>
     <h2>单元格省略</h2>
     <Explain />
-    <Base />
+    <BaseMd />
     <Ellipsis />
     <EllipsisLine />
 

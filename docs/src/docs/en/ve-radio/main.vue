@@ -1,11 +1,11 @@
 <script>
 import API from './api.md'
-import Base from './base.md'
+import BaseMd from './base.md'
 import Controlled from './controlled.md'
 
 export default {
   components: {
-    Base,
+    BaseMd,
     Controlled,
     API,
   },
@@ -16,7 +16,7 @@ export default {
   <div>
     <div>
       <h3>基础功能</h3>
-      <Base />
+      <BaseMd />
     </div>
     <div>
       <h3>可控属性</h3>

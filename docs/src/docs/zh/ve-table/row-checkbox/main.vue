@@ -1,6 +1,6 @@
 <script>
 import API from '../api/checkbox-option-props.vue'
-import Base from './base.md'
+import BaseMd from './base.md'
 import Explain from './explain.md'
 import SelectedAllHide from './selected-all-hide.md'
 import SelectedColumn from './selected-column.md'
@@ -13,7 +13,7 @@ export default {
   name: 'BasicMain',
   components: {
     Explain,
-    Base,
+    BaseMd,
     SelectedDefault,
     SelectedColumn,
     SelectedDisable,
@@ -29,7 +29,7 @@ export default {
   <div>
     <h2>行多选</h2>
     <Explain />
-    <Base />
+    <BaseMd />
     <SelectedColumn />
     <SelectedDefault />
     <SelectedDisable />

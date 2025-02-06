@@ -1,6 +1,6 @@
 <script>
 import API from '../api/edit-option-props.vue'
-import Base from './base.md'
+import BaseMd from './base.md'
 import CombineColumnFixed from './combine-column-fixed.md'
 import CombineElementUi from './combine-element-ui.md'
 import Explain from './explain.md'
@@ -12,7 +12,7 @@ export default {
   components: {
     Explain,
     ShortCuts,
-    Base,
+    BaseMd,
     InstanceMethods,
     CombineColumnFixed,
     CombineElementUi,
@@ -26,7 +26,7 @@ export default {
     <h2>Cell Edit</h2>
     <Explain />
     <ShortCuts />
-    <Base />
+    <BaseMd />
     <InstanceMethods />
     <CombineColumnFixed />
     <CombineElementUi />

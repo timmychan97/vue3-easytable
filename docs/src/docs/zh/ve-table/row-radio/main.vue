@@ -1,6 +1,6 @@
 <script>
 import API from '../api/radio-option-props.vue'
-import Base from './base.md'
+import BaseMd from './base.md'
 import Explain from './explain.md'
 import RadioColumn from './radio-column.md'
 import SelectedControl from './selected-control.md'
@@ -12,7 +12,7 @@ export default {
   name: 'BasicMain',
   components: {
     Explain,
-    Base,
+    BaseMd,
     RadioColumn,
     SelectedDefault,
     SelectedDisable,
@@ -27,7 +27,7 @@ export default {
   <div>
     <h2>行单选</h2>
     <Explain />
-    <Base />
+    <BaseMd />
     <RadioColumn />
     <SelectedDefault />
     <SelectedDisable />

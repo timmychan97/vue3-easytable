@@ -1,6 +1,6 @@
 <script>
 import API from '../api/column-props/ellipsis-props.vue'
-import Base from './base.md'
+import BaseMd from './base.md'
 import EllipsisLine from './ellipsis-line.md'
 import Ellipsis from './ellipsis.md'
 import Explain from './explain.md'
@@ -9,7 +9,7 @@ export default {
   name: 'BasicMain',
   components: {
     Explain,
-    Base,
+    BaseMd,
     Ellipsis,
     EllipsisLine,
     API,
@@ -21,7 +21,7 @@ export default {
   <div>
     <h2>Cell Ellipsis</h2>
     <Explain />
-    <Base />
+    <BaseMd />
     <Ellipsis />
     <EllipsisLine />
 

@@ -1,12 +1,12 @@
 <script>
-import Base from './base.md'
+import BaseMd from './base.md'
 import Explain from './explain.md'
 
 export default {
   name: 'BasicMain',
   components: {
     Explain,
-    Base,
+    BaseMd,
   },
 }
 </script>
@@ -15,6 +15,6 @@ export default {
   <div>
     <h2>操作列</h2>
     <Explain />
-    <Base />
+    <BaseMd />
   </div>
 </template>

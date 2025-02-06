@@ -1,5 +1,5 @@
 <script>
-import Base from './base.md'
+import BaseMd from './base.md'
 import CellSpan from './cell-span.md'
 import CellStyle from './cell-style.md'
 import CustomCell from './custom-cell.md'
@@ -14,7 +14,7 @@ export default {
   name: 'EventCustom',
   components: {
     Explain,
-    Base,
+    BaseMd,
     CustomCell,
     CellStyle,
     CellSpan,
@@ -31,7 +31,7 @@ export default {
   <div>
     <h2>Footer Summary</h2>
     <Explain />
-    <Base />
+    <BaseMd />
     <CustomCell />
     <CellStyle />
     <CellSpan />

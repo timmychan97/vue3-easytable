@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import Base from './base.md'
+import BaseMd from './base.md'
 import Explain from './explain.md'
 
 defineOptions({
@@ -11,6 +11,6 @@ defineOptions({
   <div>
     <h2>表头隐藏</h2>
     <Explain />
-    <Base />
+    <BaseMd />
   </div>
 </template>
