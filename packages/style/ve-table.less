@@ -50,6 +50,12 @@
                             font-weight: 500;
                             color: @ve-table-head-text-color;
                             font-size: @ve-table-head-text-font-size;
+                            vertical-align: middle;
+
+                            // Header content wrapper for proper alignment
+                            > * {
+                                vertical-align: middle;
+                            }
                             // cell indicator
                             &.ve-table-cell-indicator {
                                 background-color: @ve-table-header-cell-indicator-background-color;
@@ -83,23 +89,36 @@
 
                             // sort
                             .ve-table-sort {
-                                display: inline-block;
+                                display: inline-flex;
+                                flex-direction: column;
+                                align-items: center;
+                                justify-content: center;
                                 position: relative;
                                 width: 16px;
-                                height: 16px;
+                                height: 18px;
                                 margin-left: 5px;
+                                vertical-align: middle;
                                 color: @ve-table-sort-icon-default-color;
-                                pointer-events: none;
+                                cursor: pointer;
+                                border-radius: 2px;
+                                transition: background-color 0.15s ease;
+
+                                &:hover {
+                                    background-color: rgba(0, 0, 0, 0.06);
+                                }
+
                                 .ve-table-sort-icon {
-                                    position: absolute;
                                     display: block;
-                                    font-size: 14px;
+                                    font-size: 12px;
+                                    line-height: 1;
+                                    pointer-events: none;
+
                                     &.ve-table-sort-icon-top {
-                                        top: 1px;
+                                        margin-bottom: -2px;
                                     }
 
                                     &.ve-table-sort-icon-bottom {
-                                        top: 9px;
+                                        margin-top: -2px;
                                     }
 
                                     &.active {
@@ -109,21 +128,29 @@
                             }
 
                             &.ve-table-sortable-column {
-                                cursor: pointer;
+                                cursor: default;
                             }
 
                             /* filter */
                             .ve-table-filter {
-                                display: inline-block;
+                                display: inline-flex;
+                                align-items: center;
+                                justify-content: center;
                                 position: relative;
-                                width: 0;
-                                height: 16px;
+                                width: 16px;
+                                height: 18px;
+                                margin-left: 5px;
+                                vertical-align: middle;
                                 cursor: pointer;
+                                border-radius: 2px;
+                                transition: background-color 0.15s ease;
+
+                                &:hover {
+                                    background-color: rgba(0, 0, 0, 0.06);
+                                }
+
                                 .ve-table-filter-icon {
                                     color: @ve-table-header-filter-icon-color;
-                                    position: absolute;
-                                    top: 0;
-                                    left: 5px;
                                 }
                             }
                         }

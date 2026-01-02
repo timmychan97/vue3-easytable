@@ -780,11 +780,28 @@ export default defineComponent({
     'allRowKeys': {
       handler(newVal) {
         if (Array.isArray(newVal)) {
-          const { currentCell } = this.cellSelectionData
+          const { currentCell, normalEndCell } = this.cellSelectionData
           // 行被移除，清空单元格选中
           if (currentCell.rowIndex > -1) {
-            if (!newVal.includes(currentCell.rowKey))
+            if (!newVal.includes(currentCell.rowKey)) {
               this.clearCellSelectionCurrentCell()
+            }
+            else {
+              // Row still exists but index may have changed (e.g., row inserted above)
+              // Update the rowIndex to reflect the new position
+              const newRowIndex = newVal.indexOf(currentCell.rowKey)
+              if (newRowIndex !== currentCell.rowIndex) {
+                this.cellSelectionData.currentCell.rowIndex = newRowIndex
+                // Also update normalEndCell rowIndex if it exists
+                if (normalEndCell.rowIndex > -1 && newVal.includes(normalEndCell.rowKey)) {
+                  this.cellSelectionData.normalEndCell.rowIndex = newVal.indexOf(normalEndCell.rowKey)
+                }
+                // Trigger selection position refresh after DOM updates
+                this.$nextTick(() => {
+                  this.hooks.triggerHook(HOOKS_NAME.CLIPBOARD_CELL_VALUE_CHANGE)
+                })
+              }
+            }
           }
         }
       },
@@ -2980,6 +2997,13 @@ export default defineComponent({
 
     // contextmenu item click
     contextmenuItemClick(type) {
+      // Reset mouse state flags to prevent selection from following mouse
+      // after context menu action is performed
+      this.isHeaderCellMousedown = false
+      this.isBodyCellMousedown = false
+      this.isBodyOperationColumnMousedown = false
+      this.isAutofillStarting = false
+
       // header contextmenu
       if (this.contextMenuType === CONTEXTMENU_TYPES.HEADER_CONTEXTMENU)
         this.headerContextmenuItemClick(type)
@@ -3151,6 +3175,9 @@ export default defineComponent({
             startRowIndex,
             endRowIndex - startRowIndex + 1,
           )
+          // Clear selection since the selected rows are removed
+          this.clearCellSelectionCurrentCell()
+          this.clearCellSelectionNormalEndCell()
         }
         // empty rows
         else if (CONTEXTMENU_NODE_TYPES.EMPTY_ROW === type) {
@@ -3167,6 +3194,10 @@ export default defineComponent({
             0,
             createEmptyRowData({ colgroups, rowKeyFieldName }),
           )
+          // Trigger selection position refresh after DOM updates
+          this.$nextTick(() => {
+            this.hooks.triggerHook(HOOKS_NAME.CLIPBOARD_CELL_VALUE_CHANGE)
+          })
         }
         // insert row below
         else if (CONTEXTMENU_NODE_TYPES.INSERT_ROW_BELOW === type) {
@@ -3175,6 +3206,10 @@ export default defineComponent({
             0,
             createEmptyRowData({ colgroups, rowKeyFieldName }),
           )
+          // Trigger selection position refresh after DOM updates
+          this.$nextTick(() => {
+            this.hooks.triggerHook(HOOKS_NAME.CLIPBOARD_CELL_VALUE_CHANGE)
+          })
         }
       }
     },

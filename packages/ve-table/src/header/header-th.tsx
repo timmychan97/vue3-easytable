@@ -388,6 +388,15 @@ export default defineComponent({
 
         const props = {
           class: clsName('sort'),
+          onMousedown: (e: MouseEvent) => {
+            // Stop propagation to prevent header cell mousedown from selecting column
+            e.stopPropagation()
+          },
+          onClick: (e: MouseEvent) => {
+            // Stop propagation to prevent header cell click from interfering
+            e.stopPropagation()
+            this.sortChange()
+          },
         }
 
         result = (
@@ -596,13 +605,9 @@ export default defineComponent({
     const events = {
       onClick: (e) => {
         this.cellClick(e, click)
-
-        if (
-          this.isSortableCloumn
-          && e.target instanceof HTMLTableCellElement
-        ) {
-          this.sortChange()
-        }
+        // Note: Sorting is now triggered only by clicking on the sort icons themselves,
+        // not by clicking anywhere on the header cell. This prevents sorting from
+        // interfering with column selection.
       },
       onDblclick: (e) => {
         this.cellDblclick(e, dblclick)

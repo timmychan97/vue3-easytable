@@ -290,6 +290,10 @@ export default defineComponent({
             HOOKS_NAME.CLIPBOARD_CELL_VALUE_CHANGE,
             () => {
               this.$nextTick(() => {
+                // Re-fetch cell elements from DOM before resetting positions
+                // This is needed when rows are inserted/removed and DOM elements have changed
+                this.setCurrentCellEl()
+                this.setNormalEndCellEl()
                 this.resetCellPositions()
               })
             },

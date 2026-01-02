@@ -99,7 +99,10 @@ export default defineComponent({
         }}
       >
         {/* icon */}
-        <span class={clsName('filter')}>
+        <span
+          class={clsName('filter')}
+          onMousedown={(e: MouseEvent) => e.stopPropagation()}
+        >
           <span class={clsName('filter-icon')}>
             {this.getIcon(h)}
           </span>
