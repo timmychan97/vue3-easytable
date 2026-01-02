@@ -34,6 +34,12 @@ const COLUMN_KEYS = [
 
 const { currentDocLang } = useI18n()
 
+// Filter state for each column
+const filterValues = reactive<Record<string, string>>({})
+
+// Original data (unfiltered)
+let originalTableData: Record<string, string | number>[] = []
+
 const state = reactive({
   // start row index
   startRowIndex: 0,
@@ -62,6 +68,13 @@ const state = reactive({
       sourceSelectionData,
       targetSelectionData,
     }) => {},
+  },
+  // sort option for column sorting
+  sortOption: {
+    multipleSort: true,
+    sortChange: (params: Record<string, string>) => {
+      sortChange(params)
+    },
   },
   // edit option 可控单元格编辑
   editOption: {
@@ -198,6 +211,49 @@ const state = reactive({
 const currentLocal = computed(() => {
   return locale[currentDocLang.value].completeDemo.demo2
 })
+
+// Create filter render function for a column
+function createFilterRender(keyValue: string) {
+  return ({ closeFn }: { showFn: () => void, closeFn: () => void }, h: any) => {
+    return (
+      <div class="custom-filter" style="padding: 10px; width: 200px;">
+        <div style="margin-bottom: 10px;">
+          <input
+            type="text"
+            placeholder={`Filter ${keyValue}...`}
+            value={filterValues[keyValue] || ''}
+            style="width: 100%; padding: 5px; border: 1px solid #ddd; border-radius: 4px;"
+            onInput={(e: Event) => {
+              filterValues[keyValue] = (e.target as HTMLInputElement).value
+            }}
+          />
+        </div>
+        <div style="display: flex; gap: 8px; justify-content: flex-end;">
+          <button
+            style="padding: 4px 12px; border: 1px solid #ddd; background: #fff; cursor: pointer; border-radius: 4px;"
+            onClick={() => {
+              filterValues[keyValue] = ''
+              applyFilters()
+              closeFn()
+            }}
+          >
+            Reset
+          </button>
+          <button
+            style="padding: 4px 12px; border: none; background: #1890ff; color: #fff; cursor: pointer; border-radius: 4px;"
+            onClick={() => {
+              applyFilters()
+              closeFn()
+            }}
+          >
+            Confirm
+          </button>
+        </div>
+      </div>
+    )
+  }
+}
+
 const columns = computed(() => {
   const columns = [
     {
@@ -217,6 +273,18 @@ const columns = computed(() => {
         key: keyValue,
         width: 90,
         edit: true,
+        // Enable sorting on all columns
+        sortBy: '',
+        // Enable filtering on all columns
+        filterCustom: {
+          defaultVisible: false,
+          render: createFilterRender(keyValue),
+          filterIcon: () => {
+            // Show different icon color when filter is active
+            const isFiltered = filterValues[keyValue] && filterValues[keyValue].length > 0
+            return <ve-icon name="filter" style={{ color: isFiltered ? '#1890ff' : '#bfbfbf' }} />
+          },
+        },
       }
     }),
   ]
@@ -237,9 +305,56 @@ function scrolling({
 }) {
   state.startRowIndex = startRowIndex
 }
+
+// Sort change handler
+function sortChange(params: Record<string, string>) {
+  // Apply sorting based on sort parameters
+  const sortFields = Object.entries(params).filter(([_, order]) => order)
+
+  if (sortFields.length === 0) {
+    // No sorting, apply filters to original data
+    applyFilters()
+    return
+  }
+
+  // Sort the filtered data
+  const dataToSort = [...state.tableData]
+  dataToSort.sort((a, b) => {
+    for (const [field, order] of sortFields) {
+      const aVal = String(a[field] || '')
+      const bVal = String(b[field] || '')
+      const comparison = aVal.localeCompare(bVal)
+      if (comparison !== 0) {
+        return order === 'asc' ? comparison : -comparison
+      }
+    }
+    return 0
+  })
+
+  state.tableData = dataToSort
+}
+
+// Apply filters to table data
+function applyFilters() {
+  let filteredData = [...originalTableData]
+
+  // Apply each active filter
+  for (const [field, value] of Object.entries(filterValues)) {
+    if (value && value.length > 0) {
+      const searchValue = value.toLowerCase()
+      filteredData = filteredData.filter((row) => {
+        const cellValue = String(row[field] || '').toLowerCase()
+        return cellValue.includes(searchValue)
+      })
+    }
+  }
+
+  state.tableData = filteredData
+}
+
 function initTableData() {
   const tableData: Record<string, string | number>[] = []
-  for (let i = 0; i < 5000; i++) {
+  for (let i = 0; i < 1000; i++) {
     const dataItem: Record<string, string | number> = {
       rowKey: i,
     }
@@ -261,6 +376,7 @@ function initTableData() {
     tableData.push(dataItem)
   }
 
+  originalTableData = tableData
   state.tableData = tableData
 }
 </script>
@@ -284,6 +400,7 @@ function initTableData() {
       :virtual-scroll-option="state.virtualScrollOption"
       :cell-autofill-option="state.cellAutofillOption"
       :edit-option="state.editOption"
+      :sort-option="state.sortOption"
       :contextmenu-body-option="state.contextmenuBodyOption"
       :contextmenu-header-option="state.contextmenuHeaderOption"
       :row-style-option="state.rowStyleOption"

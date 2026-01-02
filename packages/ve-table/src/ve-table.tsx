@@ -1092,6 +1092,13 @@ export default defineComponent({
 
     // update colgroups by sort change
     updateColgroupsBySortChange(sortColumns) {
+      // clear cell selection when sorting to avoid stale selection state
+      this.clearCellSelectionCurrentCell()
+      this.clearCellSelectionNormalEndCell()
+
+      // stop editing cell if active
+      this[INSTANCE_METHODS.STOP_EDITING_CELL]()
+
       this.colgroups = this.colgroups.map((item) => {
         // update colgroups by sort columns
         if (Object.keys(sortColumns).includes(item.field))
@@ -2339,6 +2346,12 @@ export default defineComponent({
 
           // celar editing cell
           this.clearEditingCell()
+
+          // trigger cell value change hook to refresh selection positions
+          // this ensures the selection highlight updates after the cell content changes
+          this.$nextTick(() => {
+            this.hooks.triggerHook(HOOKS_NAME.CLIPBOARD_CELL_VALUE_CHANGE)
+          })
         }
 
         // reset status

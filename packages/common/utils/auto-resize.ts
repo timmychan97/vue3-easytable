@@ -69,6 +69,11 @@ export function autoResize() {
   const delayedResize = function () {
     window.setTimeout(resize, 0)
   }
+  // Immediate resize for input events - prevents visual glitch where
+  // character appears on new line before width expands
+  const immediateResize = function () {
+    resize()
+  }
   const extendDefaults = function (config) {
     if (config && config.minHeight) {
       if (config.minHeight === 'inherit') {
@@ -139,6 +144,9 @@ export function autoResize() {
       observe(el, 'paste', delayedResize)
       observe(el, 'drop', delayedResize)
       observe(el, 'keydown', delayedResize)
+      // Use immediate resize on input to prevent visual glitch where
+      // character appears on new line before width expands
+      observe(el, 'input', immediateResize)
       observe(el, 'focus', resize)
       observe(el, 'compositionstart', delayedResize)
       observe(el, 'compositionupdate', delayedResize)
@@ -168,6 +176,7 @@ export function autoResize() {
       unObserve(el, 'paste', delayedResize)
       unObserve(el, 'drop', delayedResize)
       unObserve(el, 'keydown', delayedResize)
+      unObserve(el, 'input', immediateResize)
       unObserve(el, 'focus', resize)
       unObserve(el, 'compositionstart', delayedResize)
       unObserve(el, 'compositionupdate', delayedResize)
