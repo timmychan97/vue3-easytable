@@ -72,10 +72,11 @@
   ],
   "scripts": {
     "gulp": "gulp",
+    "clean": "rimraf libs",
     "build:css": "lessc ../theme-default/index.less libs/theme-default/index.css && lessc ../theme-dark/index.less libs/theme-dark/index.css",
     "build:lang": "tsc ../common/locale/lang/*.ts --isolatedModules --target es6 --moduleResolution node --declaration --outDir libs/locale/lang",
     "build:vite": "vite build",
-    "build": "pnpm build:vite && pnpm build:css && pnpm build:lang && pnpm gulp",
+    "build": "npm-run-all clean build:vite build:css build:lang gulp",
     "publish": "node ./build/publish.js"
   },
   "dependencies": {
@@ -96,6 +97,8 @@
     "fs-extra": "^11.2.0",
     "gulp": "^4.0.2",
     "less": "^4.1.2",
+    "npm-run-all2": "^7.0.2",
+    "rimraf": "^6.0.1",
     "vite-plugin-dts": "^3.7.2"
   },
   "docVersions": [

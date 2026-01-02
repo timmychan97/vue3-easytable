@@ -16,6 +16,10 @@
   },
   "keywords": [],
   "main": "index.js",
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=10.0.0"
+  },
   "scripts": {
     "prepare": "husky install",
     "docs": "pnpm --filter=docs dev",
@@ -24,7 +28,11 @@
     "lint:err": "eslint . --quiet",
     "lint:fix": "eslint . --fix",
     "test": "vitest",
-    "build:comp": "vite build"
+    "test:ci": "vitest run",
+    "build:comp": "vite build",
+    "clean": "rimraf dist packages/vue/libs docs/dist _build_gh_pages node_modules/.vite",
+    "clean:deps": "rimraf node_modules packages/*/node_modules docs/node_modules pnpm-lock.yaml",
+    "typecheck": "vue-tsc --noEmit"
   },
   "dependencies": {
     "vue": "^3.5.13"
@@ -42,10 +50,13 @@
     "jsdom": "^19.0.0",
     "lint-staged": "^12.4.1",
     "lodash": "^4.17.21",
+    "npm-run-all2": "^7.0.2",
+    "rimraf": "^6.0.1",
     "typescript": "^5.7.3",
     "unplugin-auto-import": "^0.17.3",
     "vite": "^5.0.10",
-    "vitest": "^1.2.0"
+    "vitest": "^1.2.0",
+    "vue-tsc": "^2.2.0"
   },
   "pnpm": {
     "peerDependencyRules": {

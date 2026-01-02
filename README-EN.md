@@ -167,11 +167,25 @@ Example:
 
 ## How to contribute
 
-Use pnpm 10
-node version 20
+### Development Requirements
 
-If you want to contribute,just create a
-[Pull Request](https://github.com/huangshuwei/vue-easytable/pulls)
+- **pnpm** 10.x or higher (required)
+- **Node.js** 20.x (automatically managed by pnpm)
+
+This project uses pnpm for development. pnpm will automatically switch to the Node.js version specified for this project (configured via `.npmrc`), so you don't need to manually manage Node versions.
+
+```bash
+# Install pnpm (if not already installed)
+npm install -g pnpm@latest
+
+# Clone the repository and install dependencies
+git clone https://github.com/kohaiy/easytable.git
+cd easytable
+pnpm install  # pnpm will automatically use the correct Node.js version
+```
+
+If you want to contribute, just create a
+[Pull Request](https://github.com/kohaiy/easytable/pulls)
 
 ## Contributors
 

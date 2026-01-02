@@ -166,9 +166,22 @@ Example:
 
 ## 如何贡献
 
-Use pnpm 10
-```pnpm env use --global 20```
-node version 20
+### 开发环境要求
+
+- **pnpm** 10.x 或更高版本（必须）
+- **Node.js** 20.x（pnpm 会自动切换）
+
+本项目使用 pnpm 进行开发。pnpm 会自动切换到项目指定的 Node.js 版本（通过 `.npmrc` 配置），无需手动管理 Node 版本。
+
+```bash
+# 安装 pnpm（如果尚未安装）
+npm install -g pnpm@latest
+
+# 克隆仓库并安装依赖
+git clone https://github.com/kohaiy/easytable.git
+cd easytable
+pnpm install  # pnpm 会自动使用正确的 Node.js 版本
+```
 
 如果你希望参与贡献，欢迎
 [Pull Request](https://github.com/kohaiy/easytable/pulls)
