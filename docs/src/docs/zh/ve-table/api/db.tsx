@@ -298,6 +298,13 @@ export const db = {
         optionalVal: '-',
         default: '-',
       },
+      {
+        param: 'rowInsertOption',
+        desc: '行插入配置，允许通过悬停在索引列上来插入行。具体见下表 rowInsertOption 配置',
+        type: '<code>Object</code>',
+        optionalVal: '-',
+        default: '-',
+      },
     ],
     columns: columnsType1,
   },
@@ -1235,6 +1242,34 @@ export const db = {
                     differWidth,
                     columnWidth,
 })</code>`,
+        optionalVal: '-',
+        default: '-',
+      },
+    ],
+    columns: columnsType1,
+  },
+
+  // 行插入配置
+  rowInsertOption: {
+    data: [
+      {
+        param: 'enable',
+        desc: '是否开启行插入指示器。启用后，悬停在索引列上时会显示一个可视化指示器用于插入行',
+        type: '<code>Boolean</code>',
+        optionalVal: '-',
+        default: 'false',
+      },
+      {
+        param: 'beforeInsertRow',
+        desc: '行插入前的回调方法。如果返回 false，则取消插入。<br>参数：<code>insertRowIndex</code> - 新行将被插入的索引位置',
+        type: '<code>Function({ insertRowIndex })</code>',
+        optionalVal: '-',
+        default: '-',
+      },
+      {
+        param: 'afterInsertRow',
+        desc: '行插入后的回调方法。<br>参数：<code>insertRowIndex</code> - 新行被插入的索引位置',
+        type: '<code>Function({ insertRowIndex })</code>',
         optionalVal: '-',
         default: '-',
       },

@@ -292,6 +292,13 @@ export const db = {
         optionalVal: '-',
         default: '-',
       },
+      {
+        param: 'rowInsertOption',
+        desc: 'Row insert option, allows inserting rows by hovering over the index column. Refer to rowInsertOption for details',
+        type: '<code>Object</code>',
+        optionalVal: '-',
+        default: '-',
+      },
     ],
     columns: columnsType1,
   },
@@ -1241,6 +1248,34 @@ export const db = {
                 differWidth,
                 columnWidth,
 })</code>`,
+        optionalVal: '-',
+        default: '-',
+      },
+    ],
+    columns: columnsType1,
+  },
+
+  // Row insert option
+  rowInsertOption: {
+    data: [
+      {
+        param: 'enable',
+        desc: 'Enable row insert indicator. When enabled, hovering over the index column shows a visual indicator for inserting rows',
+        type: '<code>Boolean</code>',
+        optionalVal: '-',
+        default: 'false',
+      },
+      {
+        param: 'beforeInsertRow',
+        desc: 'Callback method before row insertion. If false is returned, the insertion will be cancelled.<br>Parameter: <code>insertRowIndex</code> - the index where the new row will be inserted',
+        type: '<code>Function({ insertRowIndex })</code>',
+        optionalVal: '-',
+        default: '-',
+      },
+      {
+        param: 'afterInsertRow',
+        desc: 'Callback method after row insertion.<br>Parameter: <code>insertRowIndex</code> - the index where the new row was inserted',
+        type: '<code>Function({ insertRowIndex })</code>',
         optionalVal: '-',
         default: '-',
       },

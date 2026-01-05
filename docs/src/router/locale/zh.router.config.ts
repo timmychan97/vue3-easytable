@@ -262,6 +262,13 @@ const config: RouteRecordRaw[] = [
         meta: { keepAlive: true },
       },
       {
+        path: 'row-insert',
+        component: () =>
+          import('@/docs/zh/ve-table/row-insert/main.vue'),
+        name: '行插入',
+        meta: { keepAlive: true },
+      },
+      {
         path: 'row-radio',
         component: () =>
           import('@/docs/zh/ve-table/row-radio/main.vue'),
