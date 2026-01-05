@@ -31,6 +31,7 @@ import ColumnResizer from './column-resizer'
 import EditInput from './editor'
 import Footer from './footer'
 import Header from './header'
+import RowInsertIndicator from './row-insert-indicator'
 import Selection from './selection'
 import {
   onAfterCopy,
@@ -268,6 +269,13 @@ export default defineComponent({
     },
     // column width resize option
     columnWidthResizeOption: {
+      type: Object,
+      default() {
+        return null
+      },
+    },
+    // row insert option
+    rowInsertOption: {
       type: Object,
       default() {
         return null
@@ -747,6 +755,29 @@ export default defineComponent({
           result = enable
       }
       return result
+    },
+    // row insert indicator props
+    rowInsertIndicatorProps() {
+      return {
+        parentRendered: this.parentRendered,
+        hooks: this.hooks,
+        tableContainerEl: this.$refs[this.tableContainerRef],
+        tableEl: this.$refs[this.tableRef],
+        allRowKeys: this.allRowKeys,
+        colgroups: this.colgroups,
+        rowKeyFieldName: this.rowKeyFieldName,
+        tableData: this.tableData,
+        virtualScrollOption: this.virtualScrollOption,
+        isVirtualScroll: this.isVirtualScroll,
+        virtualScrollPositions: this.virtualScrollPositions,
+        virtualScrollVisibleIndexs: this.virtualScrollVisibleIndexs,
+        rowInsertOption: this.rowInsertOption,
+        fixedHeader: this.fixedHeader,
+        showHeader: this.showHeader,
+        [getEmitEventName(EMIT_EVENTS.ROW_INSERT)]: (params) => {
+          this.handleRowInsert(params)
+        },
+      }
     },
     // header total height
     headerTotalHeight() {
@@ -3828,6 +3859,17 @@ export default defineComponent({
     [INSTANCE_METHODS.SET_HIGHLIGHT_ROW]({ rowKey }) {
       this.highlightRowKey = rowKey
     },
+    // handle row insert
+    handleRowInsert({ insertRowIndex }) {
+      const { rowInsertOption } = this
+      if (!rowInsertOption?.enable)
+        return
+
+      // Emit the row insert event to parent
+      this.$emit(EMIT_EVENTS.ROW_INSERT, {
+        insertRowIndex,
+      })
+    },
   },
   render() {
     const {
@@ -4166,6 +4208,10 @@ export default defineComponent({
             <ColumnResizer {...columnResizerProps} />
           )}
         </VueDomResizeObserver>
+        {/* row insert indicator - rendered outside the wrapper to avoid overflow clipping */}
+        {this.rowInsertOption?.enable && (
+          <RowInsertIndicator {...this.rowInsertIndicatorProps} />
+        )}
       </div>
     )
   },

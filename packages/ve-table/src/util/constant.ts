@@ -130,6 +130,8 @@ export const EMIT_EVENTS = {
   SELECTION_CORNER_MOUSEUP: 'selection-corner-mouseup',
   // autofilling direction change
   AUTOFILLING_DIRECTION_CHANGE: 'autofilling-direction-change',
+  // row insert
+  ROW_INSERT: 'on-row-insert',
 }
 
 // hooks name
@@ -185,6 +187,8 @@ export const COMPS_NAME = {
   VE_TABLE_SELECTION: 'VeTableSelection',
 
   VE_TABLE_COLUMN_RESISZER: 'VeTableColumnResizer',
+
+  VE_TABLE_ROW_INSERT_INDICATOR: 'VeTableRowInsertIndicator',
 }
 
 // comps custom attrs

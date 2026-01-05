@@ -561,4 +561,71 @@
             z-index: @ve-column-resizer-line-index;
         }
     }
+
+}
+
+// row insert indicator - placed outside .ve-table to avoid overflow clipping
+.vue-table-root {
+    position: relative;
+
+    .ve-table-row-insert-indicator-wrapper {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        pointer-events: none;
+        z-index: 200;
+        overflow: visible;
+    }
+
+    .ve-table-row-insert-indicator-line {
+        position: absolute;
+        // left and width are set dynamically in JS
+        height: 2px;
+        background-color: @ve-table-row-insert-indicator-color;
+        transform: translateY(-50%);
+        pointer-events: none;
+        transition: opacity 0.12s ease-out, top 0.06s ease-out;
+        box-shadow: 0 0 6px fade(@ve-table-row-insert-indicator-color, 40%);
+    }
+
+    .ve-table-row-insert-indicator-button {
+        position: absolute;
+        // width, height, left are set dynamically in JS
+        border-radius: 50%;
+        background-color: @ve-table-row-insert-indicator-color;
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transform: translateY(-50%);
+        transition: opacity 0.12s ease-out, top 0.06s ease-out, transform 0.12s ease-out, box-shadow 0.12s ease-out;
+        pointer-events: auto;
+        box-shadow: 0 1px 4px fade(@ve-table-row-insert-indicator-color, 35%),
+                    0 0 0 2px fade(#fff, 90%);
+        user-select: none;
+        z-index: 201;
+        border: none;
+
+        &:hover {
+            transform: translateY(-50%) scale(1.12);
+            box-shadow: 0 2px 8px fade(@ve-table-row-insert-indicator-color, 50%),
+                        0 0 0 2px fade(#fff, 95%);
+        }
+
+        &:active {
+            transform: translateY(-50%) scale(0.92);
+            box-shadow: 0 1px 3px fade(@ve-table-row-insert-indicator-color, 40%),
+                        0 0 0 2px fade(#fff, 90%);
+        }
+    }
+
+    .ve-table-row-insert-indicator-icon {
+        font-size: 14px;
+        font-weight: 600;
+        line-height: 1;
+        margin-top: -1px;
+    }
 }

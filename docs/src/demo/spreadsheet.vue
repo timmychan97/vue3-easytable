@@ -204,6 +204,17 @@ const state = reactive({
     clickHighlight: false,
     hoverHighlight: false,
   },
+  // row insert option
+  rowInsertOption: {
+    enable: true,
+    beforeInsertRow: ({ insertRowIndex }) => {
+      console.log('Before insert row at index:', insertRowIndex)
+      return true // Return false to cancel the insert
+    },
+    afterInsertRow: ({ insertRowIndex }) => {
+      console.log('After insert row at index:', insertRowIndex)
+    },
+  },
   tableData: [] as any[],
 })
 
@@ -379,6 +390,29 @@ function initTableData() {
   originalTableData = tableData
   state.tableData = tableData
 }
+
+// Handle row insert
+function handleRowInsert({ insertRowIndex }: { insertRowIndex: number }) {
+  console.log('Row insert at index:', insertRowIndex)
+
+  // Create a new empty row
+  const newRow: Record<string, string | number> = {
+    rowKey: Date.now(), // Use timestamp as unique key
+  }
+  COLUMN_KEYS.forEach((keyValue) => {
+    newRow[keyValue] = ''
+  })
+
+  // Insert the new row at the specified index
+  const newTableData = [...state.tableData]
+  newTableData.splice(insertRowIndex, 0, newRow)
+  state.tableData = newTableData
+
+  // Also update original data for filter consistency
+  const newOriginalData = [...originalTableData]
+  newOriginalData.splice(insertRowIndex, 0, newRow)
+  originalTableData = newOriginalData
+}
 </script>
 
 <template>
@@ -405,6 +439,8 @@ function initTableData() {
       :contextmenu-header-option="state.contextmenuHeaderOption"
       :row-style-option="state.rowStyleOption"
       :column-width-resize-option="state.columnWidthResizeOption"
+      :row-insert-option="state.rowInsertOption"
+      @on-row-insert="handleRowInsert"
     />
   </div>
 </template>
