@@ -1,5 +1,5 @@
-import emitter from '@easytable/common/mixins/emitter'
-import { isBoolean, isEmptyValue } from '@easytable/common/utils/index'
+import emitter from '@vue3-easytable/common/mixins/emitter'
+import { isBoolean, isEmptyValue } from '@vue3-easytable/common/utils/index'
 import { debounce } from 'lodash'
 import {
   clsName,

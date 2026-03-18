@@ -1,7 +1,7 @@
 :::anchor 使用方法
 
 ```javascript
-import { useVeTable } from '@easytable/vue'
+import { useVeTable } from '@vue3-easytable/vue'
 import { createApp } from 'vue'
 // 引入英文语言包
 import enUS from 'vue-easytable/libs/locale/lang/en-US'

@@ -13,11 +13,11 @@ const themeSwitcherTool = isDev
       themeList: [
         {
           themeName: 'dark',
-          themePath: 'https://unpkg.com/@easytable/vue/libs/theme-dark/index.css',
+          themePath: 'https://unpkg.com/@vue3-easytable/vue/libs/theme-dark/index.css',
         },
         {
           themeName: 'default',
-          themePath: 'https://unpkg.com/@easytable/vue/libs/theme-default/index.css',
+          themePath: 'https://unpkg.com/@vue3-easytable/vue/libs/theme-default/index.css',
         },
       ],
       // Your actual style id

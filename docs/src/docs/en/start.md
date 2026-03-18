@@ -123,7 +123,7 @@ new Vue({
 
 :::anchor Usage By CDN
 
-Through [https://unpkg.com/vue-easytable/](https://unpkg.com/vue-easytable/), you can see the resources of the latest version of Vue easytable,You can also switch versions to select the required resources,You can start using JS and CSS files on the page
+Through [https://unpkg.com/vue-easytable/](https://unpkg.com/vue-easytable/), you can see the resources of the latest version of Vue vue3-easytable,You can also switch versions to select the required resources,You can start using JS and CSS files on the page
 
 ```css
 <!-- import style -->

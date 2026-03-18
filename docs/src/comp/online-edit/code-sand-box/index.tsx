@@ -7,7 +7,7 @@ export default defineComponent({
       type: String,
       required: true,
     },
-    // vue-easytable version
+    // vue-vue3-easytable version
     version: {
       type: String,
       required: true,
@@ -36,13 +36,13 @@ import Vue from "vue";
 import Example from "./Example.vue";
 
 // import default theme
-import "vue-easytable/libs/theme-default/index.css";
+import "vue-vue3-easytable/libs/theme-default/index.css";
 
-// import vue-easytable library
-import VueEasytable from "vue-easytable";
+// import vue-vue3-easytable library
+import VueEasytable from "vue-vue3-easytable";
 
 // for online edit
-import "vue-easytable/libs/font/iconfont.css";
+import "vue-vue3-easytable/libs/font/iconfont.css";
 
 // only used by examples
 import ElementUI from 'element-ui';
@@ -95,12 +95,12 @@ new Vue({
       } = this
 
       const codesandboxPackage = {
-        title: `vue-easytable@${version} example`,
+        title: `vue-vue3-easytable@${version} example`,
         main: 'main.js',
         dependencies: {
           'vue': '^2.6.11',
           'vue-template-compiler': '^2.6.11',
-          'vue-easytable': version,
+          'vue-vue3-easytable': version,
           'element-ui': '^2.15.0',
           'mockjs': '^1.1.0',
           '@vue/cli-service': '4.1.1',

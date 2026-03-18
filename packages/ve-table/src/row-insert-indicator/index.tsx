@@ -1,4 +1,4 @@
-import emitter from '@easytable/common/mixins/emitter'
+import emitter from '@vue3-easytable/common/mixins/emitter'
 import { computed, defineComponent, nextTick, onUnmounted, ref, watch } from 'vue'
 import { clsName } from '../util'
 import { COMPS_NAME, EMIT_EVENTS, HOOKS_NAME } from '../util/constant'

@@ -2,9 +2,9 @@ import {
   isEmptyArray,
   isEmptyValue,
   isFunction,
-} from '@easytable/common/utils'
-import { MOUSE_EVENT_CLICK_TYPE } from '@easytable/common/utils/constant'
-import { getRandomId } from '@easytable/common/utils/random'
+} from '@vue3-easytable/common/utils'
+import { MOUSE_EVENT_CLICK_TYPE } from '@vue3-easytable/common/utils/constant'
+import { getRandomId } from '@vue3-easytable/common/utils/random'
 import {
   AUTOFILLING_DIRECTION,
   COLUMN_FIXED_TYPE,

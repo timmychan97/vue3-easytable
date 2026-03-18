@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { getVersions } from '@/service/index'
 import { getDocTheme, setDocTheme } from '@/utils/cookies'
-import { VeLocale } from '@easytable/vue'
+import { VeLocale } from '@vue3-easytable/vue'
 import { version as latestVersion } from '../../packages/vue/package.json'
 import vClickoutside from './comp/directives/clickoutside'
 import locale from './comp/locale'
@@ -100,9 +100,9 @@ function themeChange({ value }: Option) {
 function versionChange(item: Option) {
   let { protocol, host, hash } = window.location
   if (!host.includes('github.io'))
-    host = 'kohaiy.github.io'
+    host = 'timmychan97.github.io'
 
-  const newUrl = `${protocol}//${host}/easytable/${item.value}${hash}`
+  const newUrl = `${protocol}//${host}/vue3-easytable/${item.value}${hash}`
   location.href = newUrl
 }
 // go ro router path
@@ -158,7 +158,7 @@ onMounted(() => {
         <!-- logo -->
         <div v-show="showLogo" class="main-banner-logo">
           <i style="font-size: 20px" class="icon iconfont icon-table" />
-          &nbsp;@easytable/vue
+          &nbsp;@vue3-easytable/vue
         </div>
         <!-- menus -->
         <div class="main-banner-menus-container">
@@ -280,7 +280,7 @@ onMounted(() => {
             </span>
 
             <span class="main-banner-menu-item">
-              <a class="main-banner-menu-link" href="https://github.com/kohaiy/easytable">
+              <a class="main-banner-menu-link" href="https://github.com/timmychan97/vue3-easytable">
                 <i class="icon iconfont icon-github" />
               </a>
             </span>

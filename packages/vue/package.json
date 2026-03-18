@@ -1,13 +1,13 @@
 {
-  "name": "@easytable/vue",
+  "name": "@vue3-easytable/vue",
   "version": "0.0.5",
   "description": "Vue table component",
-  "author": "https://github.com/kohaiy",
+  "author": "https://github.com/timmychan97",
   "license": "MIT",
-  "homepage": "https://github.com/kohaiy/easytable#readme",
+  "homepage": "https://github.com/timmychan97/vue3-easytable#readme",
   "repository": {
     "type": "git",
-    "url": "git@github.com:kohaiy/easytable.git"
+    "url": "git@github.com:timmychan97/vue3-easytable.git"
   },
   "keywords": [
     "vue",
@@ -64,7 +64,7 @@
       "require": "./libs/packages/theme-dark/*"
     }
   },
-  "main": "./libs/umd/easytable-vue.js",
+  "main": "./libs/umd/vue3-easytable-vue.js",
   "module": "./libs/es/index.js",
   "files": [
     "README.md",
@@ -80,18 +80,18 @@
     "publish": "node ./build/publish.js"
   },
   "dependencies": {
-    "@easytable/common": "workspace:^1.0.0",
-    "@easytable/ve-checkbox": "workspace:^1.0.0",
-    "@easytable/ve-checkbox-group": "workspace:^1.0.0",
-    "@easytable/ve-contextmenu": "workspace:^1.0.0",
-    "@easytable/ve-dropdown": "workspace:^1.0.0",
-    "@easytable/ve-icon": "workspace:^1.0.0",
-    "@easytable/ve-loading": "workspace:^1.0.0",
-    "@easytable/ve-locale": "workspace:^1.0.0",
-    "@easytable/ve-pagination": "workspace:^1.0.0",
-    "@easytable/ve-radio": "workspace:^1.0.0",
-    "@easytable/ve-select": "workspace:^1.0.0",
-    "@easytable/ve-table": "workspace:^1.0.0"
+    "@vue3-easytable/common": "workspace:^1.0.0",
+    "@vue3-easytable/ve-checkbox": "workspace:^1.0.0",
+    "@vue3-easytable/ve-checkbox-group": "workspace:^1.0.0",
+    "@vue3-easytable/ve-contextmenu": "workspace:^1.0.0",
+    "@vue3-easytable/ve-dropdown": "workspace:^1.0.0",
+    "@vue3-easytable/ve-icon": "workspace:^1.0.0",
+    "@vue3-easytable/ve-loading": "workspace:^1.0.0",
+    "@vue3-easytable/ve-locale": "workspace:^1.0.0",
+    "@vue3-easytable/ve-pagination": "workspace:^1.0.0",
+    "@vue3-easytable/ve-radio": "workspace:^1.0.0",
+    "@vue3-easytable/ve-select": "workspace:^1.0.0",
+    "@vue3-easytable/ve-table": "workspace:^1.0.0"
   },
   "devDependencies": {
     "fs-extra": "^11.2.0",

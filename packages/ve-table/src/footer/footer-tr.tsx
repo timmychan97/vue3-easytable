@@ -1,5 +1,5 @@
-import VueDomResizeObserver from '@easytable/common/comps/resize-observer'
-import emitter from '@easytable/common/mixins/emitter'
+import VueDomResizeObserver from '@vue3-easytable/common/comps/resize-observer'
+import emitter from '@vue3-easytable/common/mixins/emitter'
 import { clsName } from '../util'
 import { COMPS_CUSTOM_ATTRS, COMPS_NAME, EMIT_EVENTS } from '../util/constant'
 import FooterTd from './footer-td'

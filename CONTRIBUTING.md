@@ -1,6 +1,6 @@
-# Contributing to @easytable/vue
+# Contributing to @vue3-easytable/vue
 
-Thank you for your interest in contributing to @easytable/vue! This guide will help you get started with development on macOS, Windows, and Linux.
+Thank you for your interest in contributing to @vue3-easytable/vue! This guide will help you get started with development on macOS, Windows, and Linux.
 
 ## Prerequisites
 
@@ -30,8 +30,8 @@ This project uses pnpm's built-in `use-node-version` feature (configured in `.np
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/kohaiy/easytable.git
-cd easytable
+git clone https://github.com/timmychan97/vue3-easytable.git
+cd vue3-easytable
 ```
 
 ### 2. Install Dependencies
@@ -97,7 +97,7 @@ This will:
 ## Project Structure
 
 ```
-easytable/
+vue3-easytable/
 ├── .github/              # GitHub workflows and configurations
 ├── docs/                 # Documentation site (Vite + Vue)
 ├── packages/             # Monorepo packages
@@ -296,9 +296,9 @@ To update documentation:
 
 ## Getting Help
 
-- **Issues**: [GitHub Issues](https://github.com/kohaiy/easytable/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/kohaiy/easytable/discussions)
-- **Documentation**: [Official Docs](https://easytable.kohai.top/)
+- **Issues**: [GitHub Issues](https://github.com/timmychan97/vue3-easytable/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/timmychan97/vue3-easytable/discussions)
+- **Documentation**: [Official Docs](https://vue3-easytable.kohai.top/)
 
 ## Code of Conduct
 
@@ -306,4 +306,4 @@ Please be respectful and constructive in all interactions. We're here to build g
 
 ## License
 
-By contributing to @easytable/vue, you agree that your contributions will be licensed under its MIT License.
+By contributing to @vue3-easytable/vue, you agree that your contributions will be licensed under its MIT License.

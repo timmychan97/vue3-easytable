@@ -1,4 +1,4 @@
-import emitter from '@easytable/common/mixins/emitter'
+import emitter from '@vue3-easytable/common/mixins/emitter'
 import { clsName } from '../util'
 import { COMPS_NAME, EMIT_EVENTS } from '../util/constant'
 import HeaderTr from './header-tr'

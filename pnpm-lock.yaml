@@ -190,7 +190,7 @@ importers:
 
   packages/common:
     dependencies:
-      '@easytable/ve-locale':
+      '@vue3-easytable/ve-locale':
         specifier: workspace:^1.0.0
         version: link:../ve-locale
       mitt:
@@ -202,28 +202,28 @@ importers:
 
   packages/ve-checkbox:
     dependencies:
-      '@easytable/common':
+      '@vue3-easytable/common':
         specifier: workspace:^1.0.0
         version: link:../common
-      '@easytable/ve-checkbox-group':
+      '@vue3-easytable/ve-checkbox-group':
         specifier: workspace:^1.0.0
         version: link:../ve-checkbox-group
 
   packages/ve-checkbox-group:
     dependencies:
-      '@easytable/common':
+      '@vue3-easytable/common':
         specifier: workspace:^1.0.0
         version: link:../common
-      '@easytable/ve-checkbox':
+      '@vue3-easytable/ve-checkbox':
         specifier: workspace:^1.0.0
         version: link:../ve-checkbox
 
   packages/ve-contextmenu:
     dependencies:
-      '@easytable/common':
+      '@vue3-easytable/common':
         specifier: workspace:^1.0.0
         version: link:../common
-      '@easytable/ve-icon':
+      '@vue3-easytable/ve-icon':
         specifier: workspace:^1.0.0
         version: link:../ve-icon
       lodash:
@@ -236,31 +236,31 @@ importers:
 
   packages/ve-dropdown:
     dependencies:
-      '@easytable/common':
+      '@vue3-easytable/common':
         specifier: workspace:^1.0.0
         version: link:../common
-      '@easytable/ve-checkbox':
+      '@vue3-easytable/ve-checkbox':
         specifier: workspace:^1.0.0
         version: link:../ve-checkbox
-      '@easytable/ve-radio':
+      '@vue3-easytable/ve-radio':
         specifier: workspace:^1.0.0
         version: link:../ve-radio
 
   packages/ve-icon:
     dependencies:
-      '@easytable/common':
+      '@vue3-easytable/common':
         specifier: workspace:^1.0.0
         version: link:../common
 
   packages/ve-loading:
     dependencies:
-      '@easytable/common':
+      '@vue3-easytable/common':
         specifier: workspace:^1.0.0
         version: link:../common
 
   packages/ve-locale:
     dependencies:
-      '@easytable/common':
+      '@vue3-easytable/common':
         specifier: workspace:^1.0.0
         version: link:../common
       lodash:
@@ -273,52 +273,52 @@ importers:
 
   packages/ve-pagination:
     dependencies:
-      '@easytable/common':
+      '@vue3-easytable/common':
         specifier: workspace:^1.0.0
         version: link:../common
-      '@easytable/ve-icon':
+      '@vue3-easytable/ve-icon':
         specifier: workspace:^1.0.0
         version: link:../ve-icon
-      '@easytable/ve-select':
+      '@vue3-easytable/ve-select':
         specifier: workspace:^1.0.0
         version: link:../ve-select
 
   packages/ve-radio:
     dependencies:
-      '@easytable/common':
+      '@vue3-easytable/common':
         specifier: workspace:^1.0.0
         version: link:../common
 
   packages/ve-select:
     dependencies:
-      '@easytable/common':
+      '@vue3-easytable/common':
         specifier: workspace:^1.0.0
         version: link:../common
-      '@easytable/ve-dropdown':
+      '@vue3-easytable/ve-dropdown':
         specifier: workspace:^1.0.0
         version: link:../ve-dropdown
-      '@easytable/ve-icon':
+      '@vue3-easytable/ve-icon':
         specifier: workspace:^1.0.0
         version: link:../ve-icon
 
   packages/ve-table:
     dependencies:
-      '@easytable/common':
+      '@vue3-easytable/common':
         specifier: workspace:^1.0.0
         version: link:../common
-      '@easytable/ve-checkbox':
+      '@vue3-easytable/ve-checkbox':
         specifier: workspace:^1.0.0
         version: link:../ve-checkbox
-      '@easytable/ve-contextmenu':
+      '@vue3-easytable/ve-contextmenu':
         specifier: workspace:^1.0.0
         version: link:../ve-contextmenu
-      '@easytable/ve-dropdown':
+      '@vue3-easytable/ve-dropdown':
         specifier: workspace:^1.0.0
         version: link:../ve-dropdown
-      '@easytable/ve-icon':
+      '@vue3-easytable/ve-icon':
         specifier: workspace:^1.0.0
         version: link:../ve-icon
-      '@easytable/ve-radio':
+      '@vue3-easytable/ve-radio':
         specifier: workspace:^1.0.0
         version: link:../ve-radio
       lodash:
@@ -334,40 +334,40 @@ importers:
 
   packages/vue:
     dependencies:
-      '@easytable/common':
+      '@vue3-easytable/common':
         specifier: workspace:^1.0.0
         version: link:../common
-      '@easytable/ve-checkbox':
+      '@vue3-easytable/ve-checkbox':
         specifier: workspace:^1.0.0
         version: link:../ve-checkbox
-      '@easytable/ve-checkbox-group':
+      '@vue3-easytable/ve-checkbox-group':
         specifier: workspace:^1.0.0
         version: link:../ve-checkbox-group
-      '@easytable/ve-contextmenu':
+      '@vue3-easytable/ve-contextmenu':
         specifier: workspace:^1.0.0
         version: link:../ve-contextmenu
-      '@easytable/ve-dropdown':
+      '@vue3-easytable/ve-dropdown':
         specifier: workspace:^1.0.0
         version: link:../ve-dropdown
-      '@easytable/ve-icon':
+      '@vue3-easytable/ve-icon':
         specifier: workspace:^1.0.0
         version: link:../ve-icon
-      '@easytable/ve-loading':
+      '@vue3-easytable/ve-loading':
         specifier: workspace:^1.0.0
         version: link:../ve-loading
-      '@easytable/ve-locale':
+      '@vue3-easytable/ve-locale':
         specifier: workspace:^1.0.0
         version: link:../ve-locale
-      '@easytable/ve-pagination':
+      '@vue3-easytable/ve-pagination':
         specifier: workspace:^1.0.0
         version: link:../ve-pagination
-      '@easytable/ve-radio':
+      '@vue3-easytable/ve-radio':
         specifier: workspace:^1.0.0
         version: link:../ve-radio
-      '@easytable/ve-select':
+      '@vue3-easytable/ve-select':
         specifier: workspace:^1.0.0
         version: link:../ve-select
-      '@easytable/ve-table':
+      '@vue3-easytable/ve-table':
         specifier: workspace:^1.0.0
         version: link:../ve-table
     devDependencies:

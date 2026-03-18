@@ -15,13 +15,13 @@
           &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
       <span>
         <i class="iconfont icon-github" />
-        <a href="https://github.com/kohaiy/easytable">
-          @easytable/vue
+        <a href="https://github.com/timmychan97/vue3-easytable">
+          @vue3-easytable/vue
         </a>
       </span>
         &nbsp;
       <span>
-        <a href="https://github.com/kohaiy">@kohaiy</a>
+        <a href="https://github.com/timmychan97">@timmychan97</a>
       </span>
     </div>
   </div>

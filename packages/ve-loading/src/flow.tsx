@@ -1,4 +1,4 @@
-import { getValByUnit } from '@easytable/common/utils'
+import { getValByUnit } from '@vue3-easytable/common/utils'
 import { clsName } from './util'
 import { COMPS_NAME } from './util/constant'
 

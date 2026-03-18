@@ -1,8 +1,8 @@
 import type { VeDropdownItem } from 'packages/ve-dropdown/src/type'
 import type { JSX } from 'vue/jsx-runtime'
-import { ICON_NAMES } from '@easytable/common/utils/constant'
-import VeDropdown from '@easytable/ve-dropdown'
-import VeIcon from '@easytable/ve-icon'
+import { ICON_NAMES } from '@vue3-easytable/common/utils/constant'
+import VeDropdown from '@vue3-easytable/ve-dropdown'
+import VeIcon from '@vue3-easytable/ve-icon'
 import { COMPS_NAME, EMIT_EVENTS } from './util/constant'
 import { clsName } from './util/index'
 

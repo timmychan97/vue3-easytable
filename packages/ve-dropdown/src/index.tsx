@@ -1,13 +1,13 @@
 import type { VeDropdownItem } from './type'
-import clickoutside from '@easytable/common/directives/clickoutside'
-import { isBoolean, isFunction } from '@easytable/common/utils'
+import clickoutside from '@vue3-easytable/common/directives/clickoutside'
+import { isBoolean, isFunction } from '@vue3-easytable/common/utils'
 import {
   getViewportOffset,
   getViewportOffsetWithinContainer,
-} from '@easytable/common/utils/dom'
-import { getRandomId } from '@easytable/common/utils/random'
-import VeCheckbox from '@easytable/ve-checkbox'
-import VeRadio from '@easytable/ve-radio'
+} from '@vue3-easytable/common/utils/dom'
+import { getRandomId } from '@vue3-easytable/common/utils/random'
+import VeCheckbox from '@vue3-easytable/ve-checkbox'
+import VeRadio from '@vue3-easytable/ve-radio'
 import { defineComponent } from 'vue'
 import { COMPS_NAME, EMIT_EVENTS } from './util/constant'
 import { clsName } from './util/index'

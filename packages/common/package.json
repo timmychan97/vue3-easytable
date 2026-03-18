@@ -1,5 +1,5 @@
 {
-  "name": "@easytable/common",
+  "name": "@vue3-easytable/common",
   "version": "1.0.0",
   "description": "",
   "author": "",
@@ -10,7 +10,7 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
-    "@easytable/ve-locale": "workspace:^1.0.0",
+    "@vue3-easytable/ve-locale": "workspace:^1.0.0",
     "mitt": "^3.0.1",
     "resize-observer-polyfill": "^1.5.1"
   }

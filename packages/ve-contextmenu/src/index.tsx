@@ -1,8 +1,8 @@
-import eventsOutside from '@easytable/common/directives/events-outside'
-import { ICON_NAMES } from '@easytable/common/utils/constant'
-import { getMousePosition, getViewportOffset } from '@easytable/common/utils/dom'
-import { getRandomId } from '@easytable/common/utils/random'
-import VeIcon from '@easytable/ve-icon'
+import eventsOutside from '@vue3-easytable/common/directives/events-outside'
+import { ICON_NAMES } from '@vue3-easytable/common/utils/constant'
+import { getMousePosition, getViewportOffset } from '@vue3-easytable/common/utils/dom'
+import { getRandomId } from '@vue3-easytable/common/utils/random'
+import VeIcon from '@vue3-easytable/ve-icon'
 import { cloneDeep, debounce } from 'lodash'
 import { defineComponent } from 'vue'
 import {

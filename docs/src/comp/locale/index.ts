@@ -1,5 +1,5 @@
-import enUS from '@easytable/vue/libs/locale/lang/en-US'
-import zhCN from '@easytable/vue/libs/locale/lang/zh-CN'
+import enUS from '@vue3-easytable/vue/libs/locale/lang/en-US'
+import zhCN from '@vue3-easytable/vue/libs/locale/lang/zh-CN'
 
 export default {
   zh: {
@@ -16,7 +16,7 @@ export default {
       },
       {
         name: '更新日志',
-        path: 'https://github.com/kohaiy/easytable/releases',
+        path: 'https://github.com/timmychan97/vue3-easytable/releases',
         isRouter: false,
       },
     ],

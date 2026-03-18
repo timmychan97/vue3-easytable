@@ -10,5 +10,5 @@ module.exports = async function () {
 async function replaceTs() {
   const FILEPATH = resolve(__dirname, '../../libs/index.d.ts')
   const str = await readFile(FILEPATH).then(res => res.toString())
-  await writeFile(FILEPATH, str.replace(/@easytable/g, './packages'), { encoding: 'utf8' })
+  await writeFile(FILEPATH, str.replace(/@vue3-easytable/g, './packages'), { encoding: 'utf8' })
 }

@@ -25,7 +25,7 @@ import {
   // VeRadio,
   // VeSelect,
   useVeTable,
-// } from '@easytable/vue'
+// } from '@vue3-easytable/vue'
 } from '../../packages/vue/src/index'
 import App from './App.vue'
 
@@ -34,7 +34,7 @@ import 'highlight.js/styles/color-brewer.css'
 // Progress 进度条 样式
 import 'nprogress/nprogress.css'
 
-// import '@easytable/vue/packages/theme-dark/index.less'
+// import '@vue3-easytable/vue/packages/theme-dark/index.less'
 
 // import './css/table-reset.less'
 

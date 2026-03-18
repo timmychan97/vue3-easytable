@@ -1,6 +1,6 @@
-import VueDomResizeObserver from '@easytable/common/comps/resize-observer'
-import emitter from '@easytable/common/mixins/emitter'
-import { getValByUnit } from '@easytable/common/utils'
+import VueDomResizeObserver from '@vue3-easytable/common/comps/resize-observer'
+import emitter from '@vue3-easytable/common/mixins/emitter'
+import { getValByUnit } from '@vue3-easytable/common/utils'
 import { defineComponent } from 'vue'
 import {
   clsName,

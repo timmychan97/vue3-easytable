@@ -1,5 +1,5 @@
 {
-  "name": "@easytable/ve-icon",
+  "name": "@vue3-easytable/ve-icon",
   "version": "1.0.0",
   "description": "",
   "author": "",
@@ -10,6 +10,6 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
-    "@easytable/common": "workspace:^1.0.0"
+    "@vue3-easytable/common": "workspace:^1.0.0"
   }
 }

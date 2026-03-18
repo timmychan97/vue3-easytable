@@ -1,4 +1,4 @@
-import { addClass, removeClass } from '@easytable/common/utils/dom'
+import { addClass, removeClass } from '@vue3-easytable/common/utils/dom'
 import { nextTick } from 'vue'
 import VeLoading from './loading'
 import { clsName } from './util'

@@ -1,4 +1,4 @@
-import { isNumber } from '@easytable/common/utils'
+import { isNumber } from '@vue3-easytable/common/utils'
 import { clsName } from '../util'
 import { COMPS_NAME, HOOKS_NAME } from '../util/constant'
 

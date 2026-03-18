@@ -1,18 +1,18 @@
 {
-  "name": "easytable",
+  "name": "vue3-easytable",
   "type": "module",
   "version": "0.0.5",
   "packageManager": "pnpm@10.0.0",
   "description": "",
   "author": "",
   "license": "MIT",
-  "homepage": "https://github.com/kohaiy/easytable#readme",
+  "homepage": "https://github.com/timmychan97/vue3-easytable#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/kohaiy/easytable.git"
+    "url": "git+https://github.com/timmychan97/vue3-easytable.git"
   },
   "bugs": {
-    "url": "https://github.com/kohaiy/easytable/issues"
+    "url": "https://github.com/timmychan97/vue3-easytable/issues"
   },
   "keywords": [],
   "main": "index.js",

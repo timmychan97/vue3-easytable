@@ -1,7 +1,7 @@
-import { isBoolean, isFunction } from '@easytable/common/utils'
-import { ICON_NAMES } from '@easytable/common/utils/constant'
-import VeDropdown from '@easytable/ve-dropdown'
-import VeIcon from '@easytable/ve-icon'
+import { isBoolean, isFunction } from '@vue3-easytable/common/utils'
+import { ICON_NAMES } from '@vue3-easytable/common/utils/constant'
+import VeDropdown from '@vue3-easytable/ve-dropdown'
+import VeIcon from '@vue3-easytable/ve-icon'
 import { clsName } from '../util'
 import { COMPS_NAME } from '../util/constant'
 

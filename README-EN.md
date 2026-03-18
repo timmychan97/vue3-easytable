@@ -1,10 +1,10 @@
-[![npm](https://img.shields.io/npm/v/@easytable/vue.svg)](https://www.npmjs.com/package/@easytable/vue)
+[![npm](https://img.shields.io/npm/v/@vue3-easytable/vue.svg)](https://www.npmjs.com/package/@vue3-easytable/vue)
 [![vue3.2](https://img.shields.io/badge/vue-3.2+-brightgreen.svg)](https://vuejs.org/)
-[![NPM downloads](https://img.shields.io/npm/dm/@easytable/vue.svg?style=flat)](https://npmjs.org/package/@easytable/vue)
-[![codecov](https://codecov.io/gh/Happy-Coding-Clans/@easytable/vue/branch/master/graph/badge.svg?token=UJy3LHInUn)](https://codecov.io/gh/Happy-Coding-Clans/@easytable/vue)
-[![license](https://img.shields.io/npm/l/@easytable/vue.svg?maxAge=2592000)](http://www.opensource.org/licenses/mit-license.php)
+[![NPM downloads](https://img.shields.io/npm/dm/@vue3-easytable/vue.svg?style=flat)](https://npmjs.org/package/@vue3-easytable/vue)
+[![codecov](https://codecov.io/gh/Happy-Coding-Clans/@vue3-easytable/vue/branch/master/graph/badge.svg?token=UJy3LHInUn)](https://codecov.io/gh/Happy-Coding-Clans/@vue3-easytable/vue)
+[![license](https://img.shields.io/npm/l/@vue3-easytable/vue.svg?maxAge=2592000)](http://www.opensource.org/licenses/mit-license.php)
 [![Discord](https://img.shields.io/badge/chat-on%20discord-7289da.svg)](https://discord.gg/gBm3k6r)
-[![Gitter](https://badges.gitter.im/@easytable/vue/community.svg)](https://gitter.im/@easytable/vue/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
+[![Gitter](https://badges.gitter.im/@vue3-easytable/vue/community.svg)](https://gitter.im/@vue3-easytable/vue/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
 
 # vue-easytable
 
@@ -179,13 +179,13 @@ This project uses pnpm for development. pnpm will automatically switch to the No
 npm install -g pnpm@latest
 
 # Clone the repository and install dependencies
-git clone https://github.com/kohaiy/easytable.git
-cd easytable
+git clone https://github.com/timmychan97/vue3-easytable.git
+cd vue3-easytable
 pnpm install  # pnpm will automatically use the correct Node.js version
 ```
 
 If you want to contribute, just create a
-[Pull Request](https://github.com/kohaiy/easytable/pulls)
+[Pull Request](https://github.com/timmychan97/vue3-easytable/pulls)
 
 ## Contributors
 

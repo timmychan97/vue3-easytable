@@ -1,5 +1,5 @@
-import emitter from '@easytable/common/mixins/emitter'
-import VeCheckbox from '@easytable/ve-checkbox'
+import emitter from '@vue3-easytable/common/mixins/emitter'
+import VeCheckbox from '@vue3-easytable/ve-checkbox'
 import { clsName } from '../util'
 import { COMPS_NAME, EMIT_EVENTS } from '../util/constant'
 

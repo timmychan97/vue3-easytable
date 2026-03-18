@@ -1,5 +1,5 @@
-import emitter from '@easytable/common/mixins/emitter'
-import { getValByUnit } from '@easytable/common/utils/index.js'
+import emitter from '@vue3-easytable/common/mixins/emitter'
+import { getValByUnit } from '@vue3-easytable/common/utils/index.js'
 import { clsName, getFixedTotalWidthByColumnKey } from '../util'
 
 import { COMPS_NAME } from '../util/constant'

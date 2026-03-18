@@ -172,8 +172,8 @@ strategy:
 npm install -g pnpm@latest
 
 # Clone the repository
-git clone https://github.com/kohaiy/easytable.git
-cd easytable
+git clone https://github.com/timmychan97/vue3-easytable.git
+cd vue3-easytable
 
 # Install dependencies (pnpm automatically uses Node.js 20.x via .npmrc)
 pnpm install

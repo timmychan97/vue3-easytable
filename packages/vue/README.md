@@ -1,9 +1,9 @@
-[![npm](https://img.shields.io/npm/v/@easytable/vue.svg)](https://www.npmjs.com/package/@easytable/vue)
+[![npm](https://img.shields.io/npm/v/@vue3-easytable/vue.svg)](https://www.npmjs.com/package/@vue3-easytable/vue)
 [![vue3.2](https://img.shields.io/badge/vue-3.2+-brightgreen.svg)](https://vuejs.org/)
-[![NPM downloads](https://img.shields.io/npm/dm/@easytable/vue.svg?style=flat)](https://npmjs.org/package/@easytable/vue)
-[![license](https://img.shields.io/npm/l/@easytable/vue.svg?maxAge=2592000)](http://www.opensource.org/licenses/mit-license.php)
+[![NPM downloads](https://img.shields.io/npm/dm/@vue3-easytable/vue.svg?style=flat)](https://npmjs.org/package/@vue3-easytable/vue)
+[![license](https://img.shields.io/npm/l/@vue3-easytable/vue.svg?maxAge=2592000)](http://www.opensource.org/licenses/mit-license.php)
 
-# @easytable/vue
+# @vue3-easytable/vue
 
 > [!WARNING]
 > 本仓库迁移自 [vue-easytable](https://github.com/huangshuwei/vue-easytable) Vue.js 2.x ，基于 Vue.js 3.x 重构中，目前基本完成。
@@ -24,47 +24,47 @@
 
 ## API & 文档
 
--   [官方文档](https://easytable.kohai.top/)
--   [官方文档 (GitHub Pages)](https://kohaiy.github.io/easytable/)
+-   [官方文档](https://vue3-easytable.kohai.top/)
+-   [官方文档 (GitHub Pages)](https://timmychan97.github.io/vue3-easytable/)
 
 ## 功能支持
 
 **基础组件**
 
--   [x] [Loading 加载组件](https://easytable.kohai.top/#/zh/doc/base/loading)
--   [x] [Pagination 分页组件](https://easytable.kohai.top/#/zh/doc/base/pagination)
--   [x] [Contextmenu 右键菜单组件](https://easytable.kohai.top/#/zh/doc/base/contextmenu)
--   [x] [Icon 图标组件](https://easytable.kohai.top/#/zh/doc/base/icon)
--   [x] [Locale 国际化组件](https://easytable.kohai.top/#/zh/doc/base/locale)
+-   [x] [Loading 加载组件](https://vue3-easytable.kohai.top/#/zh/doc/base/loading)
+-   [x] [Pagination 分页组件](https://vue3-easytable.kohai.top/#/zh/doc/base/pagination)
+-   [x] [Contextmenu 右键菜单组件](https://vue3-easytable.kohai.top/#/zh/doc/base/contextmenu)
+-   [x] [Icon 图标组件](https://vue3-easytable.kohai.top/#/zh/doc/base/icon)
+-   [x] [Locale 国际化组件](https://vue3-easytable.kohai.top/#/zh/doc/base/locale)
 
 **Table 组件**
 
--   [x] [国际化](https://easytable.kohai.top/#/zh/doc/locale)
--   [x] [主题定制 & 内置主题](https://easytable.kohai.top/#/zh/doc/theme)
--   [x] [虚拟滚动](https://easytable.kohai.top/#/zh/doc/table/virtual-scroll)
--   [x] [列固定](https://easytable.kohai.top/#/zh/doc/table/column-fixed)
--   [x] [列隐藏](https://easytable.kohai.top/#/zh/doc/table/column-hidden)
--   [x] [表头固定](https://easytable.kohai.top/#/zh/doc/table/header-fixed)
--   [x] [表头分组](https://easytable.kohai.top/#/zh/doc/table/header-grouping)
--   [x] [筛选](https://easytable.kohai.top/#/zh/doc/table/header-filter)
--   [x] [排序](https://easytable.kohai.top/#/zh/doc/table/header-sort)
+-   [x] [国际化](https://vue3-easytable.kohai.top/#/zh/doc/locale)
+-   [x] [主题定制 & 内置主题](https://vue3-easytable.kohai.top/#/zh/doc/theme)
+-   [x] [虚拟滚动](https://vue3-easytable.kohai.top/#/zh/doc/table/virtual-scroll)
+-   [x] [列固定](https://vue3-easytable.kohai.top/#/zh/doc/table/column-fixed)
+-   [x] [列隐藏](https://vue3-easytable.kohai.top/#/zh/doc/table/column-hidden)
+-   [x] [表头固定](https://vue3-easytable.kohai.top/#/zh/doc/table/header-fixed)
+-   [x] [表头分组](https://vue3-easytable.kohai.top/#/zh/doc/table/header-grouping)
+-   [x] [筛选](https://vue3-easytable.kohai.top/#/zh/doc/table/header-filter)
+-   [x] [排序](https://vue3-easytable.kohai.top/#/zh/doc/table/header-sort)
 -   [x] [列宽拖动](https://happy-coding-clans.github.io/vue-easytable/#/zh/doc/table/column-resize)
--   [x] [单元格样式](https://easytable.kohai.top/#/zh/doc/table/cell-style)
--   [x] [单元格自定义](https://easytable.kohai.top/#/zh/doc/table/cell-custom)
--   [x] [单元格合并](https://easytable.kohai.top/#/zh/doc/table/cell-span)
--   [x] [单元格选择（键盘操作）](https://easytable.kohai.top/#/zh/doc/table/cell-selection)
--   [x] [单元格自动填充](https://easytable.kohai.top/#/zh/doc/table/cell-autofill)
--   [x] [单元格编辑](https://easytable.kohai.top/#/zh/doc/table/cell-edit)
--   [x] [剪贴板](https://easytable.kohai.top/#/zh/doc/table/clipboard)
--   [x] [右键菜单](https://easytable.kohai.top/#/zh/doc/table/contextmenu)
--   [x] [单元格省略](https://easytable.kohai.top/#/zh/doc/table/cell-ellipsis)
--   [x] [行单选](https://easytable.kohai.top/#/zh/doc/table/row-radio)
--   [x] [行多选](https://easytable.kohai.top/#/zh/doc/table/row-checkbox)
--   [x] [行展开](https://easytable.kohai.top/#/zh/doc/table/row-expand)
--   [x] [行样式](https://easytable.kohai.top/#/zh/doc/table/row-style)
--   [x] [footer 汇总](https://easytable.kohai.top/#/zh/doc/table/footer-summary)
--   [x] [自定义事件](https://easytable.kohai.top/#/zh/doc/table/event-custom)
--   [更多](https://easytable.kohai.top)
+-   [x] [单元格样式](https://vue3-easytable.kohai.top/#/zh/doc/table/cell-style)
+-   [x] [单元格自定义](https://vue3-easytable.kohai.top/#/zh/doc/table/cell-custom)
+-   [x] [单元格合并](https://vue3-easytable.kohai.top/#/zh/doc/table/cell-span)
+-   [x] [单元格选择（键盘操作）](https://vue3-easytable.kohai.top/#/zh/doc/table/cell-selection)
+-   [x] [单元格自动填充](https://vue3-easytable.kohai.top/#/zh/doc/table/cell-autofill)
+-   [x] [单元格编辑](https://vue3-easytable.kohai.top/#/zh/doc/table/cell-edit)
+-   [x] [剪贴板](https://vue3-easytable.kohai.top/#/zh/doc/table/clipboard)
+-   [x] [右键菜单](https://vue3-easytable.kohai.top/#/zh/doc/table/contextmenu)
+-   [x] [单元格省略](https://vue3-easytable.kohai.top/#/zh/doc/table/cell-ellipsis)
+-   [x] [行单选](https://vue3-easytable.kohai.top/#/zh/doc/table/row-radio)
+-   [x] [行多选](https://vue3-easytable.kohai.top/#/zh/doc/table/row-checkbox)
+-   [x] [行展开](https://vue3-easytable.kohai.top/#/zh/doc/table/row-expand)
+-   [x] [行样式](https://vue3-easytable.kohai.top/#/zh/doc/table/row-style)
+-   [x] [footer 汇总](https://vue3-easytable.kohai.top/#/zh/doc/table/footer-summary)
+-   [x] [自定义事件](https://vue3-easytable.kohai.top/#/zh/doc/table/event-custom)
+-   [更多](https://vue3-easytable.kohai.top)
 
 如果没有你想要的的功能
 ，[请告诉我们](http://happy-coding-clans.github.io/issue-template-generater/#/zh)
@@ -72,13 +72,13 @@
 ## 安装
 
 ```sh
-pnpm install @easytable/vue
+pnpm install @vue3-easytable/vue
 ```
 
 or
 
 ```sh
-yarn add @easytable/vue
+yarn add @vue3-easytable/vue
 ```
 
 ## 使用
@@ -86,9 +86,9 @@ yarn add @easytable/vue
 Write the following in main.js:
 
 ```javascript
-import { useVeTable } from '@easytable/vue'
+import { useVeTable } from '@vue3-easytable/vue'
 import { createApp } from 'vue'
-import '@easytable/vue/libs/theme-default/index.css'
+import '@vue3-easytable/vue/libs/theme-default/index.css'
 
 createApp({
   render: h => h(App),
@@ -154,7 +154,7 @@ Example:
 
 ## 开发计划
 
-[正在做的事情](https://github.com/kohaiy/easytable/projects)
+[正在做的事情](https://github.com/timmychan97/vue3-easytable/projects)
 
 ## 支持环境
 
@@ -167,11 +167,11 @@ Example:
 ## 如何贡献
 
 如果你希望参与贡献，欢迎
-[Pull Request](https://github.com/kohaiy/easytable/pulls)
+[Pull Request](https://github.com/timmychan97/vue3-easytable/pulls)
 
 ## Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=kohaiy/easytable&type=Date)](https://star-history.com/#kohaiy/easytable&Date)
+[![Star History Chart](https://api.star-history.com/svg?repos=timmychan97/vue3-easytable&type=Date)](https://star-history.com/#timmychan97/vue3-easytable&Date)
 
 ## 贡献者们
 
@@ -179,8 +179,8 @@ Example:
 
 同时感谢以下小伙伴们做出的贡献 🙏
 
-<a href="https://github.com/kohaiy/easytable/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=kohaiy/easytable" />
+<a href="https://github.com/timmychan97/vue3-easytable/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=timmychan97/vue3-easytable" />
 </a>
 
 ## License

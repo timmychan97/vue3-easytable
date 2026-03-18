@@ -1,5 +1,5 @@
 import type { LocaleMessage } from './types'
-import locale from '@easytable/ve-locale'
+import locale from '@vue3-easytable/ve-locale'
 import { isFunction } from '../utils/index'
 
 export function createI18N(compName: keyof LocaleMessage) {

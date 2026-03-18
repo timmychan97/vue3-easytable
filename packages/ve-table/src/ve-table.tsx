@@ -1,6 +1,6 @@
-import VueDomResizeObserver from '@easytable/common/comps/resize-observer'
-import clickoutside from '@easytable/common/directives/clickoutside'
-import emitter from '@easytable/common/mixins/emitter'
+import VueDomResizeObserver from '@vue3-easytable/common/comps/resize-observer'
+import clickoutside from '@vue3-easytable/common/directives/clickoutside'
+import emitter from '@vue3-easytable/common/mixins/emitter'
 import {
   createLocale,
   getValByUnit,
@@ -11,17 +11,17 @@ import {
   isFunction,
   isNumber,
   scrollTo,
-} from '@easytable/common/utils'
-import { KEY_CODES, MOUSE_EVENT_CLICK_TYPE } from '@easytable/common/utils/constant'
-import { isInputKeyCode } from '@easytable/common/utils/event-key-codes'
-import Hooks from '@easytable/common/utils/hooks-manager'
-import { getMouseEventClickType } from '@easytable/common/utils/mouse-event'
+} from '@vue3-easytable/common/utils'
+import { KEY_CODES, MOUSE_EVENT_CLICK_TYPE } from '@vue3-easytable/common/utils/constant'
+import { isInputKeyCode } from '@vue3-easytable/common/utils/event-key-codes'
+import Hooks from '@vue3-easytable/common/utils/hooks-manager'
+import { getMouseEventClickType } from '@vue3-easytable/common/utils/mouse-event'
 import {
   cancelAnimationTimeout,
   requestAnimationTimeout,
-} from '@easytable/common/utils/request-animation-timeout'
-import { getScrollbarWidth } from '@easytable/common/utils/scroll-bar'
-import VeContextmenu from '@easytable/ve-contextmenu'
+} from '@vue3-easytable/common/utils/request-animation-timeout'
+import { getScrollbarWidth } from '@vue3-easytable/common/utils/scroll-bar'
+import VeContextmenu from '@vue3-easytable/ve-contextmenu'
 import { cloneDeep, debounce } from 'lodash'
 import mitt from 'mitt'
 import { defineComponent } from 'vue'

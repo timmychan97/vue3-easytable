@@ -1,5 +1,5 @@
-import emitter from '@easytable/common/mixins/emitter'
-import VeRadio from '@easytable/ve-radio'
+import emitter from '@vue3-easytable/common/mixins/emitter'
+import VeRadio from '@vue3-easytable/ve-radio'
 import { clsName } from '../util'
 import { COMPS_NAME, EMIT_EVENTS } from '../util/constant'
 

@@ -1,6 +1,6 @@
 export default defineComponent({
   props: {
-    // vue-easytable version
+    // vue-vue3-easytable version
     version: {
       type: String,
       required: true,
@@ -29,13 +29,13 @@ export default defineComponent({
                   + 'ipt src="//unpkg.com/vue@3/dist/vue.global.js"></scr'
                   + 'ipt>'
                   + '\n<scr'
-                  + `ipt src="//unpkg.com/@easytable/vue@${version}/libs/umd/easytable-vue.js"></scr`
+                  + `ipt src="//unpkg.com/@vue3-easytable/vue@${version}/libs/umd/vue3-easytable-vue.js"></scr`
                   + 'ipt>'
       let jsTpl = (exampleScript || '')
         .replace(/export default/, 'var Main =')
         .trim()
       const htmlTpl = `${resourcesTpl}\n<div id="app">\n${exampleTpl.replace('<template>', '').replace('</template>', '').trim()}\n</div>`
-      const cssTpl = `@import url("//unpkg.com/@easytable/vue@${version}/libs/theme-default/index.css");\n${(
+      const cssTpl = `@import url("//unpkg.com/@vue3-easytable/vue@${version}/libs/theme-default/index.css");\n${(
         exampleStyle || ''
       ).trim()}\n`
       jsTpl = jsTpl

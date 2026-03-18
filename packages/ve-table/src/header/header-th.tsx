@@ -1,7 +1,7 @@
-import emitter from '@easytable/common/mixins/emitter'
-import { getValByUnit, isEmptyValue } from '@easytable/common/utils'
-import { ICON_NAMES } from '@easytable/common/utils/constant'
-import VeIcon from '@easytable/ve-icon'
+import emitter from '@vue3-easytable/common/mixins/emitter'
+import { getValByUnit, isEmptyValue } from '@vue3-easytable/common/utils'
+import { ICON_NAMES } from '@vue3-easytable/common/utils/constant'
+import VeIcon from '@vue3-easytable/ve-icon'
 import {
   clsName,
   getColKeysByHeaderColumn,

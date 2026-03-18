@@ -1,4 +1,4 @@
-## @easytable/vue
+## @vue3-easytable/vue
 
 一个基于 Vue3.x 的表格组件。
 
@@ -56,4 +56,4 @@
 
 ### 如何贡献
 
-如果你希望参与贡献，欢迎 [Pull Request](https://github.com/kohaiy/easytable/pulls)
+如果你希望参与贡献，欢迎 [Pull Request](https://github.com/timmychan97/vue3-easytable/pulls)

@@ -1,5 +1,5 @@
 import type { PropType } from 'vue'
-import { getValByUnit } from '@easytable/common/utils'
+import { getValByUnit } from '@vue3-easytable/common/utils'
 import { defineComponent } from 'vue'
 import { COMPS_NAME } from '../util/constant'
 
