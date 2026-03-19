@@ -285,10 +285,12 @@ export default defineComponent({
 
       const rootEl = document.querySelector<HTMLElement>(`#${rootId}`)
 
-      if (rootEl) {
+      const panelEl = this.$refs[dropdownItemsPanelId] as HTMLElement | undefined
+
+      if (rootEl && panelEl) {
         // remove first
         rootEl.innerHTML = ''
-        rootEl.appendChild(this.$refs[dropdownItemsPanelId] as HTMLElement)
+        rootEl.appendChild(panelEl)
 
         rootEl.style.position = 'absolute'
         rootEl.classList.add(clsName('popper'))

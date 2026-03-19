@@ -11,14 +11,11 @@ export default antfu({
     'vue/block-order': ['warn', {
       order: [['script', 'template'], 'style'],
     }],
+    'ts/no-explicit-any': ['off'],
   },
 }, {
   ignores: [
-    '**/font/*.js',
-    '**/*.spec.js',
-    '**/*.spec.jsx',
     '**/*.md',
-    '**.md',
     '**/*.js',
     '*.js',
   ],

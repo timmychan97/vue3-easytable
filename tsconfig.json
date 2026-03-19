@@ -13,9 +13,16 @@
     "baseUrl": ".",
     "module": "esnext",
     "moduleResolution": "node",
-    "paths": {},
+    "paths": {
+      "@/*": ["./packages/*"],
+      "@test-utils": ["./tests/utils/index.ts"],
+      "@test-utils/*": ["./tests/utils/*"]
+    },
     "resolveJsonModule": true,
     "strict": true,
+    "noImplicitAny": false,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
     "sourceMap": true,
     "esModuleInterop": true,
     "isolatedModules": true,

@@ -1,0 +1,558 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`veTable virtual scroll > render same row height 1`] = `
+<div class="vue-table-root">
+  <div style="width: 100%;" class="ve-table ve-table-border-around">
+    <div class="ve-table-container ve-table-virtual-scroll ve-table-enable-cell-selection" style="max-height: 500px; height: 500px;">
+      <div class="ve-table-virtual-phantom ve-table-virtual-scroll" style="height: 40000px;">
+        <div style="width: 100%;">
+          <!---->
+        </div>
+      </div>
+      <div class="ve-table-content-wrapper">
+        <table class="ve-table-content ve-table-border-x">
+          <colgroup>
+            <col style="width: 200px;">
+            <col style="width: 300px;">
+            <col>
+          </colgroup>
+          <thead class="ve-table-fixed-header ve-table-header">
+            <tr class="ve-table-header-tr">
+              <th style="text-align: left; top: 0px;" class="ve-table-header-th" rowspan="1" colspan="1">
+                <!---->Name
+                <!---->
+                <!---->
+                <!---->
+              </th>
+              <th style="text-align: left; top: 0px;" class="ve-table-header-th" rowspan="1" colspan="1">
+                <!---->Hobby
+                <!---->
+                <!---->
+                <!---->
+              </th>
+              <th style="text-align: left; top: 0px;" class="ve-table-header-th ve-table-last-column" rowspan="1" colspan="1">
+                <!---->Address
+                <!---->
+                <!---->
+                <!---->
+              </th>
+            </tr>
+          </thead>
+          <tbody class="ve-table-body ve-table-row-hover ve-table-row-highlight">
+            <tr style="height: 0px;">
+              <td style="padding: 0px; height: 0px; border: 0px;">
+                <!---->
+              </td>
+              <td style="padding: 0px; height: 0px; border: 0px;">
+                <!---->
+              </td>
+              <td style="padding: 0px; height: 0px; border: 0px;">
+                <!---->
+              </td>
+            </tr>
+            <tr class="ve-table-body-tr" row-key="0">
+              <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="b">
+                <!---->
+                <!---->
+                <!---->0
+              </td>
+              <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="c">
+                <!---->
+                <!---->
+                <!---->0
+              </td>
+              <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="d">
+                <!---->
+                <!---->
+                <!---->0
+              </td>
+            </tr>
+            <!---->
+            <tr class="ve-table-body-tr" row-key="1">
+              <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="b">
+                <!---->
+                <!---->
+                <!---->1
+              </td>
+              <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="c">
+                <!---->
+                <!---->
+                <!---->1
+              </td>
+              <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="d">
+                <!---->
+                <!---->
+                <!---->1
+              </td>
+            </tr>
+            <!---->
+            <tr class="ve-table-body-tr" row-key="2">
+              <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="b">
+                <!---->
+                <!---->
+                <!---->2
+              </td>
+              <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="c">
+                <!---->
+                <!---->
+                <!---->2
+              </td>
+              <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="d">
+                <!---->
+                <!---->
+                <!---->2
+              </td>
+            </tr>
+            <!---->
+            <tr class="ve-table-body-tr" row-key="3">
+              <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="b">
+                <!---->
+                <!---->
+                <!---->3
+              </td>
+              <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="c">
+                <!---->
+                <!---->
+                <!---->3
+              </td>
+              <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="d">
+                <!---->
+                <!---->
+                <!---->3
+              </td>
+            </tr>
+            <!---->
+            <tr class="ve-table-body-tr" row-key="4">
+              <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="b">
+                <!---->
+                <!---->
+                <!---->4
+              </td>
+              <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="c">
+                <!---->
+                <!---->
+                <!---->4
+              </td>
+              <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="d">
+                <!---->
+                <!---->
+                <!---->4
+              </td>
+            </tr>
+            <!---->
+            <tr class="ve-table-body-tr" row-key="5">
+              <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="b">
+                <!---->
+                <!---->
+                <!---->5
+              </td>
+              <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="c">
+                <!---->
+                <!---->
+                <!---->5
+              </td>
+              <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="d">
+                <!---->
+                <!---->
+                <!---->5
+              </td>
+            </tr>
+            <!---->
+            <tr class="ve-table-body-tr" row-key="6">
+              <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="b">
+                <!---->
+                <!---->
+                <!---->6
+              </td>
+              <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="c">
+                <!---->
+                <!---->
+                <!---->6
+              </td>
+              <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="d">
+                <!---->
+                <!---->
+                <!---->6
+              </td>
+            </tr>
+            <!---->
+            <tr class="ve-table-body-tr" row-key="7">
+              <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="b">
+                <!---->
+                <!---->
+                <!---->7
+              </td>
+              <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="c">
+                <!---->
+                <!---->
+                <!---->7
+              </td>
+              <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="d">
+                <!---->
+                <!---->
+                <!---->7
+              </td>
+            </tr>
+            <!---->
+            <tr class="ve-table-body-tr" row-key="8">
+              <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="b">
+                <!---->
+                <!---->
+                <!---->8
+              </td>
+              <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="c">
+                <!---->
+                <!---->
+                <!---->8
+              </td>
+              <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="d">
+                <!---->
+                <!---->
+                <!---->8
+              </td>
+            </tr>
+            <!---->
+            <tr class="ve-table-body-tr" row-key="9">
+              <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="b">
+                <!---->
+                <!---->
+                <!---->9
+              </td>
+              <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="c">
+                <!---->
+                <!---->
+                <!---->9
+              </td>
+              <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="d">
+                <!---->
+                <!---->
+                <!---->9
+              </td>
+            </tr>
+            <!---->
+            <tr class="ve-table-body-tr" row-key="10">
+              <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="b">
+                <!---->
+                <!---->
+                <!---->10
+              </td>
+              <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="c">
+                <!---->
+                <!---->
+                <!---->10
+              </td>
+              <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="d">
+                <!---->
+                <!---->
+                <!---->10
+              </td>
+            </tr>
+            <!---->
+            <tr class="ve-table-body-tr" row-key="11">
+              <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="b">
+                <!---->
+                <!---->
+                <!---->11
+              </td>
+              <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="c">
+                <!---->
+                <!---->
+                <!---->11
+              </td>
+              <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="d">
+                <!---->
+                <!---->
+                <!---->11
+              </td>
+            </tr>
+            <!---->
+            <tr class="ve-table-body-tr" row-key="12">
+              <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="b">
+                <!---->
+                <!---->
+                <!---->12
+              </td>
+              <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="c">
+                <!---->
+                <!---->
+                <!---->12
+              </td>
+              <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="d">
+                <!---->
+                <!---->
+                <!---->12
+              </td>
+            </tr>
+            <!---->
+            <tr class="ve-table-body-tr" row-key="13">
+              <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="b">
+                <!---->
+                <!---->
+                <!---->13
+              </td>
+              <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="c">
+                <!---->
+                <!---->
+                <!---->13
+              </td>
+              <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="d">
+                <!---->
+                <!---->
+                <!---->13
+              </td>
+            </tr>
+            <!---->
+            <tr class="ve-table-body-tr" row-key="14">
+              <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="b">
+                <!---->
+                <!---->
+                <!---->14
+              </td>
+              <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="c">
+                <!---->
+                <!---->
+                <!---->14
+              </td>
+              <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="d">
+                <!---->
+                <!---->
+                <!---->14
+              </td>
+            </tr>
+            <!---->
+            <tr class="ve-table-body-tr" row-key="15">
+              <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="b">
+                <!---->
+                <!---->
+                <!---->15
+              </td>
+              <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="c">
+                <!---->
+                <!---->
+                <!---->15
+              </td>
+              <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="d">
+                <!---->
+                <!---->
+                <!---->15
+              </td>
+            </tr>
+            <!---->
+            <tr class="ve-table-body-tr" row-key="16">
+              <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="b">
+                <!---->
+                <!---->
+                <!---->16
+              </td>
+              <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="c">
+                <!---->
+                <!---->
+                <!---->16
+              </td>
+              <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="d">
+                <!---->
+                <!---->
+                <!---->16
+              </td>
+            </tr>
+            <!---->
+            <tr class="ve-table-body-tr" row-key="17">
+              <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="b">
+                <!---->
+                <!---->
+                <!---->17
+              </td>
+              <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="c">
+                <!---->
+                <!---->
+                <!---->17
+              </td>
+              <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="d">
+                <!---->
+                <!---->
+                <!---->17
+              </td>
+            </tr>
+            <!---->
+            <tr class="ve-table-body-tr" row-key="18">
+              <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="b">
+                <!---->
+                <!---->
+                <!---->18
+              </td>
+              <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="c">
+                <!---->
+                <!---->
+                <!---->18
+              </td>
+              <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="d">
+                <!---->
+                <!---->
+                <!---->18
+              </td>
+            </tr>
+            <!---->
+            <tr class="ve-table-body-tr" row-key="19">
+              <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="b">
+                <!---->
+                <!---->
+                <!---->19
+              </td>
+              <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="c">
+                <!---->
+                <!---->
+                <!---->19
+              </td>
+              <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="d">
+                <!---->
+                <!---->
+                <!---->19
+              </td>
+            </tr>
+            <!---->
+            <tr class="ve-table-body-tr" row-key="20">
+              <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="b">
+                <!---->
+                <!---->
+                <!---->20
+              </td>
+              <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="c">
+                <!---->
+                <!---->
+                <!---->20
+              </td>
+              <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="d">
+                <!---->
+                <!---->
+                <!---->20
+              </td>
+            </tr>
+            <!---->
+            <tr class="ve-table-body-tr" row-key="21">
+              <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="b">
+                <!---->
+                <!---->
+                <!---->21
+              </td>
+              <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="c">
+                <!---->
+                <!---->
+                <!---->21
+              </td>
+              <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="d">
+                <!---->
+                <!---->
+                <!---->21
+              </td>
+            </tr>
+            <!---->
+            <tr class="ve-table-body-tr" row-key="22">
+              <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="b">
+                <!---->
+                <!---->
+                <!---->22
+              </td>
+              <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="c">
+                <!---->
+                <!---->
+                <!---->22
+              </td>
+              <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="d">
+                <!---->
+                <!---->
+                <!---->22
+              </td>
+            </tr>
+            <!---->
+            <tr class="ve-table-body-tr" row-key="23">
+              <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="b">
+                <!---->
+                <!---->
+                <!---->23
+              </td>
+              <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="c">
+                <!---->
+                <!---->
+                <!---->23
+              </td>
+              <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="d">
+                <!---->
+                <!---->
+                <!---->23
+              </td>
+            </tr>
+            <!---->
+            <tr class="ve-table-body-tr" row-key="24">
+              <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="b">
+                <!---->
+                <!---->
+                <!---->24
+              </td>
+              <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="c">
+                <!---->
+                <!---->
+                <!---->24
+              </td>
+              <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="d">
+                <!---->
+                <!---->
+                <!---->24
+              </td>
+            </tr>
+            <!---->
+            <tr class="ve-table-body-tr" row-key="25">
+              <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="b">
+                <!---->
+                <!---->
+                <!---->25
+              </td>
+              <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="c">
+                <!---->
+                <!---->
+                <!---->25
+              </td>
+              <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="d">
+                <!---->
+                <!---->
+                <!---->25
+              </td>
+            </tr>
+            <!---->
+          </tbody>
+          <tfoot class="ve-table-fixed-footer ve-table-footer"></tfoot>
+        </table>
+        <div class="ve-table-selection-wrapper">
+          <div class="ve-table-selection-fixed-left">
+            <!---->
+            <!---->
+            <!---->
+            <!---->
+          </div>
+          <div class="ve-table-selection-middle">
+            <!---->
+            <!---->
+            <!---->
+            <!---->
+          </div>
+          <div class="ve-table-selection-fixed-right">
+            <!---->
+            <!---->
+            <!---->
+            <!---->
+          </div>
+        </div>
+      </div>
+    </div>
+    <div style="top: 0px; left: 0px; height: 1px; z-index: -1; opacity: 0;" class="ve-table-edit-input-container"><textarea class="ve-table-edit-input" tabindex="-1" value=""></textarea></div>
+    <!---->
+    <!---->
+  </div>
+  <!---->
+</div>
+`;
+
+exports[`veTable virtual scroll > virtual scroll palceholder 1`] = `
+<tr class="ve-table-body-tr ve-table-body-row-scrolling">
+  <td colspan="1"></td>
+</tr>
+`;
