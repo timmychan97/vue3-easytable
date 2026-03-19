@@ -1,7 +1,7 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
 exports[`veLoading > render normal 1`] = `
-<div>
+"<div>
   <div id="loading-plane" class="ve-loading-parent-relative">
     <div style="background-color: rgba(255, 255, 255, 0.5);" class="ve-loading ve-loading-overlay ve-loading-hide">
       <div class="ve-loading-spin-container">
@@ -85,5 +85,5 @@ exports[`veLoading > render normal 1`] = `
       </div>
     </div>
   </div>
-</div>
+</div>"
 `;

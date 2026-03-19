@@ -1,7 +1,7 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
 exports[`veTable header sort > render multiple field sort 1`] = `
-<div class="vue-table-root">
+"<div class="vue-table-root">
   <div style="width: 100%;" class="ve-table ve-table-border-around">
     <div class="ve-table-container ve-table-enable-cell-selection" style="height: 0px;">
       <!---->
@@ -234,11 +234,11 @@ exports[`veTable header sort > render multiple field sort 1`] = `
     <!---->
   </div>
   <!---->
-</div>
+</div>"
 `;
 
 exports[`veTable header sort > render single field sort 1`] = `
-<div class="vue-table-root">
+"<div class="vue-table-root">
   <div style="width: 100%;" class="ve-table ve-table-border-around">
     <div class="ve-table-container ve-table-enable-cell-selection" style="height: 0px;">
       <!---->
@@ -471,5 +471,5 @@ exports[`veTable header sort > render single field sort 1`] = `
     <!---->
   </div>
   <!---->
-</div>
+</div>"
 `;

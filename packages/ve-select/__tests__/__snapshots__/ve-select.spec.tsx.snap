@@ -1,7 +1,7 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
 exports[`veSelect > render by isInput prop 1`] = `
-<dl class="ve-dropdown ve-select">
+"<dl class="ve-dropdown ve-select">
   <dt class="ve-dropdown-dt"><a class="ve-dropdown-dt-selected" style="width: 90px;"><span><input class="ve-select-input" placeholder="姓名" type="text"><i class="ve-icon iconfont-vet icon-vet-bottom-arrow ve-select-toggle-icon"></i></span></a></dt>
   <div style="display: none;">
     <dd class="ve-dropdown-dd">
@@ -18,11 +18,11 @@ exports[`veSelect > render by isInput prop 1`] = `
       </ul>
     </dd>
   </div>
-</dl>
+</dl>"
 `;
 
 exports[`veSelect > render by isMultiple prop 1`] = `
-<dl class="ve-dropdown ve-select">
+"<dl class="ve-dropdown ve-select">
   <dt class="ve-dropdown-dt"><a class="ve-dropdown-dt-selected" style="width: 90px;"><span><span class="ve-select-selected-span">Orange</span><i class="ve-icon iconfont-vet icon-vet-bottom-arrow ve-select-toggle-icon"></i></span></a></dt>
   <div style="display: none;">
     <dd class="ve-dropdown-dd">
@@ -39,11 +39,11 @@ exports[`veSelect > render by isMultiple prop 1`] = `
       </ul>
     </dd>
   </div>
-</dl>
+</dl>"
 `;
 
 exports[`veSelect > render by value prop 1`] = `
-<dl class="ve-dropdown ve-select">
+"<dl class="ve-dropdown ve-select">
   <dt class="ve-dropdown-dt"><a class="ve-dropdown-dt-selected" style="width: 90px;"><span><span class="ve-select-selected-span">Orange</span><i class="ve-icon iconfont-vet icon-vet-bottom-arrow ve-select-toggle-icon"></i></span></a></dt>
   <div style="display: none;">
     <dd class="ve-dropdown-dd">
@@ -60,5 +60,5 @@ exports[`veSelect > render by value prop 1`] = `
       </ul>
     </dd>
   </div>
-</dl>
+</dl>"
 `;

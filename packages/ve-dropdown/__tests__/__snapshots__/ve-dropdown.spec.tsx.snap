@@ -1,7 +1,7 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
 exports[`veDropdown > render normal 1`] = `
-<dl class="ve-dropdown">
+"<dl class="ve-dropdown">
   <dt class="ve-dropdown-dt"><a class="" style="width: 90px;">
       <div>click me</div>
     </a></dt>
@@ -20,11 +20,11 @@ exports[`veDropdown > render normal 1`] = `
       </ul>
     </dd>
   </div>
-</dl>
+</dl>"
 `;
 
 exports[`veDropdown > render with checkbox 1`] = `
-<dl class="ve-dropdown">
+"<dl class="ve-dropdown">
   <dt class="ve-dropdown-dt"><a class="" style="width: 90px;">
       <div>click me</div>
     </a></dt>
@@ -43,11 +43,11 @@ exports[`veDropdown > render with checkbox 1`] = `
       </ul>
     </dd>
   </div>
-</dl>
+</dl>"
 `;
 
 exports[`veDropdown > render with radio 1`] = `
-<dl class="ve-dropdown">
+"<dl class="ve-dropdown">
   <dt class="ve-dropdown-dt"><a class="" style="width: 90px;">
       <div>click me</div>
     </a></dt>
@@ -66,5 +66,5 @@ exports[`veDropdown > render with radio 1`] = `
       </ul>
     </dd>
   </div>
-</dl>
+</dl>"
 `;

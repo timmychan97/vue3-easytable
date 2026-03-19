@@ -1,7 +1,7 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
 exports[`veTable virtual scroll > render same row height 1`] = `
-<div class="vue-table-root">
+"<div class="vue-table-root">
   <div style="width: 100%;" class="ve-table ve-table-border-around">
     <div class="ve-table-container ve-table-virtual-scroll ve-table-enable-cell-selection" style="max-height: 500px; height: 500px;">
       <div class="ve-table-virtual-phantom ve-table-virtual-scroll" style="height: 40000px;">
@@ -548,11 +548,11 @@ exports[`veTable virtual scroll > render same row height 1`] = `
     <!---->
   </div>
   <!---->
-</div>
+</div>"
 `;
 
 exports[`veTable virtual scroll > virtual scroll palceholder 1`] = `
-<tr class="ve-table-body-tr ve-table-body-row-scrolling">
+"<tr class="ve-table-body-tr ve-table-body-row-scrolling">
   <td colspan="1"></td>
-</tr>
+</tr>"
 `;

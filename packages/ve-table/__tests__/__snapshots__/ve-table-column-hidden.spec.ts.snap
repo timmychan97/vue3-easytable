@@ -1,7 +1,7 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
 exports[`veTable column hidden > columnHiddenOption defaultHiddenColumnKeys prop 1`] = `
-<div class="vue-table-root">
+"<div class="vue-table-root">
   <div style="width: 100%;" class="ve-table ve-table-border-around">
     <div class="ve-table-container" style="height: 0px;">
       <!---->
@@ -121,5 +121,5 @@ exports[`veTable column hidden > columnHiddenOption defaultHiddenColumnKeys prop
     <!---->
   </div>
   <!---->
-</div>
+</div>"
 `;

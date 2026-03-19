@@ -1,5 +1,4 @@
 import { config, VueWrapper } from '@vue/test-utils'
-import vueSnapshotSerializer from 'jest-serializer-vue'
 import { useVeTable } from '../../packages/vue/src/index'
 
 declare module '@vue/test-utils' {
@@ -8,8 +7,6 @@ declare module '@vue/test-utils' {
     triggerResizeObserver: (options?: { width?: number, height?: number }) => void
   }
 }
-
-expect.addSnapshotSerializer(vueSnapshotSerializer)
 
 // 全局注册所有 ve 组件，供所有 mount 调用使用
 config.global.plugins = [useVeTable()]
