@@ -183,6 +183,39 @@ cd vue3-easytable
 pnpm install  # pnpm 会自动使用正确的 Node.js 版本
 ```
 
+#### 直接在 WSL 中开发
+
+```bash
+# 安装 pnpm（如果尚未安装）
+npm install -g pnpm@latest
+
+# 克隆仓库并安装依赖
+git clone https://github.com/timmychan97/vue3-easytable.git
+cd vue3-easytable
+pnpm install
+
+# 启动文档开发服务器
+pnpm docs
+# 浏览器访问 http://localhost:5173
+```
+
+#### Docker 开发
+
+如果你使用 Docker，无需手动安装 Node.js 或 pnpm：
+
+```bash
+# 启动文档开发服务器
+docker compose up docs
+
+# 浏览器访问 http://localhost:5173
+```
+
+依赖变更后（如 git pull 更新了 lockfile），重新构建即可：
+
+```bash
+docker compose up --build docs
+```
+
 如果你希望参与贡献，欢迎
 [Pull Request](https://github.com/timmychan97/vue3-easytable/pulls)
 

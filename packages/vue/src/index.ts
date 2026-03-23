@@ -1,6 +1,5 @@
 import type { LocaleMessage } from '@vue3-easytable/common/locale/types'
 
-// This file is auto gererated by build/build-entry.js
 import type { Plugin } from 'vue'
 import VeCheckbox from '@vue3-easytable/ve-checkbox'
 import VeCheckboxGroup from '@vue3-easytable/ve-checkbox-group'

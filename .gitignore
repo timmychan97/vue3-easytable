@@ -27,6 +27,8 @@ lerna-debug.log*
 dist
 packages/vue/libs
 _build_gh_pages
+auto-imports.d.ts
+components.d.ts
 
 # Dependencies
 node_modules

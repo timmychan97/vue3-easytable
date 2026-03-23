@@ -334,17 +334,13 @@ export default defineComponent({
             hidden columns
             */
       hiddenColumns: [],
-      /*
-            // virtual scroll positions（非响应式）
-            virtualScrollPositions = [
-                {
-                    rowKey: "", // 当前行数据 rowKey
-                    top: 0, // 距离上一个项的高度
-                    bottom: 100, // 距离下一个项的高度
-                    height: 100 // 自身高度
-                }
-            ],
-            */
+      // virtual scroll positions（非响应式，由 initVirtualScrollPositions 填充）
+      virtualScrollPositions: [] as Array<{
+        rowKey: string
+        top: number
+        bottom: number
+        height: number
+      }>,
       // virtual scroll visible data
       virtualScrollVisibleData: [],
       // virtual scroll visible indexs

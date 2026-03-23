@@ -1,0 +1,38 @@
+FROM node:20.19.6-alpine AS base
+ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
+RUN apk upgrade --no-cache && \
+    corepack enable && corepack prepare pnpm@10.0.0 --activate
+WORKDIR /app
+
+# --- Layer 1: Fetch packages by lockfile (best cache hit rate) ---
+
+COPY pnpm-lock.yaml ./
+RUN pnpm fetch --store-dir /pnpm/store
+
+# --- Layer 2: Install with frozen lockfile (pnpm equivalent of npm ci) ---
+COPY pnpm-workspace.yaml package.json ./
+COPY docs/package.json docs/
+COPY packages/common/package.json packages/common/
+COPY packages/ve-checkbox/package.json packages/ve-checkbox/
+COPY packages/ve-checkbox-group/package.json packages/ve-checkbox-group/
+COPY packages/ve-contextmenu/package.json packages/ve-contextmenu/
+COPY packages/ve-dropdown/package.json packages/ve-dropdown/
+COPY packages/ve-icon/package.json packages/ve-icon/
+COPY packages/ve-loading/package.json packages/ve-loading/
+COPY packages/ve-locale/package.json packages/ve-locale/
+COPY packages/ve-pagination/package.json packages/ve-pagination/
+COPY packages/ve-radio/package.json packages/ve-radio/
+COPY packages/ve-select/package.json packages/ve-select/
+COPY packages/ve-table/package.json packages/ve-table/
+COPY packages/vue/package.json packages/vue/
+RUN pnpm install --frozen-lockfile --store-dir /pnpm/store
+
+# --- Layer 3: Copy source and build ---
+COPY . .
+RUN pnpm docs:build
+
+# --- Final stage: Serve static files with nginx ---
+FROM nginx:alpine
+RUN apk upgrade --no-cache
+COPY --from=base /app/docs/.vitepress/dist /usr/share/nginx/html
+EXPOSE 80

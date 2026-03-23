@@ -237,5 +237,49 @@ new Vue({
 </html>
 ```
 
+:::anchor WSL 开发
+
+如果你在 WSL（Windows Subsystem for Linux）中开发，直接在 WSL 终端中运行即可：
+
+```bash
+# 安装 pnpm（如果尚未安装）
+npm install -g pnpm@latest
+
+# 克隆仓库并安装依赖
+git clone https://github.com/timmychan97/vue3-easytable.git
+cd vue3-easytable
+pnpm install
+
+# 启动文档开发服务器
+pnpm docs
+# 浏览器访问 http://localhost:5173
+```
+
+WSL2 会自动将端口转发到 Windows，因此可以直接在 Windows 浏览器中访问 `localhost`。
+
+:::anchor Docker 开发
+
+如果你使用 Docker 进行开发，无需手动安装 Node.js 或 pnpm。项目根目录提供了 `Dockerfile` 和 `docker-compose.yml`：
+
+```bash
+# 克隆仓库
+git clone https://github.com/timmychan97/vue3-easytable.git
+cd vue3-easytable
+
+# 启动文档开发服务器
+docker compose up docs
+
+# 浏览器访问 http://localhost:5173
+```
+
+**常用命令：**
+
+| 场景 | 命令 |
+| --- | --- |
+| 启动开发服务器 | `docker compose up docs` |
+| 依赖变更后重新构建 | `docker compose up --build docs` |
+| 清除缓存并重建 | `docker compose down -v` 然后 `docker compose up --build docs` |
+| 在容器内运行测试 | `docker compose exec docs pnpm test` |
+
 :::anchor 浏览器兼容
 默认支持现代浏览器和 IE11 及以上

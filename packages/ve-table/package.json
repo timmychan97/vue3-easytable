@@ -1,6 +1,6 @@
 {
   "name": "@vue3-easytable/ve-table",
-  "version": "1.0.0",
+  "version": "0.0.5",
   "description": "",
   "author": "",
   "license": "MIT",
@@ -10,12 +10,12 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
-    "@vue3-easytable/common": "workspace:^1.0.0",
-    "@vue3-easytable/ve-checkbox": "workspace:^1.0.0",
-    "@vue3-easytable/ve-contextmenu": "workspace:^1.0.0",
-    "@vue3-easytable/ve-dropdown": "workspace:^1.0.0",
-    "@vue3-easytable/ve-icon": "workspace:^1.0.0",
-    "@vue3-easytable/ve-radio": "workspace:^1.0.0",
+    "@vue3-easytable/common": "workspace:^0.0.5",
+    "@vue3-easytable/ve-checkbox": "workspace:^0.0.5",
+    "@vue3-easytable/ve-contextmenu": "workspace:^0.0.5",
+    "@vue3-easytable/ve-dropdown": "workspace:^0.0.5",
+    "@vue3-easytable/ve-icon": "workspace:^0.0.5",
+    "@vue3-easytable/ve-radio": "workspace:^0.0.5",
     "lodash": "^4.17.21",
     "mitt": "^3.0.1"
   },

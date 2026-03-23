@@ -46,12 +46,6 @@ export default defineConfig({
 
       ],
     },
-    // 这一块是不会被使用的
-    lib: {
-      entry: resolve(__dirname, 'src/index.ts'),
-      name: 'vue3-easytable_vue',
-      // formats: ['cjs', 'es'],
-    },
   },
   plugins: [
     vue(),

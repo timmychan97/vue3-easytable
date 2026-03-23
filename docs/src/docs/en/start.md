@@ -221,5 +221,49 @@ Through [https://unpkg.com/vue-easytable/](https://unpkg.com/vue-easytable/), yo
 </html>
 ```
 
+:::anchor WSL Development
+
+If you develop in WSL (Windows Subsystem for Linux), run directly from the WSL terminal:
+
+```bash
+# Install pnpm (if not already installed)
+npm install -g pnpm@latest
+
+# Clone the repository and install dependencies
+git clone https://github.com/timmychan97/vue3-easytable.git
+cd vue3-easytable
+pnpm install
+
+# Start the docs dev server
+pnpm docs
+# Open http://localhost:5173 in your browser
+```
+
+WSL2 automatically forwards ports to Windows, so you can access `localhost` directly from your Windows browser.
+
+:::anchor Docker Development
+
+If you use Docker for development, there's no need to install Node.js or pnpm manually. The project includes a `Dockerfile` and `docker-compose.yml` at the root:
+
+```bash
+# Clone the repository
+git clone https://github.com/timmychan97/vue3-easytable.git
+cd vue3-easytable
+
+# Start the docs dev server
+docker compose up docs
+
+# Open http://localhost:5173 in your browser
+```
+
+**Common commands:**
+
+| Scenario | Command |
+| --- | --- |
+| Start dev server | `docker compose up docs` |
+| Rebuild after dependency changes | `docker compose up --build docs` |
+| Clean cache and rebuild | `docker compose down -v` then `docker compose up --build docs` |
+| Run tests inside container | `docker compose exec docs pnpm test` |
+
 :::anchor Browser Compatible
 Support modern browser and ie10 and above

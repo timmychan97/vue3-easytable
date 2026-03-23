@@ -15,21 +15,20 @@
     "url": "https://github.com/timmychan97/vue3-easytable/issues"
   },
   "keywords": [],
-  "main": "index.js",
   "engines": {
     "node": ">=20.0.0",
     "pnpm": ">=10.0.0"
   },
   "scripts": {
     "prepare": "husky install",
-    "docs": "pnpm --filter=docs dev",
-    "docs:build": "pnpm --filter=docs build",
+    "docs": "pnpm --filter=@vue3-easytable/docs dev",
+    "docs:build": "pnpm --filter=@vue3-easytable/docs build",
     "lint": "eslint .",
     "lint:err": "eslint . --quiet",
     "lint:fix": "eslint . --fix",
     "test": "vitest",
     "test:ci": "vitest run",
-    "build:comp": "vite build",
+    "build:comp": "pnpm --filter=@vue3-easytable/vue build",
     "clean": "rimraf dist packages/vue/libs docs/dist _build_gh_pages node_modules/.vite",
     "clean:deps": "rimraf node_modules packages/*/node_modules docs/node_modules pnpm-lock.yaml",
     "typecheck": "vue-tsc --noEmit"

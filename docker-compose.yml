@@ -1,0 +1,28 @@
+services:
+  docs:
+    build: .
+    volumes:
+      # Bind-mount source for hot-reload
+      - .:/app
+      # Named volume keeps container's node_modules isolated from host.
+      # pnpm's node_modules contains symlinks to packages/* which exist
+      # via the bind mount above — so everything resolves correctly.
+      - node_modules:/app/node_modules
+    ports:
+      - '5173:5173'
+    command: pnpm run docs
+
+  # Utility service for running pnpm commands inside the container.
+  # Usage:
+  #   docker compose run --rm pnpm add lodash
+  #   docker compose run --rm pnpm remove lodash
+  pnpm:
+    build: .
+    volumes:
+      - .:/app
+      - node_modules:/app/node_modules
+    entrypoint: [pnpm]
+    profiles: [tools]
+
+volumes:
+  node_modules:
