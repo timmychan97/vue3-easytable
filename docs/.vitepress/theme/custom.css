@@ -1,0 +1,121 @@
+/*
+ * Reset VitePress .vp-doc table styles inside ve-table components.
+ *
+ * VitePress applies opinionated styles to `.vp-doc table/tr/th/td`
+ * (display:block, margins, borders, colors, etc.) that conflict with
+ * ve-table's own layout — breaking fixed columns, sticky headers,
+ * table-layout:fixed, and scroll containers.
+ *
+ * Each property below corresponds 1:1 to a VitePress default.
+ * We revert them so the component's own styles take full control.
+ */
+
+/* .vp-doc table  →  display:block; border-collapse:collapse; margin:20px 0; overflow-x:auto */
+.vp-doc .vue-table-root table {
+  display: revert;
+  border-collapse: revert;
+  margin: revert;
+  overflow-x: revert;
+}
+
+/* .vp-doc tr  →  background-color:var(--vp-c-bg); border-top:1px solid; transition:background-color 0.5s */
+/* .vp-doc tr:nth-child(2n)  →  background-color:var(--vp-c-bg-soft) */
+.vp-doc .vue-table-root tr,
+.vp-doc .vue-table-root tr:nth-child(2n) {
+  background-color: revert;
+  border-top: revert;
+  transition: revert;
+}
+
+/* .vp-doc th,td  →  border:1px solid; padding:8px 16px */
+/* .vp-doc th     →  text-align:left; font-size:14px; font-weight:600; color; background-color */
+/* .vp-doc td     →  font-size:14px */
+.vp-doc .vue-table-root th,
+.vp-doc .vue-table-root td {
+  border: revert;
+  padding: revert;
+  text-align: revert;
+  font-size: revert;
+  font-weight: revert;
+  color: revert;
+  background-color: revert;
+}
+
+/* Demo button styles (used by column-hidden, instance-methods, etc.) */
+.button-demo {
+  color: #fff;
+  background-color: #409eff;
+  display: inline-block;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  border: 1px solid #409eff;
+  appearance: none;
+  text-align: center;
+  box-sizing: border-box;
+  outline: none;
+  margin: 0;
+  transition: 0.1s;
+  font-weight: 500;
+  user-select: none;
+  padding: 10px 20px;
+  font-size: 14px;
+  border-radius: 3px;
+}
+
+.button-demo + .button-demo {
+  margin-left: 12px;
+}
+
+.button-demo:hover {
+  background: #66b1ff;
+  border-color: #66b1ff;
+  color: #fff;
+}
+
+.button-demo:active {
+  background: #409eff;
+  border-color: #409eff;
+  color: #fff;
+}
+
+/*
+ * Sidebar scrollbar: hidden by default, visible on hover or keyboard focus.
+ * Uses thin scrollbar for a cleaner look. Accessible via :focus-within
+ * so keyboard users who Tab into the sidebar also see the scrollbar.
+ */
+@media (min-width: 960px) {
+  .VPSidebar {
+    scrollbar-width: thin;
+    scrollbar-color: transparent transparent;
+    transition: scrollbar-color 0.25s;
+  }
+
+  .VPSidebar:hover,
+  .VPSidebar:focus-within {
+    scrollbar-color: var(--vp-c-divider) transparent;
+  }
+
+  /* Webkit (Chrome, Safari, Edge) */
+  .VPSidebar::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .VPSidebar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .VPSidebar::-webkit-scrollbar-thumb {
+    background: transparent;
+    border-radius: 3px;
+  }
+
+  .VPSidebar:hover::-webkit-scrollbar-thumb,
+  .VPSidebar:focus-within::-webkit-scrollbar-thumb {
+    background: var(--vp-c-divider);
+  }
+
+  .VPSidebar:hover::-webkit-scrollbar-thumb:hover {
+    background: var(--vp-c-text-3);
+  }
+}

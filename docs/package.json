@@ -10,10 +10,12 @@
   },
   "dependencies": {
     "@vue3-easytable/vue": "workspace:^0.0.5",
+    "mockjs": "^1.1.0",
     "vue": "^3.5.13"
   },
   "devDependencies": {
     "@vue/compiler-dom": "^3.5.13",
+    "esbuild": "^0.21.5",
     "less": "^4.2.2",
     "markdown-it-container": "^4.0.0",
     "unplugin-auto-import": "^0.17.3",

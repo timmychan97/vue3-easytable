@@ -8,7 +8,7 @@
         border-y
         fixed-header
         :max-height="300"
-        style="width:900px"
+        style="width:100%"
         :scroll-width="1200"
         :columns="columns"
         :table-data="tableData"

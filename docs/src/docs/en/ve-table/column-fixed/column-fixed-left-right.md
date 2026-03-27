@@ -1,11 +1,11 @@
 :::anchor Fixed left and right columns
 
-:::demo 1、Set the width of the scroll area through `scroll-width="1200"`，Via `style="width:900px"`set outer container width<br>2、Set the left column to be fixed by `fixed:"left"`; set the right column to be fixed by`fixed:"right"`
+:::demo 1、Set the width of the scroll area through `scroll-width="1200"`，Via `style="width:100%"`set outer container width<br>2、Set the left column to be fixed by `fixed:"left"`; set the right column to be fixed by`fixed:"right"`
 
 ```html
 <template>
     <ve-table
-        style="width:900px"
+        style="width:100%"
         :scroll-width="1200"
         border-y
         :columns="columns"

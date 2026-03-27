@@ -1,11 +1,11 @@
 :::anchor Left column fixed
 
-:::demo 1、Set the width of the scroll area through `scroll-width="1200"`,Via `style="width:900px"` set outer container width<br>2、Via `style="width:900px"`set the width of the outer container. Use `fixed:"left"` to set the left column that needs to be fixed
+:::demo 1、Set the width of the scroll area through `scroll-width="1200"`,Via `style="width:100%"` set outer container width<br>2、Via `style="width:100%"`set the width of the outer container. Use `fixed:"left"` to set the left column that needs to be fixed
 
 ```html
 <template>
     <ve-table
-        style="width:900px"
+        style="width:100%"
         :scroll-width="1200"
         border-y
         :columns="columns"

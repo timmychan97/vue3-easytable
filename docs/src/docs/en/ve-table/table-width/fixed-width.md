@@ -1,10 +1,10 @@
 :::anchor Fixed Table Width
 
-:::demo You can use pixel values to achieve a fixed width of the table. like `style="width:900px"`
+:::demo You can use pixel values to achieve a fixed width of the table. like `style="width:100%"`
 
 ```html
 <template>
-    <ve-table style="width:900px;" :columns="columns" :table-data="tableData" />
+    <ve-table style="width:100%" :columns="columns" :table-data="tableData" />
 </template>
 
 <script>

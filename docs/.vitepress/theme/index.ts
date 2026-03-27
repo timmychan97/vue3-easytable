@@ -2,6 +2,7 @@ import type { EnhanceAppContext } from 'vitepress'
 import DefaultTheme from 'vitepress/theme'
 import { defineComponent, h } from 'vue'
 import DemoBlock from './DemoBlock.vue'
+import './custom.css'
 
 // Stub for <anchor label="..."/> used in legacy docs content
 const Anchor = defineComponent({

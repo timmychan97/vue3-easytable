@@ -1,16 +1,48 @@
 :::anchor 表格动态宽度（百分比）
 
-:::demo 1、你可以使用百分比实现表格动态宽度<br>2、试试改变浏览器宽度查看效果
+:::demo 1. style="width:80%" 2. Drag the handle to resize
 
 ```html
 <template>
-    <ve-table style="width:80%" :columns="columns" :table-data="tableData" />
+    <div>
+        <div style="position:relative;display:flex;align-items:stretch;min-height:100px">
+            <div :style="{ width: containerWidth + 'px', minWidth: '200px', flexShrink: 0, overflow: 'hidden' }">
+                <ve-table style="width:100%" :columns="columns" :table-data="tableData" />
+            </div>
+            <div
+                :style="{
+                    width: '10px',
+                    cursor: 'col-resize',
+                    background: dragging ? '#6366f1' : '#cbd5e1',
+                    borderRadius: '5px',
+                    flexShrink: 0,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    transition: dragging ? 'none' : 'background 0.15s',
+                    userSelect: 'none',
+                    margin: '0 2px'
+                }"
+                @mousedown="onDragStart"
+                @mouseenter="onHandleEnter"
+                @mouseleave="onHandleLeave"
+            >
+                <span style="color:#fff;font-size:14px;user-select:none;pointer-events:none">||</span>
+            </div>
+            <div style="flex:1;min-width:20px"></div>
+        </div>
+        <div style="margin-top:8px;font-size:13px;color:#64748b">
+            Width: <strong>{{ containerWidth }}px</strong>
+        </div>
+    </div>
 </template>
 
 <script>
     export default {
         data() {
             return {
+                containerWidth: 600,
+                dragging: false,
                 columns: [
                     { field: "name", key: "a", title: "Name", width: 100 },
                     { field: "date", key: "b", title: "Tel", width: 200 },
@@ -50,6 +82,30 @@
                     },
                 ],
             };
+        },
+        methods: {
+            onHandleEnter(e) {
+                if (!this.dragging) e.target.style.background = '#6366f1';
+            },
+            onHandleLeave(e) {
+                if (!this.dragging) e.target.style.background = '#cbd5e1';
+            },
+            onDragStart(e) {
+                e.preventDefault();
+                this.dragging = true;
+                const startX = e.clientX;
+                const startWidth = this.containerWidth;
+                const onMove = (ev) => {
+                    this.containerWidth = Math.max(200, startWidth + ev.clientX - startX);
+                };
+                const onUp = () => {
+                    this.dragging = false;
+                    document.removeEventListener('mousemove', onMove);
+                    document.removeEventListener('mouseup', onUp);
+                };
+                document.addEventListener('mousemove', onMove);
+                document.addEventListener('mouseup', onUp);
+            },
         },
     };
 </script>

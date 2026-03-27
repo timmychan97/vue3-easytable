@@ -1,9 +1,38 @@
 import type MarkdownIt from 'markdown-it'
 import { Buffer } from 'node:buffer'
+import { transformSync } from 'esbuild'
 import container from 'markdown-it-container'
 
 function escapeAttr(str: string): string {
   return str.replace(/&/g, '&amp;').replace(/"/g, '&quot;')
+}
+
+/**
+ * Transform JSX inside <script> blocks using esbuild at build time.
+ * Converts JSX to Vue.h() calls so the runtime DemoBlock can use new Function().
+ */
+function transformScriptJSX(content: string): string {
+  const scriptMatch = content.match(/(<script>)([\s\S]*?)(<\/script>)/)
+  if (!scriptMatch)
+    return content
+
+  const scriptBody = scriptMatch[2]
+  // Quick check: does the script contain JSX?
+  if (!/<[\w-]/.test(scriptBody.replace(/<=/g, '')))
+    return content
+
+  try {
+    const result = transformSync(scriptBody, {
+      loader: 'jsx',
+      jsxFactory: 'Vue.h',
+      jsxFragment: 'Vue.Fragment',
+    })
+    return content.replace(scriptMatch[0], `${scriptMatch[1]}${result.code}${scriptMatch[3]}`)
+  }
+  catch (e) {
+    console.warn('[demo] JSX transform failed:', e)
+    return content
+  }
 }
 
 /**
@@ -41,7 +70,8 @@ export function demoPlugin(md: MarkdownIt): void {
           if (t.nesting === -1)
             break // closing tag for this container
           if (t.type === 'fence') {
-            const code = Buffer.from(t.content).toString('base64')
+            const transformed = transformScriptJSX(t.content)
+            const code = Buffer.from(transformed).toString('base64')
             // Suppress the fence from rendering normally
             t.type = 'html_block'
             t.content = ''

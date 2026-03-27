@@ -10,8 +10,8 @@ const showCode = ref(false)
 const demoComp = shallowRef<any>(null)
 const errorMsg = ref('')
 
-// Decode the base64-encoded demo source
-const rawCode = atob(props.code)
+// Decode the base64-encoded demo source (UTF-8 safe)
+const rawCode = new TextDecoder().decode(Uint8Array.from(atob(props.code), c => c.charCodeAt(0)))
 
 onMounted(async () => {
   try {
@@ -21,19 +21,73 @@ onMounted(async () => {
     const template = templateMatch ? templateMatch[1].trim() : '<div></div>'
     const script = scriptMatch ? scriptMatch[1].trim() : ''
 
-    // Transform "export default { ... }" to a function that returns the options object
+    // Resolve import statements and transform script into executable code
     let options: any = {}
     if (script) {
+      // Extract import statements and resolve them dynamically
+      const importRegex = /^\s*import\s+(?:(\*\s+as\s+(\w+))|(\{[^}]+\})|(\w+))\s+from\s+["']([^"']+)["'];?\s*$/gm
+      const imports: Record<string, any> = {}
+      const importNames: string[] = []
+      let match: RegExpExecArray | null
+
+      const importMatches: Array<{ full: string, names: string[], modulePath: string, isNamespace: boolean, isDefault: boolean }> = []
+      // eslint-disable-next-line no-cond-assign
+      while ((match = importRegex.exec(script)) !== null) {
+        const modulePath = match[5]
+        if (match[2]) {
+          // import * as Name from '...'
+          importMatches.push({ full: match[0], names: [match[2]], modulePath, isNamespace: true, isDefault: false })
+        }
+        else if (match[3]) {
+          // import { a, b } from '...'
+          const names = match[3].replace(/[{}]/g, '').split(',').map(n => n.trim()).filter(Boolean)
+          importMatches.push({ full: match[0], names, modulePath, isNamespace: false, isDefault: false })
+        }
+        else if (match[4]) {
+          // import Name from '...'
+          importMatches.push({ full: match[0], names: [match[4]], modulePath, isNamespace: false, isDefault: true })
+        }
+      }
+
+      // Dynamically import all modules
+      for (const imp of importMatches) {
+        try {
+          const mod = await import(/* @vite-ignore */ imp.modulePath)
+          if (imp.isNamespace) {
+            imports[imp.names[0]] = mod
+            importNames.push(imp.names[0])
+          }
+          else if (imp.isDefault) {
+            imports[imp.names[0]] = mod.default || mod
+            importNames.push(imp.names[0])
+          }
+          else {
+            for (const name of imp.names) {
+              imports[name] = mod[name]
+              importNames.push(name)
+            }
+          }
+        }
+        catch (e) {
+          console.warn(`[DemoBlock] Failed to import "${imp.modulePath}":`, e)
+        }
+      }
+
+      // Strip import lines from script
+      let cleanScript = script.replace(importRegex, '').trim()
+
+      // Replace "export default" anywhere in the script (may have const declarations before it)
+      cleanScript = cleanScript.replace(/export\s+default\s*/, 'return ')
+
       // eslint-disable-next-line no-new-func
-      const getOptions = new Function(`${script.replace(/^\s*export\s+default\s*/, 'return ')}`)
-      options = getOptions()
+      const getOptions = new Function('Vue', ...importNames, cleanScript)
+      const vueModule = await import('vue')
+      options = getOptions(vueModule, ...importNames.map(n => imports[n]))
     }
 
     // Compile the template to a render function using Vue's compiler
     // Dynamic import to avoid SSR issues
     const { compile } = await import('@vue/compiler-dom')
-    const { createApp, h } = await import('vue')
-
     const { code: renderCode } = compile(template, {
       mode: 'function',
     })
@@ -78,6 +132,8 @@ onMounted(async () => {
   border-radius: 8px;
   margin: 16px 0;
   overflow: hidden;
+  resize: horizontal;
+  min-width: 200px;
 }
 
 .demo-description {

@@ -154,7 +154,7 @@ export default defineConfig({
       noExternal: ['lodash'],
     },
     optimizeDeps: {
-      include: ['@vue/compiler-dom'],
+      include: ['@vue/compiler-dom', 'mockjs'],
     },
     resolve: {
       alias: [
