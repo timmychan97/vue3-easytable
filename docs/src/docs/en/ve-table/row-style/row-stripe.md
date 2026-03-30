@@ -1,6 +1,6 @@
-:::anchor Row Stripe
+:::anchor Striped Rows
 
-:::demo Enable the row stripe with attribute `stripe`
+:::demo Enable striped rows via the `stripe` property.
 
 ```html
 <template>

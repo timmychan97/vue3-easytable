@@ -1,6 +1,6 @@
 :::anchor Footer Cell Style
 
-:::demo 1、The callback function `footerCellClass({ row, column, rowIndex })` receives 3 parameters,row：Current row data、column:Current column option、rowIndex:Row index<br>2、Returns the qualified cells to the specified class name,class name is custom<br>3、If you need to set the background color or font color to cells, you need to add `!important`
+:::demo 1. The callback function `footerCellClass({ row, column, rowIndex })` receives 3 parameters: row (current row data), column (current column configuration), rowIndex (row index)<br>2. Return a specified class name for cells that match the condition. The class name is custom-defined<br>3. If you need to set background color or font color for cells, add `!important`
 
 ```html
 <template>
@@ -77,14 +77,14 @@
                 this.footerData = [
                     {
                         rowKey: 0,
-                        name: "Average Values",
+                        name: "平均值",
                         date: 213,
                         hobby: 355,
                         address: 189,
                     },
                     {
                         rowKey: 1,
-                        name: "Summary Values",
+                        name: "汇总值",
                         date: 1780,
                         hobby: 890,
                         address: 2988,

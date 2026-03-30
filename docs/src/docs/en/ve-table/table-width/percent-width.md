@@ -1,4 +1,4 @@
-:::anchor Dynamic Table Width(percentage)
+:::anchor Dynamic Table Width (Percentage)
 
 :::demo 1. style="width:80%" 2. Drag the handle to resize
 

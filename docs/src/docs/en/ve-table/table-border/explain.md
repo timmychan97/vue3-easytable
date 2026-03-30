@@ -1,5 +1,5 @@
 :::tip
-1、Set the outer border with `border-around=true`<br>
-2、Set the horizontal border with `border-x=true`<br>
-3、Set the vertical border with `border-y=true`
+1. Use `border-around=true` to set the outer border<br>
+2. Use `border-x=true` to set horizontal borders<br>
+3. Use `border-y=true` to set vertical borders
 :::

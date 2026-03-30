@@ -1,6 +1,6 @@
-:::anchor Column width percentage
+:::anchor Percentage Column Width
 
-:::demo When the column width is set as a percentage, the cell width is scaled as a percentage
+:::demo When column width is set as a percentage, cell width scales according to the percentage
 
 ```html
 <template>

@@ -1,11 +1,12 @@
-<anchor label="Usage"/>
-
-Import `veLoading` where you need
+:::anchor Usage
+Import where needed
 
 ```javascript
 import Vue from 'vue'
-import { veLoading } from 'vue-easytable'
+import { veLoading } from '@vue3-easytable/vue'
 ```
+
+Call
 
 ```javascript
 veLoading({
@@ -15,16 +16,17 @@ veLoading({
 })
 ```
 
-<anchor label="Global Usage"/>
-
-Mount the `veLoading` component to the prototype of Vue for easy global call
+:::anchor Global Usage
+Mount the veLoading component on Vue's prototype for convenient global access
 
 ```javascript
 import Vue from 'vue'
-import { veLoading } from 'vue-easytable'
+import { veLoading } from '@vue3-easytable/vue'
 
 Vue.prototype.$veLoading = veLoading
 ```
+
+Call
 
 ```javascript
 this.$veLoading({

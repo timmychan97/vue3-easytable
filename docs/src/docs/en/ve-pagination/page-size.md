@@ -1,5 +1,6 @@
 :::anchor Page Size
-:::demo `page-size` set the size of each page
+
+:::demo The `page-size` property sets the page size
 
 ```html
 <template>

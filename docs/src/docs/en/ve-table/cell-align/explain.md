@@ -1,5 +1,5 @@
 :::tip
-1、Align cells left by `align=left`<br>
-2、Center the cell by `align=center`<br>
-3、Set right alignment by `align=right`
+1. Use `align=left` to align cells to the left<br>
+2. Use `align=center` to center cells<br>
+3. Use `align=right` to align cells to the right
 :::

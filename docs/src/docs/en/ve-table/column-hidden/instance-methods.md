@@ -1,23 +1,23 @@
-:::anchor Instance methods
+:::anchor Instance Methods
 
-:::demo 1、Hide columns through instance method `hideColumnsByKeys(keys)` <br>2、Show hidden columns through instance method `showColumnsByKeys(keys)`
+:::demo 1. Use the instance method `hideColumnsByKeys(keys)` to hide columns<br>2. Use the instance method `showColumnsByKeys(keys)` to show hidden columns
 
 ```html
 <template>
     <div>
-        <button class="button-demo" @click="hideColumns(['col1'])">Hide col1</button>
-        <button class="button-demo" @click="hideColumns(['col2'])">Hide col2</button>
-        <button class="button-demo" @click="hideColumns(['col3'])">Hide col3</button>
+        <button class="button-demo" @click="hideColumns(['col1'])">Hide col1 column</button>
+        <button class="button-demo" @click="hideColumns(['col2'])">Hide col2 column</button>
+        <button class="button-demo" @click="hideColumns(['col3'])">Hide col3 column</button>
         <button class="button-demo" @click="hideColumns(['col1','col2','col3'])">
-            Hide col1、col2、col3
+            Hide col1, col2, col3 columns
         </button>
         <br />
         <br />
-        <button class="button-demo" @click="showColumns(['col1'])">Show col1</button>
-        <button class="button-demo" @click="showColumns(['col2'])">Show col2</button>
-        <button class="button-demo" @click="showColumns(['col3'])">Show col3</button>
+        <button class="button-demo" @click="showColumns(['col1'])">Show col1 column</button>
+        <button class="button-demo" @click="showColumns(['col2'])">Show col2 column</button>
+        <button class="button-demo" @click="showColumns(['col3'])">Show col3 column</button>
         <button class="button-demo" @click="showColumns(['col1','col2','col3'])">
-            Show col1、col2、col3
+            Show col1, col2, col3 columns
         </button>
         <br />
         <br />

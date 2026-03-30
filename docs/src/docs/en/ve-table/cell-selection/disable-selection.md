@@ -1,6 +1,6 @@
-:::anchor Disable cell selection
+:::anchor Disable Cell Selection
 
-:::demo Cell selection is enable by default, you can disable by `cellSelectionOption.enable = false
+:::demo Cell selection is enabled by default. You can disable it by setting `cellSelectionOption.enable = false`
 
 ```html
 <template>
@@ -10,8 +10,8 @@
         :columns="columns"
         :table-data="tableData"
         :cellSelectionOption="cellSelectionOption"
-        :rowStyleOption="rowStyleOption"
         rowKeyFieldName="rowKey"
+        :rowStyleOption="rowStyleOption"
     />
 </template>
 
@@ -40,7 +40,7 @@
                             return ++rowIndex;
                         },
                     },
-                    { field: "name", key: "col1", title: "Name", align: "left" },
+                    { field: "name", key: "name", title: "Name", align: "left" },
                     { field: "date", key: "b", title: "Date", align: "left" },
                     {
                         field: "hobby",

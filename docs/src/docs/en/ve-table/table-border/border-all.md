@@ -1,4 +1,4 @@
-:::anchor Full border
+:::anchor Full Border
 
 :::demo
 

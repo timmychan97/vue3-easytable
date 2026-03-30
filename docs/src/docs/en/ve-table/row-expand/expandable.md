@@ -1,6 +1,6 @@
-:::anchor Expandable Row Configuration
+:::anchor Expandable Configuration
 
-:::demo Use the `expandable` function to set which rows can be expanded<br>1、`expandable`function takes 3 arguments.`row`:Current row data、`column`:Expandable column option、`rowIndex`:Row index<br>2、If the function returns `false`, the row will not be expanded
+:::demo Use the `expandable` function to set which rows can be expanded.<br>1. The `expandable` function receives three parameters: `row` - current row data, `column` - expandable column configuration, `rowIndex` - row index.<br>2. If the function returns `false`, the row will not be expandable.
 
 ```html
 <template>
@@ -23,7 +23,7 @@
                             return false;
                         }
                     },
-                    // render 函数
+                    // render function
                     render: ({ row, column, rowIndex }, h) => {
                         return (
                             <p>
@@ -37,7 +37,7 @@
                     {
                         field: "",
                         key: "a",
-                        // 设置需要显示展开图标的列
+                        // Set the column that displays the expand icon
                         type: "expand",
                         title: "",
                         width: 50,

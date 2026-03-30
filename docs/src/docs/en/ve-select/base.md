@@ -1,9 +1,9 @@
-<anchor  label="基本功能"></anchor>
+<anchor  label="Basic Functionality"></anchor>
 :::demo
 
 ```html
 <template>
-    <ve-select v-model="selectItems1" placeholder="姓名" />
+    <ve-select v-model="selectItems1" placeholder="Name" />
 </template>
 <script>
     export default {
@@ -22,12 +22,12 @@
 
 :::
 
-<anchor  label="设置 width"></anchor>
+<anchor  label="Setting Width"></anchor>
 :::demo
 
 ```html
 <template>
-    <ve-select v-model="selectItems1" placeholder="姓名" :width="120" />
+    <ve-select v-model="selectItems1" placeholder="Name" :width="120" />
 </template>
 <script>
     export default {
@@ -46,12 +46,12 @@
 
 :::
 
-<anchor  label="多选功能"></anchor>
+<anchor  label="Multi-Select"></anchor>
 :::demo
 
 ```html
 <template>
-    <ve-select v-model="selectItems2" is-multiple placeholder="姓名" />
+    <ve-select v-model="selectItems2" is-multiple placeholder="Name" />
 </template>
 <script>
     export default {
@@ -70,12 +70,12 @@
 
 :::
 
-<anchor  label="input 文本框下拉"></anchor>
+<anchor  label="Input Dropdown"></anchor>
 :::demo
 
 ```html
 <template>
-    <ve-select v-model="selectItems3" placeholder="姓名" isInput />
+    <ve-select v-model="selectItems3" placeholder="Name" isInput />
 </template>
 <script>
     export default {
@@ -94,12 +94,12 @@
 
 :::
 
-<anchor  label="事件"></anchor>
+<anchor  label="Events"></anchor>
 :::demo
 
 ```html
 <template>
-    <ve-select v-model="selectItems1" placeholder="姓名" @on-select-change="selectChange" />
+    <ve-select v-model="selectItems1" placeholder="Name" @on-select-change="selectChange" />
 </template>
 <script>
     export default {

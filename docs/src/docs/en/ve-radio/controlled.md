@@ -1,11 +1,11 @@
-:::demo 单选功能
+:::demo Radio functionality
 
 ```html
 <template>
     <div>
         <div>
-            <div class="bold">受控单选</div>
-            <button class="button-demo" @click="test()">测试</button>
+            <div class="bold">Controlled Radio</div>
+            <button class="button-demo" @click="test()">Test</button>
             <br />
             <ve-radio isControlled @on-radio-change="radioChange" :isSelected="radioVal">
                 Radio

@@ -1,6 +1,6 @@
-:::anchor Sort Switch
+:::anchor Sort Toggle
 
-:::demo 1、`sortAlways=true` allows sorting to switch between ascending and descending order only
+:::demo 1. Setting `sortAlways=true` allows sorting to toggle only between ascending and descending order
 
 ```html
 <template>

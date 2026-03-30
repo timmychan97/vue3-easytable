@@ -1,6 +1,6 @@
-:::anchor Custom Span Content
+:::anchor Custom Merged Content
 
-:::demo Combined with `renderBodyCell({row,column,rowIndex},h)`, you can customize the merged content
+:::demo Combined with `renderBodyCell({row,column,rowIndex},h)`, you can customize the content of merged cells
 
 ```html
 <template>

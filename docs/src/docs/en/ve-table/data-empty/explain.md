@@ -1,4 +1,3 @@
 :::tip
-1、The component itself does not provide API with data empty effect. You can do it yourself. It's more flexible.
-2、Here is an example
+1. The component does not provide a built-in empty data interface. You can implement it yourself for greater flexibility.
 :::

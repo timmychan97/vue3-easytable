@@ -1,4 +1,4 @@
-:::anchor Horizontal border
+:::anchor Horizontal Borders
 
 :::demo
 

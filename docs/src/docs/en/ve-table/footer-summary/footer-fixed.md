@@ -1,6 +1,6 @@
-:::anchor Footer Fixed
+:::anchor Footer Follow
 
-:::demo After setting the `maxHeight` attribute, the footer summary will be displayed in a fixed way.If you want the summary information to follow the table row data, you can set `fixedFooter=false`
+:::demo 1. When the `maxHeight` property is set, the footer summary is displayed fixed. If you want the summary to follow the table row data, you can set `fixedFooter=false`
 
 ```html
 <template>
@@ -66,14 +66,14 @@
                 this.footerData = [
                     {
                         rowKey: 0,
-                        name: "Average Values",
+                        name: "平均值",
                         date: 213,
                         hobby: 355,
                         address: 189,
                     },
                     {
                         rowKey: 1,
-                        name: "Summary Values",
+                        name: "汇总值",
                         date: 1780,
                         hobby: 890,
                         address: 2988,

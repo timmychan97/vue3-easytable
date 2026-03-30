@@ -1,6 +1,6 @@
-:::anchor Unequal Row Height
+:::anchor Variable Row Height
 
-:::demo
+:::demo Supports non-fixed row heights
 
 ```html
 <template>
@@ -21,7 +21,7 @@
         data() {
             return {
                 virtualScrollOption: {
-                    // 是否开启
+                    // enable
                     enable: true,
                 },
                 columns: [

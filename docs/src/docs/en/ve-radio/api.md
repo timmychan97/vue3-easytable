@@ -2,16 +2,16 @@
 
 ### props
 
-| 参数         | 说明                                     | 类型      | 可选值 | 默认值 |
-| ------------ | ---------------------------------------- | --------- | ------ | ------ |
-| value        | `v-model` 绑定的值                       | `Boolean` | -      | false  |
-| disabled     | 禁用选择                                 | `Boolean` | -      | false  |
-| label        | label                                    | `String`  | -      | -      |
-| isControlled | 是否为可控组件，配合 `isSelected` 使用   | `Boolean` | -      | false  |
-| isSelected   | 是否选中。当 isControlled 为 true 时生效 | `Boolean` | -      | false  |
+| Parameter    | Description                                                | Type      | Options | Default |
+| ------------ | ---------------------------------------------------------- | --------- | ------- | ------- |
+| modelValue   | Value bound by `v-model`                                   | `Boolean` | -       | false   |
+| disabled     | Disable selection                                          | `Boolean` | -       | false   |
+| label        | label                                                      | `String`  | -       | -       |
+| isControlled | Whether it is a controlled component, used with `isSelected` | `Boolean` | -       | false   |
+| isSelected   | Whether selected. Takes effect when isControlled is true    | `Boolean` | -       | false   |
 
 ### Event
 
-| 事件名称        | 说明         | 回调参数  |
-| --------------- | ------------ | --------- |
-| on-radio-change | 选择切换事件 | isChecked |
+| Event Name      | Description          | Callback Parameters |
+| --------------- | -------------------- | ------------------- |
+| on-radio-change | Selection change event | isChecked          |

@@ -1,6 +1,6 @@
-:::anchor Body Row Span
+:::anchor Body Row Merge
 
-:::demo Set the `name` column and span the second and third rows. At the same time, you need to specify that the third row of the `name` column does not render
+:::demo Merge rows 2 and 3 in the `name` column. The `name` column in row 3 also needs to be set as not rendered
 
 ```html
 <template>

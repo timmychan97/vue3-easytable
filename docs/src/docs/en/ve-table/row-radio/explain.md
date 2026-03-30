@@ -1,6 +1,6 @@
 :::tip
-1、Use the `radioOption` attribute to enable the row radio.<br>
-2、Set `type=radio` in `columns` as a radio column<br>
-3、The `rowKeyFieldName` property must be set<br>
-4、`Selectedrowchange` is row change event.Event receives 1 parameter,`row`:current row data
+1. Enable the radio selection feature via the `radioOption` property.<br>
+2. Set `type=radio` in `columns` to define the radio selection column.<br>
+3. Set the `rowKeyFieldName` property to the corresponding row data column name.<br>
+4. `selectedRowChange` is the row change event. It receives 1 parameter: `row` - current row data.
 :::

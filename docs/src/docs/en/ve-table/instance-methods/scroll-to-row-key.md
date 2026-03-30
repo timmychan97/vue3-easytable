@@ -1,23 +1,21 @@
-:::anchor scrollToRowKey
+:::anchor scrollToRowKey Row Scroll Method
 
-:::demo 1、Scroll the table to the location of the row key
+:::demo 1. Scroll the table to the specified row position
 
 ```html
 <template>
     <div>
         <div style="margin-bottom:20px;line-height:3.0;">
             <button class="button-demo" @click="scrollToRowKey(9999)">
-                Scroll to the row with rowkey 9999
+                滚动到rowKey为9999的行
             </button>
             <button class="button-demo" @click="scrollToRowKey(9989)">
-                Scroll to the row with rowkey 9989
+                滚动到rowKey为9989的行
             </button>
             <button class="button-demo" @click="scrollToRowKey(5000)">
-                Scroll to the row with rowkey 5000
+                滚动到rowKey为5000的行
             </button>
-            <button class="button-demo" @click="scrollToRowKey(0)">
-                Scroll to the row with rowkey 0
-            </button>
+            <button class="button-demo" @click="scrollToRowKey(0)">滚动到rowKey为0的行</button>
         </div>
         <ve-table
             ref="tableRef"
@@ -42,7 +40,6 @@
                     enable: true,
                     minRowHeight: 40,
                 },
-                tableData: [],
                 columns: [
                     {
                         field: "col1",
@@ -124,8 +121,20 @@
                 return Math.floor(Math.random() * (max - min) + min);
             },
             initTableData() {
+                let data = [];
                 for (let i = 0; i < 10000; i++) {
-                    this.tableData.push({
+                    let value = "";
+                    if (i % 2 === 0) {
+                        const rowCount = this.getRandom(2, 3);
+
+                        for (let i = 0; i < rowCount; i++) {
+                            value += `this is the long word.<br />`;
+                        }
+                    } else {
+                        value = `name${i}`;
+                    }
+
+                    data.push({
                         rowKey: i,
                         col1: i,
                         col2: i,
@@ -137,6 +146,7 @@
                         col8: i,
                     });
                 }
+                this.tableData = data;
             },
             // scroll y
             scrollToRowKey(rowKey) {

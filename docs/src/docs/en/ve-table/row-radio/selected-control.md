@@ -1,14 +1,12 @@
-:::anchor Controllable Attribute
+:::anchor Controlled Properties
 
-:::demo 1、`selectedRowKey`is a controllable attribute of row selection,After selection, you need to re assign values in the `selectedRowChange` event.通过这个属性可以自定义更多功能<br>2、After setting the `selectedRowKey` property, the `defaultSelectedRowKey` property will be invalid
+:::demo 1. `selectedRowKey` is the controlled property for radio selection. After selection, you need to reassign its value in the `selectedRowChange` event. This property allows you to customize more features.<br>2. Once the `selectedRowKey` property is set, the `defaultSelectedRowKey` property will be ignored.
 
 ```html
 <template>
     <div>
-        <button class="button-demo" @click="selectedSwitch(1002)">
-            Second Row Switch Selection
-        </button>
-        <button class="button-demo" @click="unselected()">UnCheck</button>
+        <button class="button-demo" @click="selectedSwitch(1002)">Toggle Row 2 Selection</button>
+        <button class="button-demo" @click="unselected()">Deselect</button>
         <br />
         <br />
         <ve-table
@@ -27,6 +25,7 @@
             return {
                 radioOption: {
                     selectedRowKey: "",
+                    // Row selection change event
                     selectedRowChange: ({ row }) => {
                         this.changeSelectedRowKey(row.rowKey);
                     },
@@ -106,7 +105,7 @@
             changeSelectedRowKey(key) {
                 this.radioOption.selectedRowKey = key;
             },
-            // 切换选中行
+            // Toggle selected row
             selectedSwitch(key) {
                 let selectedRowKey = this.radioOption.selectedRowKey;
 
@@ -116,7 +115,7 @@
                     this.radioOption.selectedRowKey = key;
                 }
             },
-            // 取消选中
+            // Deselect
             unselected() {
                 this.radioOption.selectedRowKey = "";
             },

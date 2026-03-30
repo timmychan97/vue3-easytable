@@ -1,6 +1,6 @@
-:::anchor Cell Content Ellipsis
+:::anchor Text Overflow Ellipsis
 
-:::demo The `ellipsis` attribute of `column` is used to set the display ellipsis.Default single line ellipsis
+:::demo Set the `ellipsis` property on a `column` to show ellipsis when content overflows. Single-line ellipsis by default
 
 ```html
 <template>

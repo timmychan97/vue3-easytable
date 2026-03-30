@@ -1,6 +1,6 @@
-:::anchor 禁用单元格选择
+:::anchor Disable Cell Selection
 
-:::demo 默认单元格选择是开启的，你可以通过 `cellSelectionOption.enable = false` 关闭
+:::demo Cell selection is enabled by default. You can disable it via `cellSelectionOption.enable = false`
 
 ```html
 <template>

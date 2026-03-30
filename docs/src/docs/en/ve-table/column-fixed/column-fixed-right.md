@@ -1,6 +1,6 @@
-:::anchor Right column fixed
+:::anchor Fix Right Columns
 
-:::demo 1、Set the width of the scroll area through `scroll-width="1200"`,Via `style="width:100%"`set outer container width<br>2、Set the right column to be fixed through `fixed:"right"`
+:::demo 1. Set the scroll area width via `scroll-width="1200"` and set the outer container width via `style="width:100%"`<br>2. Use `fixed:"right"` to fix columns on the right
 
 ```html
 <template>

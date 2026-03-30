@@ -1,6 +1,6 @@
-:::anchor Container adaptive column fixed
+:::anchor Container-Adaptive Column Fixing
 
-:::demo 1、Set the width of the scroll area through `scroll-width="1600"`<br>2、The outer container width is not set. Equivalent to settings `style="width:100%"`<br>3、Try changing the browser width.When the container width is less than `scroll-width`, the scroll bar will appear；When it is greater than `scroll-width`, it will follow the container adaptation
+:::demo 1. Set the scroll area width via `scroll-width="1600"`<br>2. Do not set the outer container width. This is equivalent to setting `style="width:100%"`<br>3. Try resizing the browser window. When the container width is less than `scroll-width`, a scrollbar appears; when it is greater than `scroll-width`, it will adapt to the container width
 
 ```html
 <template>

@@ -1,16 +1,10 @@
 :::anchor Single Condition Filter
 
-:::demo 1、`defaultVisible` Specifies whether to expand by default<br>2、`render`Render functions,Specifies filtering custom content.The parameter 'showFn' is the display drop-down function、The parameter `closeFn` is to close the drop-down function
+:::demo 1. `defaultVisible` specifies whether the filter is expanded by default<br>2. `render` is a render function that specifies the custom filter content. The parameter `showFn` is the expand dropdown function, and `closeFn` is the close dropdown function
 
 ```html
 <template>
-    <ve-table
-        rowKeyFieldName="rowKey"
-        :max-height="300"
-        :fixed-header="true"
-        :columns="columns"
-        :table-data="tableData"
-    />
+    <ve-table :max-height="300" :fixed-header="true" :columns="columns" :table-data="tableData" />
 </template>
 
 <script>
@@ -41,13 +35,13 @@
                                                 class="name-filter-cancel"
                                                 onClick={() => this.searchCancel(closeFn)}
                                             >
-                                                Cancel
+                                                取消
                                             </span>
                                             <span
                                                 class="name-filter-confirm"
                                                 onClick={() => this.searchConfirm(closeFn)}
                                             >
-                                                Search
+                                                查询
                                             </span>
                                         </div>
                                     </div>

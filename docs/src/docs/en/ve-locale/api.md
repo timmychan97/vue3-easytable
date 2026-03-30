@@ -2,7 +2,7 @@
 
 ### methods
 
-| Methods | Description                | Parameters      |
-| ------- | -------------------------- | --------------- |
-| use     | Using language configs     | language config |
-| update  | modify the default configs | language config |
+| Method Name | Description                          | Parameters    |
+| ----------- | ------------------------------------ | ------------- |
+| use         | Use a language pack                  | Language pack |
+| update      | Modify or extend the language pack   | Language pack |

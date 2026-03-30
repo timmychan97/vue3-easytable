@@ -1,6 +1,6 @@
-:::anchor footer Base Usage
+:::anchor Footer Basic
 
-:::demo The default summary data is fixed at the table bottom
+:::demo 1. By default, summary data is fixed at the bottom
 
 ```html
 <template>
@@ -58,14 +58,14 @@
                 this.footerData = [
                     {
                         rowKey: 0,
-                        name: "Average Values",
+                        name: "平均值",
                         date: 213,
                         hobby: 355,
                         address: 189,
                     },
                     {
                         rowKey: 1,
-                        name: "Summary Values",
+                        name: "汇总值",
                         date: 1780,
                         hobby: 890,
                         address: 2988,

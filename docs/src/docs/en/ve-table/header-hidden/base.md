@@ -1,4 +1,4 @@
-:::anchor Header Hidden
+:::anchor Hide Header
 
 :::demo
 

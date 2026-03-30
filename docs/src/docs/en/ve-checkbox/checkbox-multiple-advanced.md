@@ -1,4 +1,4 @@
-:::demo 禁用情况下的全选
+:::demo Select All with Disabled Items
 
 ```html
 <template>
@@ -55,21 +55,21 @@
         },
 
         computed: {
-            // 是否全部选中
+            // Whether all are checked
             hasAllChecked() {
                 return this.checkboxGroupInitValues.every((x) => {
                     return this.checkboxGroupDefaultValue.indexOf(x.label) > -1;
                 });
             },
 
-            // 判断是否有部分选中
+            // Whether some are checked
             hasPartChecked() {
                 return this.checkboxGroupInitValues.some((x) => {
                     return this.checkboxGroupDefaultValue.indexOf(x.label) > -1;
                 });
             },
 
-            // 禁用已选中的复选框
+            // Disabled checked checkboxes
             disabledChecked() {
                 let result = [];
 
@@ -81,7 +81,7 @@
                 return result;
             },
 
-            // 禁用未选中的复选框集合
+            // Disabled unchecked checkboxes collection
             disabledUnChecked() {
                 let result = [];
 
@@ -95,13 +95,13 @@
         },
 
         methods: {
-            // 全选
+            // Select all
             checkAll() {
                 let all = this.checkboxGroupInitValues.map((item) => {
                     return item.label;
                 });
 
-                // 排除禁用不选中的
+                // Exclude disabled unchecked items
                 if (this.disabledUnChecked.length > 0) {
                     all = all.filter((x) => {
                         return this.disabledUnChecked.indexOf(x) === -1;

@@ -1,7 +1,7 @@
-:::anchor Mixed Use
+:::anchor Mixed Usage
 
-According to different business scenarios, it can be used arbitrarily
-:::demo You can set the default selected item by `selected=true`
+Combine filters freely based on different business scenarios.
+:::demo You can set default selected items via `selected=true`
 
 ```html
 <template>

@@ -1,7 +1,7 @@
 :::tip
-1、The property `scroll-width` is the width of the scroll area<br>
-2、The attribute `scroll-width` is the width of the scroll area. When the outer container width is less than the `scroll-width` value, a horizontal scroll bar will appear; when the outer container width is greater than the `scroll-width` value, it will follow the container;when 'scroll-width=0', the scroll bar will be according to your column width<br>
-3、Column width can not be set, or set to percentage, or pixel value (PX)<br>
-4、The `scroll-width` attribute is set, and the column width unit **is strongly recommended to be consistent!**<br>
+1. The `scroll-width` property sets the width of the scroll area<br>
+2. When the outer container width is less than the `scroll-width` value, a horizontal scrollbar will appear; when the outer container width is greater than the `scroll-width` value, it will adapt to the container; when `scroll-width=0`, the scrollbar will depend on your column widths<br>
+3. Column widths can be unset, set as percentages, or set as pixel values (px)<br>
+4. When the `scroll-width` property is set, it is **strongly recommended to keep column width units consistent!**<br>
 
 :::

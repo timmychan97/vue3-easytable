@@ -1,9 +1,9 @@
 :::tip
-1、Set the style of cells by configuring the object `cellStyleOption`<br>
-2、Callback function property `bodyCellClass({ row, column, rowIndex })`sets the qualified table body cell class<br>
-3、Callback function property `headerCellClass({column, rowIndex})`sets the qualified table header cell class<br>
-4、Callback function property `footerCellClass({row,column, rowIndex})`sets the qualified table footer cell class<br>
-5、The`<style>`label can't use `scoped` attribute<br>
-6、Of course, you can also customize the cell style through `renderBodyCell`, `renderHeaderCell`, `renderFooterCell`
+1. Use the `cellStyleOption` configuration object to set cell styles<br>
+2. Use the callback function property `bodyCellClass({ row, column, rowIndex })` to set the class for body cells that match the condition<br>
+3. Use the callback function property `headerCellClass({column, rowIndex})` to set the class for header cells that match the condition<br>
+4. Use the callback function property `footerCellClass({row, column, rowIndex})` to set the class for footer cells that match the condition<br>
+5. The `<style>` tag must not use the `scoped` attribute<br>
+6. You can also customize cell styles through `renderBodyCell`, `renderHeaderCell`, `renderFooterCell`, etc.
 
 :::

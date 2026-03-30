@@ -1,6 +1,6 @@
-:::anchor Header Grouping With Columns Fixed
+:::anchor Header Grouping with Fixed Columns
 
-:::demo 1、Fix the left column by setting `fixed:"left"`<br>2、The fixed column only needs to be assigned to the top column
+:::demo 1. Fix columns to the left by setting `fixed:"left"`<br>2. The fixed property only needs to be specified on the top-level column
 
 ```html
 <template>

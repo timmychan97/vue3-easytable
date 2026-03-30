@@ -1,8 +1,8 @@
-:::anchor Column Resizing
+:::anchor Column Width Dragging
 
-You can hover the mouse between two columns and Resizing.If the column width is not set, the default is 50px
+You can hover the mouse between two columns and drag to resize. If column width is not set, the default is 50px
 
-:::demo 1、Set the min width of resize column through `columnMinWidth`<br>2、Get the callback method of resize column changes through `sizeChange({ column, differWidth, columnWidth })`
+:::demo 1. Set the minimum drag width for columns via `minWidth`<br>2. Get column drag change callback information via `sizeChange({ column, differWidth, columnWidth })`
 
 ```html
 <template>
@@ -59,12 +59,7 @@ You can hover the mouse between two columns and Resizing.If the column width is 
                     { field: "col3", key: "col3", title: "Col3", width: 220 },
                     { field: "col4", key: "col4", title: "Col4", width: 220 },
                     { field: "col5", key: "col5", title: "Col5", width: 220 },
-                    {
-                        field: "col6",
-                        key: "col6",
-                        title: "Col6",
-                        width: 220,
-                    },
+                    { field: "col6", key: "col6", title: "Col6", width: 220 },
                     { field: "col7", key: "col7", title: "Col7" },
                     { field: "col8", key: "col8", title: "Col8" },
                 ],

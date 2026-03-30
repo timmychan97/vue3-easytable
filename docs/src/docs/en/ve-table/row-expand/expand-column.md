@@ -1,6 +1,6 @@
-:::anchor Expand Column
+:::anchor Expand Column Configuration
 
-:::demo Select an existing column as the expanded column
+:::demo Use an existing column as the expand column
 
 ```html
 <template>
@@ -32,7 +32,7 @@
                     {
                         field: "name",
                         key: "b",
-                        // 设置需要显示展开图标的列
+                        // Set the column that displays the expand icon
                         type: "expand",
                         title: "Name",
                         width: 200,

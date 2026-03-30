@@ -1,6 +1,6 @@
-:::anchor Combination Row Checkbox
+:::anchor Combined with Row Multi-Select
 
-:::demo Row checkbox, Need specify `rowKeyFieldName` property
+:::demo For row multi-select, the `rowKeyFieldName` property must be specified
 
 ```html
 <template>
@@ -22,15 +22,15 @@
         data() {
             return {
                 virtualScrollOption: {
-                    // 是否开启
+                    // enable
                     enable: true,
                 },
                 checkboxOption: {
-                    // 行选择改变事件
+                    // row selection change event
                     selectedRowChange: ({ row, isSelected, selectedRowKeys }) => {
                         console.log(row, isSelected, selectedRowKeys);
                     },
-                    // 全选改变事件
+                    // select all change event
                     selectedAllChange: ({ isSelected, selectedRowKeys }) => {
                         console.log(isSelected, selectedRowKeys);
                     },
@@ -43,7 +43,7 @@
                         // type=checkbox
                         type: "checkbox",
                         title: "",
-                        width: 100,
+                        width: 50,
                         align: "center",
                     },
                     {

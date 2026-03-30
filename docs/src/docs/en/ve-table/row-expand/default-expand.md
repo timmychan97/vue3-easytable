@@ -1,6 +1,6 @@
-:::anchor Default Expand Row Configuration
+:::anchor Default Expand Configuration
 
-:::demo 1、`defaultExpandedRowKeys`receives the key array that needs to be expanded.<br>2、`defaultExpandAllRows=true`can expand all by default.
+:::demo 1. `defaultExpandedRowKeys` accepts an array of keys for the rows to expand.<br>2. `defaultExpandAllRows=true` expands all rows by default.
 
 ```html
 <template>
@@ -19,14 +19,14 @@
             return {
                 expandOption: {
                     defaultExpandAllRows: false,
-                    // 默认需要展开的行
+                    // Rows to expand by default
                     defaultExpandedRowKeys: [1001, 1003],
                     expandable: ({ row, column, rowIndex }) => {
                         if (row["rowKey"] === 1002) {
                             return false;
                         }
                     },
-                    // render 函数
+                    // render function
                     render: ({ row, column, rowIndex }, h) => {
                         return (
                             <p>
@@ -40,7 +40,7 @@
                     {
                         field: "",
                         key: "a",
-                        // 设置需要显示展开图标的列
+                        // Set the column that displays the expand icon
                         type: "expand",
                         title: "",
                         width: 50,

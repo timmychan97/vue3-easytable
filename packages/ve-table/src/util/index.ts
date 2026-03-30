@@ -312,11 +312,11 @@ export function getHeaderContextmenuOptionCollection(t) {
       type: CONTEXTMENU_NODE_TYPES.SEPARATOR,
     },
     {
-      label: t('cut'),
+      label: t('剪切'),
       type: CONTEXTMENU_NODE_TYPES.CUT,
     },
     {
-      label: t('copy'),
+      label: t('复制'),
       type: CONTEXTMENU_NODE_TYPES.COPY,
     },
     // {
@@ -324,31 +324,31 @@ export function getHeaderContextmenuOptionCollection(t) {
     //     type: CONTEXTMENU_NODE_TYPES.PASTE,
     // },
     {
-      label: t('removeColumn'),
+      label: t('删除列'),
       type: CONTEXTMENU_NODE_TYPES.REMOVE_COLUMN,
     },
     {
-      label: t('emptyColumn'),
+      label: t('清空列'),
       type: CONTEXTMENU_NODE_TYPES.EMPTY_COLUMN,
     },
     {
-      label: t('hideColumn'),
+      label: t('隐藏列'),
       type: CONTEXTMENU_NODE_TYPES.HIDE_COLUMN,
     },
     {
-      label: t('leftFixedColumnTo'),
+      label: t('左列冻结'),
       type: CONTEXTMENU_NODE_TYPES.LEFT_FIXED_COLUMN_TO,
     },
     {
-      label: t('cancelLeftFixedColumnTo'),
+      label: t('取消左列冻结'),
       type: CONTEXTMENU_NODE_TYPES.CANCEL_LEFT_FIXED_COLUMN_TO,
     },
     {
-      label: t('rightFixedColumnTo'),
+      label: t('右列冻结'),
       type: CONTEXTMENU_NODE_TYPES.RIGHT_FIXED_COLUMN_TO,
     },
     {
-      label: t('cancelRightFixedColumnTo'),
+      label: t('取消右列冻结'),
       type: CONTEXTMENU_NODE_TYPES.CANCEL_RIGHT_FIXED_COLUMN_TO,
     },
   ]
@@ -361,11 +361,11 @@ export function getBodyContextmenuOptionCollection(t) {
       type: CONTEXTMENU_NODE_TYPES.SEPARATOR,
     },
     {
-      label: t('cut'),
+      label: t('剪切'),
       type: CONTEXTMENU_NODE_TYPES.CUT,
     },
     {
-      label: t('copy'),
+      label: t('复制'),
       type: CONTEXTMENU_NODE_TYPES.COPY,
     },
     // {
@@ -373,27 +373,27 @@ export function getBodyContextmenuOptionCollection(t) {
     //     type: CONTEXTMENU_NODE_TYPES.PASTE,
     // },
     {
-      label: t('insertRowAbove'),
+      label: t('上方插入行'),
       type: CONTEXTMENU_NODE_TYPES.INSERT_ROW_ABOVE,
     },
     {
-      label: t('insertRowBelow'),
+      label: t('下方插入行'),
       type: CONTEXTMENU_NODE_TYPES.INSERT_ROW_BELOW,
     },
     {
-      label: t('removeRow'),
+      label: t('删除行'),
       type: CONTEXTMENU_NODE_TYPES.REMOVE_ROW,
     },
     {
-      label: t('emptyRow'),
+      label: t('清空行'),
       type: CONTEXTMENU_NODE_TYPES.EMPTY_ROW,
     },
     {
-      label: t('removeColumn'),
+      label: t('删除列'),
       type: CONTEXTMENU_NODE_TYPES.REMOVE_COLUMN,
     },
     {
-      label: t('emptyCell'),
+      label: t('清空单元格'),
       type: CONTEXTMENU_NODE_TYPES.EMPTY_CELL,
     },
   ]

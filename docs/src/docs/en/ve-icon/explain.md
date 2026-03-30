@@ -1,4 +1,4 @@
 :::tip
-Built-in some icons for you to choose
+Some built-in icons are available for you to use
 
 :::

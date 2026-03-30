@@ -1,6 +1,6 @@
-:::anchor Combined lazy loading
+:::anchor Combined with Lazy Loading
 
-In some scenes, due to the limitation of network bandwidth or request, you can only paging request at a time, but you want to use virtual scrolling to improve rendering performance,At this time, you can implement the feature of virtual scrolling and lazy loading by `scrolling` callback function. The following is the simulation data, which shall be subject to the actual request
+In some scenarios, due to network bandwidth or request limitations, data can only be fetched page by page, but you still want to use virtual scrolling to improve rendering performance. In this case, you can use `scrolling` to implement virtual scrolling combined with lazy loading. The following uses mock data; adapt it to your actual API requests.
 
 :::demo
 

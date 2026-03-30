@@ -1,6 +1,6 @@
 :::anchor Disable Selection
 
-:::demo `disableSelectedRowKeys`sets the rowKey array to be disabled(it is forbidden to select or cancel the select)
+:::demo `disableSelectedRowKeys` sets an array of rowKeys that should be disabled for selection (prevents selecting or deselecting).
 
 ```html
 <template>
@@ -20,9 +20,9 @@
         data() {
             return {
                 radioOption: {
-                    // 禁用的选择（禁止勾选或者禁止取消勾选）
+                    // Disabled selection (prevents selecting or deselecting)
                     disableSelectedRowKeys: [1003, 1005],
-                    // 行选择改变事件
+                    // Row selection change event
                     selectedRowChange: ({ row }) => {
                         console.log(row);
                     },

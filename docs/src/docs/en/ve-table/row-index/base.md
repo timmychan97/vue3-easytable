@@ -1,6 +1,6 @@
-:::anchor Base Usage
+:::anchor Basic Usage
 
-:::demo You can use the `renderBodyCell` rendering function to implement the row index
+:::demo Row index is not provided via a dedicated API but is implemented through the `renderBodyCell` render function, which offers more flexibility.
 
 ```html
 <template>

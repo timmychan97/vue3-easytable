@@ -1,7 +1,7 @@
 :::tip
-1、Property `virtualScrollOption` to enable virtual scroll. It is recommended to use when more than **1000** row data need to be displayed at one time,It can support more than **200000** row data<br>
-2、The property `maxHeight` sets the maximum height of the virtual scroll area.`maxHeight`is a required attribute<br>
-3、`rowKeyFieldName` is a required attribute.<br>
-4、**After the virtual scrolling function is turned on, other functions are still available**
+1. The `virtualScrollOption` property enables virtual scrolling. It is recommended when displaying **1000 or more** rows at once, and can support **over 200,000** rows<br>
+2. The `maxHeight` property sets the maximum height of the virtual scroll area. `maxHeight` is a required property<br>
+3. `rowKeyFieldName` is a required property. The `rowKeyFieldName` property corresponds to the column name in the row data<br>
+4. **After enabling virtual scrolling, all other features remain available**
 
 :::

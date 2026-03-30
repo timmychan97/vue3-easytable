@@ -1,11 +1,11 @@
-:::anchor Full Screen Loading
+:::anchor Fullscreen Loading
 
-:::demo 1、通过`fullscreen`参数，指定 Loading 全屏展示<br>2、通过`lock`参数，指定禁止鼠标滚动
+:::demo 1. Use the `fullscreen` parameter to display Loading in fullscreen mode<br>2. Use the `lock` parameter to disable mouse scrolling
 
 ```html
 <template>
     <div>
-        <button class="button-demo" @click="show()">Open</button>
+        <button class="button-demo" @click="show()">Show Loading</button>
     </div>
 </template>
 <script>

@@ -1,6 +1,6 @@
-:::anchor Multi field sorting
+:::anchor Multiple Field Sorting
 
-:::demo 1、Enable multi field sorting by `multipleSort=true`<br>2、The priority of the sort field needs to be specified by yourself,This is just an example,The specific logic is implemented by itself (generally returned by the back-end service)
+:::demo 1. Enable multiple field sorting by setting `multipleSort=true`<br>2. The priority of sort fields needs to be specified by yourself. This is just an example; implement the specific logic as needed (usually returned by the backend service)
 
 ```html
 <template>
@@ -12,6 +12,7 @@
         data() {
             return {
                 sortOption: {
+                    // enable multiple field sorting
                     multipleSort: true,
                     sortChange: (params) => {
                         console.log("sortChange::", params);

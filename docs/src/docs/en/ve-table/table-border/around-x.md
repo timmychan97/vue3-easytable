@@ -1,4 +1,4 @@
-:::anchor Outer border + horizontal border
+:::anchor Outer Border + Horizontal Borders
 
 :::demo
 

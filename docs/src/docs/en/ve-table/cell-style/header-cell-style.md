@@ -1,6 +1,6 @@
-:::anchor Table header cell style
+:::anchor Header Cell Style
 
-:::demo 1、The callback function `headerCellClass({ column, rowIndex })`receives two parameters,column：Current column option、rowIndex：header row index<br>2、Returns the qualified cells to the specified class name,The class name is custom<br>3、If you need to set the background color or font color to cells, you need to add `!important`
+:::demo 1. The callback function `headerCellClass({ column, rowIndex })` receives 2 parameters: column (current column configuration), rowIndex (header row index)<br>2. Return the specified class name for cells that match the condition. The class name is user-defined<br>3. If you need to set background color or font color for cells, you must add `!important`
 
 ```html
 <template>

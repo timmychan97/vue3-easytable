@@ -1,8 +1,8 @@
-:::anchor Basic usage
+:::anchor Basic Usage
 
-Right click the table area to view the effect
+Right-click on the table area to see the effect
 
-:::demo
+:::demo You can combine the options as needed
 
 ```html
 <template>
@@ -30,7 +30,7 @@ Right click the table area to view the effect
                 // start row index
                 startRowIndex: 0,
                 virtualScrollOption: {
-                    // 是否开启
+                    // enable or not
                     enable: true,
                     scrolling: this.scrolling,
                 },

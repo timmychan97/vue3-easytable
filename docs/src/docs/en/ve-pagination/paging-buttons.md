@@ -1,5 +1,6 @@
-:::anchor Paging Buttons
-:::demo `pagingCount` set the number of middle buttons and paging buttons for the forward 5 pages and backward 5 pages
+:::anchor Paging Button Count
+
+:::demo The `pagingCount` property sets the number of buttons between the forward 5 pages and backward 5 pages
 
 ```html
 <template>

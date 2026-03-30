@@ -1,7 +1,7 @@
-:::anchor Row Click Trigger
+:::anchor Row Click to Select
 
-This example is row click trigger selection. You can also achieve column click selection effect through "event customization"
-:::demo The controllable attribute combined with "event customization" can trigger the selection effect by clicking the line
+This example demonstrates row-click triggered selection. You can also achieve column-click selection through "Custom Events"
+:::demo Combine controlled properties with "Custom Events" to implement row-click triggered selection
 
 ```html
 <template>

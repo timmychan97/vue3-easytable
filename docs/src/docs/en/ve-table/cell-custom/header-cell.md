@@ -1,6 +1,6 @@
-:::anchor Header cell custom
+:::anchor Header Custom Cell
 
-:::demo 1、In the`column` option, the rendering function can be passed in through the attribute `renderHeaderCell`<br>2、The render function takes 1 parameter,`column`:Current column option
+:::demo 1. In the `column` configuration, you can pass a render function via the `renderHeaderCell` property, which works the same way as the body custom cell. `renderHeaderCell` also applies to header grouping<br>2. The render function receives one parameter: `column`: current column configuration
 
 ```html
 <template>
@@ -30,7 +30,7 @@
                                     value={this.searchText}
                                     onInput={this.searchInputChange}
                                     style="width:90%"
-                                    placeholder="Search Keyword"
+                                    placeholder="请输入名称关键字"
                                 />
                             );
                         },

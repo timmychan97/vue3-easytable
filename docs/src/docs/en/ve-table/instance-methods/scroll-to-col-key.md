@@ -1,21 +1,15 @@
-:::anchor scrollToColKey Column scroll method
-When there are fixed columns, you can use this method to display the specified columns in the visual area
+:::anchor scrollToColKey Column Scroll Method
+When fixed columns exist, this method can be used to scroll a specified column into the visible area
 
-:::demo 1、Scroll to the specified column position
+:::demo 1. Scroll to a specified column position
 
 ```html
 <template>
     <div>
         <div style="margin-bottom:20px;line-height:3.0;">
-            <button class="button-demo" @click="scrollToColKey('col4')">
-                Scroll to col4 column
-            </button>
-            <button class="button-demo" @click="scrollToColKey('col5')">
-                Scroll to col5 column
-            </button>
-            <button class="button-demo" @click="scrollToColKey('col6')">
-                Scroll to col6 column
-            </button>
+            <button class="button-demo" @click="scrollToColKey('col4')">滚动到col4列</button>
+            <button class="button-demo" @click="scrollToColKey('col5')">滚动到col5列</button>
+            <button class="button-demo" @click="scrollToColKey('col6')">滚动到col6列</button>
         </div>
         <ve-table
             ref="tableRef"

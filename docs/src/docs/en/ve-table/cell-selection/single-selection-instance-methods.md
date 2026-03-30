@@ -1,16 +1,12 @@
-:::anchor Single cell selection instance method
+:::anchor Single Selection Instance Methods
 
-:::demo You can set cell selection by instance method `setCellSelection({ rowKey, colKey })`
+:::demo You can use the instance method `setCellSelection({ rowKey, colKey })` to set cell selection
 
 ```html
 <template>
     <div>
-        <button class="button-demo" @click="setCellSelection(29,'col5')">
-            Select row 30 and column 5
-        </button>
-        <button class="button-demo" @click="setCellSelection(1,'col1')">
-            Select row 2 and column 1
-        </button>
+        <button class="button-demo" @click="setCellSelection(29,'col5')">Select Row 30, Column 5</button>
+        <button class="button-demo" @click="setCellSelection(1,'col1')">Select Row 2, Column 1</button>
         <br />
         <br />
         <ve-table
@@ -35,7 +31,7 @@
                 // start row index
                 startRowIndex: 0,
                 virtualScrollOption: {
-                    // 是否开启
+                    // enable
                     enable: true,
                     scrolling: this.scrolling,
                 },

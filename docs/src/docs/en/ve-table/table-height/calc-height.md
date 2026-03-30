@@ -1,6 +1,6 @@
-:::anchor Dynamic Table Height(calc css function)
+:::anchor Dynamic Table Height (calc CSS Function)
 
-:::demo 1、You can use [calc css function](<https://developer.mozilla.org/en-US/docs/Web/CSS/calc()>) to achieve table dynamic height<br>2、Try changing the browser height to see the effect
+:::demo 1. You can use the [calc CSS function](<https://developer.mozilla.org/en-US/docs/Web/CSS/calc()>) to achieve dynamic table height<br>2. Try resizing the browser window to see the effect
 
 ```html
 <template>

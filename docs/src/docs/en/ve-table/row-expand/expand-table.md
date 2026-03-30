@@ -1,6 +1,6 @@
 :::anchor Expand Table
 
-:::demo It's easy to expand the table,Just return the contents of the component containing the table as a `render` rendering function
+:::demo Expanding a table is simple — just return a component containing a table as the content of the `render` function.
 
 ```html
 <template>
@@ -14,7 +14,7 @@
 </template>
 
 <script>
-    // This example defines a subcomponent inside the component. Of course, you can also import a component through the 'import' keyword
+    // This example defines a child component inside the component. You can also import a component using the `import` keyword.
     const ChildTableComp = {
         name: "ChildTableComp",
         template: `
@@ -79,7 +79,7 @@
                     {
                         field: "",
                         key: "a",
-                        // 设置需要显示展开图标的列
+                        // Set the column that displays the expand icon
                         type: "expand",
                         title: "",
                         width: 50,

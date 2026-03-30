@@ -1,6 +1,6 @@
-:::anchor Disable header fixed
+:::anchor Disable Fixed Header
 
-:::demo `fixed-header="false"`disable fixed header.When there is too much content, the header will scroll with table content
+:::demo Disable the fixed header by setting `fixed-header="false"`. When content overflows, the header will scroll along with the content.
 
 ```html
 <template>

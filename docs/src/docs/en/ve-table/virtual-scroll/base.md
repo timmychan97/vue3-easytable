@@ -1,4 +1,4 @@
-:::anchor Base Usage
+:::anchor Basic Feature
 
 :::demo
 
@@ -20,7 +20,7 @@
         data() {
             return {
                 virtualScrollOption: {
-                    // 是否开启
+                    // enable
                     enable: true,
                 },
                 columns: [

@@ -1,4 +1,4 @@
-:::anchor Combine column fixed
+:::anchor Combined with Fixed Columns
 
 :::demo
 
@@ -28,7 +28,7 @@
                     clickHighlight: false,
                     hoverHighlight: false,
                 },
-                // edit option
+                // edit option 可控单元格编辑
                 editOption: {
                     // cell value change
                     cellValueChange: ({ row, column }) => {

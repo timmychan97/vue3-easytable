@@ -1,27 +1,20 @@
-<anchor label="Usage"/>
+:::anchor Usage
 
 ```javascript
-import Vue from 'vue'
-import { VeLocale } from 'vue-easytable'
-// import language config
-import enUS from 'vue-easytable/libs/locale/lang/en-US.js'
+import { useVeTable } from '@vue3-easytable/vue'
+import { createApp } from 'vue'
+// Import English language pack
+import enUS from '@vue3-easytable/vue/libs/locale/lang/en-US'
 
-VeLocale.use(enUS)
+createApp(App).use(useVeTable({
+  locale: enUS
+}))
 ```
 
-<anchor label="Global Usage"/>
-Mount the `velocale` component on the prototype of Vue for global call
+:::anchor Global Usage
+Using useVeTable will automatically mount the veLocale component on Vue's prototype for convenient global access
 
 ```javascript
-import Vue from 'vue'
-import { VeLocale } from 'vue-easytable'
-
-Vue.prototype.$veLocale = VeLocale
-```
-
-use
-
-```javascript
-import enUS from 'vue-easytable/libs/locale/lang/en-US.js'
+import enUS from '@vue3-easytable/vue/libs/locale/lang/en-US'
 this.$veLocale.use(enUS)
 ```

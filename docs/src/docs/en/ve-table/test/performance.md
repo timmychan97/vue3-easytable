@@ -1,17 +1,17 @@
-:::demo 基本用法
+:::demo Basic Usage
 
 ```html
 <template>
     <div>
-        <button @click="initData(100)">100条</button>
+        <button @click="initData(100)">100 rows</button>
         &nbsp;
-        <button @click="initData(1000)">1000条</button>
+        <button @click="initData(1000)">1000 rows</button>
         &nbsp;
-        <button @click="initData(3000)">3000条</button>
+        <button @click="initData(3000)">3000 rows</button>
         &nbsp;
-        <button @click="initData(10000)">10000条</button>
+        <button @click="initData(10000)">10000 rows</button>
         &nbsp;
-        <button @click="initData(100000)">100000条</button>
+        <button @click="initData(100000)">100000 rows</button>
         &nbsp;
         <br />
         <br />

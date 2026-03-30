@@ -1,6 +1,6 @@
-:::anchor Basic usage
+:::anchor Basic Usage
 
-You can try clicking on the header, line number column, etc. to see the effect.
+You can try clicking on headers, row number columns, etc. to see the effect.
 
 :::demo
 
@@ -13,8 +13,8 @@ You can try clicking on the header, line number column, etc. to see the effect.
         border-y
         :columns="columns"
         :table-data="tableData"
-        :rowStyleOption="rowStyleOption"
         rowKeyFieldName="rowKey"
+        :rowStyleOption="rowStyleOption"
     />
 </template>
 
@@ -52,13 +52,13 @@ You can try clicking on the header, line number column, etc. to see the effect.
                         children: [
                             {
                                 field: "col2",
-                                key: "b",
+                                key: "col2",
                                 title: "col2",
                                 width: 50,
                             },
                             {
                                 field: "col3",
-                                key: "c",
+                                key: "col3",
                                 title: "col3",
                                 width: 50,
                             },
@@ -72,13 +72,13 @@ You can try clicking on the header, line number column, etc. to see the effect.
                                 children: [
                                     {
                                         field: "col4",
-                                        key: "d",
+                                        key: "col4",
                                         title: "col4",
                                         width: 130,
                                     },
                                     {
                                         field: "col5",
-                                        key: "e",
+                                        key: "col5",
                                         title: "col5",
                                         width: 140,
                                     },
@@ -87,7 +87,7 @@ You can try clicking on the header, line number column, etc. to see the effect.
                             {
                                 title: "col6",
                                 field: "col6",
-                                key: "f",
+                                key: "col6",
                                 width: 140,
                             },
                         ],
@@ -99,14 +99,14 @@ You can try clicking on the header, line number column, etc. to see the effect.
                             {
                                 title: "col7-1",
                                 field: "col7",
-                                key: "g",
+                                key: "col7",
                                 width: 50,
                             },
                         ],
                     },
                     {
                         field: "col8",
-                        key: "h",
+                        key: "col8",
                         title: "col8",
                         width: 50,
                         fixed: "right",
@@ -120,7 +120,7 @@ You can try clicking on the header, line number column, etc. to see the effect.
                 let data = [];
                 for (let i = 0; i < 10; i++) {
                     data.push({
-                        rowKey: `row${i}`,
+                        rowKey: i,
                         col1: `A${i + 1}`,
                         col2: `B${i + 1}`,
                         col3: `C${i + 1}`,

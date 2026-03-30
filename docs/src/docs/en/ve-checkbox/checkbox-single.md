@@ -1,4 +1,4 @@
-:::demo 单选功能
+:::demo Single Checkbox
 
 ```html
 <template>

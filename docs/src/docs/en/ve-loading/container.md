@@ -1,13 +1,12 @@
-:::anchor Area Loading
-
-Display the Loading effect in containers such as tables
-:::demo 1、Specify the Loading container through the `target` parameter. `target` parameter is a DOM object or a string selector (a string that can be obtained through `document.querySelector`)<br>2、The `name` parameter specifies the name of the loading effect type<br>3、The loading instance contains three methods: `show`、`close`、`destroy`
+:::anchor Container Loading
+Display the Loading effect inside containers such as tables
+:::demo 1. Use the `target` parameter to specify the Loading container. `target` can be a DOM element or a string selector (a string that can be retrieved via `document.querySelector`)<br>2. The `name` parameter specifies the loading effect type name<br>3. The Loading instance contains three methods: `show`, `close`, and `destroy`
 
 ```html
 <template>
     <div>
-        <button class="button-demo" @click="show()">Open</button>
-        <button class="button-demo" @click="close()">Close</button>
+        <button class="button-demo" @click="show()">Show Loading</button>
+        <button class="button-demo" @click="close()">Close Loading</button>
         <br />
         <br />
         <ve-table id="loading-container" :columns="columns" :table-data="tableData" />
@@ -74,7 +73,7 @@ Display the Loading effect in containers such as tables
         mounted() {
             this.loadingInstance = this.$veLoading({
                 target: document.querySelector("#loading-container"),
-                // 等同于
+                // equivalent to
                 // target:"#loading-container"
                 name: "wave",
             });

@@ -1,6 +1,6 @@
 :::anchor Fixed Table Width
 
-:::demo You can use pixel values to achieve a fixed width of the table. like `style="width:100%"`
+:::demo For a fixed table width, you need to set the outer container width. You can use `style="width:100%"` to set it. Here the container width is 100%
 
 ```html
 <template>

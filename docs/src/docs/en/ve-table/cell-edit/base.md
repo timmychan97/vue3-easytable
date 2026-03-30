@@ -1,8 +1,9 @@
-:::anchor Basic usage
+:::anchor Basic Usage
 
-Trying to change the value of the 'Number' column to a non number
+1. Try changing the "Number" column value to a non-numeric value<br>
+2. Try editing the first row, first column
 
-:::demo 1.Before a cell enters the editing state, the `beforeStartCellEditing` callback is first triggered. If false is returned, it will prevent the cell from entering the editing state<br>2.After the cell stops editing, the `beforeCellValueChange` callback is triggered first. If false is returned, the editing will be blocked and the cell will be restored to the state before editing. If the editing is successful, the `afterCellValueChange` method will be triggered<br>3.You can use beforecellvaluechange to verify the contents of cell editing
+:::demo 1. Before a cell enters edit mode, the `beforeStartCellEditing` callback is triggered. If it returns false, entering edit mode will be prevented.<br>2. After a cell stops editing, the `beforeCellValueChange` callback is triggered first. If it returns false, the edit will be prevented and the cell will revert to its pre-edit state. A successful edit will trigger the `afterCellValueChange` method<br>3. You can use `beforeCellValueChange` for edit validation<br>
 
 ```html
 <template>
@@ -27,7 +28,7 @@ Trying to change the value of the 'Number' column to a non number
                     clickHighlight: false,
                     hoverHighlight: false,
                 },
-                // edit option
+                // edit option 可控单元格编辑
                 editOption: {
                     beforeStartCellEditing: ({ row, column, cellValue }) => {
                         console.log("beforeStartCellEditing");
@@ -50,7 +51,7 @@ Trying to change the value of the 'Number' column to a non number
                         console.log("---");
 
                         if (column.field === "number" && !/^\d+$/.test(changeValue)) {
-                            alert("please enter a number");
+                            alert("请输入数字");
                             return false;
                         }
                     },

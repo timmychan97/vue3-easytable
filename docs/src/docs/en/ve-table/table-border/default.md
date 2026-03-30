@@ -1,6 +1,6 @@
 :::anchor Default
 
-:::demo Default outer border and horizontal border
+:::demo Default outer border and horizontal borders
 
 ```html
 <template>

@@ -1,15 +1,13 @@
-:::anchor Controllable attribute
+:::anchor Controlled Property
 
-:::demo 1、`selectedRowKeys` is a controllable attribute,After selection, you need to re assign values in the `selectedRowChange` event and the `selectedAllChange` event. More functions can be customized through this property<br>2、After setting the `selectedRowKeys` property, the `defaultSelectedRowKeys` and `defaultSelectedAllRows` properties will be invalid
+:::demo 1. `selectedRowKeys` is the "controlled property" for multi-select. After selection, you need to reassign values in the `selectedRowChange` and `selectedAllChange` events. This property allows you to customize additional functionality<br>2. After setting the `selectedRowKeys` property, the `defaultSelectedRowKeys` and `defaultSelectedAllRows` properties will be ignored
 
 ```html
 <template>
     <div>
-        <button class="button-demo" @click="selectedSwitch(1002)">
-            Second Row Switch Selection
-        </button>
-        <button class="button-demo" @click="selectedAll()">Select All</button>
-        <button class="button-demo" @click="unselectedAll()">Deselect all</button>
+        <button class="button-demo" @click="selectedSwitch(1002)">第二行选中切换</button>
+        <button class="button-demo" @click="selectedAll()">选中全部</button>
+        <button class="button-demo" @click="unselectedAll()">取消选中全部</button>
         <br />
         <br />
         <ve-table

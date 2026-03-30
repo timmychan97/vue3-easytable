@@ -1,6 +1,6 @@
-:::anchor Expand Row Events
+:::anchor Row Expand Events
 
-:::demo Allow other processing before and after the row expand switch<br>1、`beforeExpandRowChange` function receives 3 parameters.`beforeExpandedRowKeys`:Expanded data key array before switching、`row`:Current row data、`rowIndex`:Row index<br>2、`afterExpandRowChange`event receives 3 parameters.`afterExpandedRowKeys`:Expanded data key array after switching、`row`:Current row data、`rowIndex`:Row index
+:::demo Allows performing other operations before and after row expand toggling.<br>1. The `beforeExpandRowChange` event receives three parameters: `beforeExpandedRowKeys` - the array of expanded data keys before toggling, `row` - current row data, `rowIndex` - row index.<br>2. The `afterExpandRowChange` event receives three parameters: `afterExpandedRowKeys` - the array of expanded data keys after toggling, `row` - current row data, `rowIndex` - row index.
 
 ```html
 <template>
@@ -33,20 +33,20 @@
                     },
                     beforeExpandRowChange: ({ beforeExpandedRowKeys, row, rowIndex }) => {
                         if (row["rowKey"] === 1001) {
-                            alert("Event before expand. Return false to interrupt the expand");
+                            alert("切换前的事件。返回false可中断展开切换");
                             return false;
                         }
                         return true;
                     },
                     afterExpandRowChange: ({ afterExpandedRowKeys, row, rowIndex }) => {
-                        alert("Expand events after switching");
+                        alert("切换后的事件");
                     },
                 },
                 columns: [
                     {
                         field: "",
                         key: "a",
-                        // 设置需要显示展开图标的列
+                        // Set the column that displays the expand icon
                         type: "expand",
                         title: "",
                         width: 50,

@@ -1,17 +1,17 @@
-:::anchor Dynamically turns virtual scrolling on or off
+:::anchor Dynamically Enable or Disable Virtual Scrolling
 
-If you have the need to dynamically turn virtual scrolling on or off,Then you only need to modify the value of `virtualScrollOption.enable`. F12 view rendering results
+If you need to dynamically enable or disable virtual scrolling, simply modify `virtualScrollOption.enable`. Open F12 to inspect the rendering result.
 
 :::demo
 
 ```html
 <template>
     <div>
-        <el-button @click="switchVirtual(1)">Enable virtual scroll</el-button>
-        <el-button @click="switchVirtual(0)">Disable virtual scroll</el-button>
+        <el-button @click="switchVirtual(1)">Enable Virtual Scrolling</el-button>
+        <el-button @click="switchVirtual(0)">Disable Virtual Scrolling</el-button>
         <br />
         <br />
-        <div>virtual scroll state：{{ virtualScrollOption.enable ? "Enable" : "Disabled" }}</div>
+        <div>Virtual scrolling status: {{ virtualScrollOption.enable ? "Enabled" : "Disabled" }}</div>
         <br />
         <ve-table
             :max-height="500"
@@ -28,7 +28,7 @@ If you have the need to dynamically turn virtual scrolling on or off,Then you on
         data() {
             return {
                 virtualScrollOption: {
-                    // 是否开启
+                    // enable
                     enable: false,
                 },
                 columns: [

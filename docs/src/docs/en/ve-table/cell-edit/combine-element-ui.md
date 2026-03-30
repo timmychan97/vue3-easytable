@@ -1,6 +1,6 @@
-:::anchor Combine element-ui
+:::anchor Combined with Element UI
 
-:::demo 1、You can also edit date, number, dropdown and other functions in combination with the element UI component<br/>2、 Warning: The component itself may conflict with the shortcut keys of third-party library components. In this case, you can disable the cell selection function through the `cellSelectionOption`
+:::demo 1. You can also combine with Element UI components for date, number, dropdown, and other editing features<br/>2. Note: The component itself may conflict with third-party library component shortcuts. In this case, you can disable cell selection via `cellSelectionOption`
 
 ```html
 <template>
@@ -66,17 +66,17 @@
                         width: "15%",
                         renderBodyCell: ({ row, column, rowIndex }, h) => {
                             return (
-                                <el-date-picker
+                                <ElDatePicker
                                     size="small"
-                                    value={row["date"]}
-                                    onInput={(val) => {
+                                    modelValue={row["date"]}
+                                    onUpdate:modelValue={(val) => {
                                         row["date"] = val;
                                         this.cellDataChange(row, column, val);
                                     }}
                                     type="date"
                                     value-format="yyyy-MM-dd"
                                     placeholder="选择日期"
-                                ></el-date-picker>
+                                />
                             );
                         },
                     },
@@ -91,8 +91,8 @@
                                 <el-input-number
                                     size="small"
                                     min={1}
-                                    value={row["age"]}
-                                    onInput={(val) => {
+                                    modelValue={row["age"]}
+                                    onUpdate:modelValue={(val) => {
                                         row["age"] = val;
                                     }}
                                     onChange={(val) => {
@@ -112,8 +112,8 @@
                             return (
                                 <el-select
                                     size="small"
-                                    value={row["gender"]}
-                                    onInput={(val) => {
+                                    modelValue={row["gender"]}
+                                    onUpdate:modelValue={(val) => {
                                         row["gender"] = val;
                                         this.cellDataChange(row, column, val);
                                     }}

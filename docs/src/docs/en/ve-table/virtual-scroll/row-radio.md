@@ -1,6 +1,6 @@
-:::anchor Combination Row Radio
+:::anchor Combined with Row Radio
 
-:::demo Row radio, Need specify `rowKeyFieldName` property
+:::demo For row radio selection, the `rowKeyFieldName` property must be specified.
 
 ```html
 <template>
@@ -22,11 +22,11 @@
         data() {
             return {
                 virtualScrollOption: {
-                    // 是否开启
+                    // Enable or not
                     enable: true,
                 },
                 radioOption: {
-                    // 行选择改变事件
+                    // Row selection change event
                     selectedRowChange: ({ row }) => {
                         console.log(row);
                     },

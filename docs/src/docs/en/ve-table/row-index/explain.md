@@ -1,4 +1,4 @@
 :::tip
-1、Virtual scrolling row index <a href="#/en/doc/table/virtual-scroll?anchor=xing-xu-hao-wen-ti">Refer here</a>
+1. For row index with virtual scrolling, <a href="#/en/doc/table/virtual-scroll?anchor=row-index-issue">refer here</a>.
 
 :::

@@ -1,11 +1,11 @@
-单选
+Single Select
 
 :::demo
 
 ```html
 <template>
     <ve-dropdown hideByItemClick v-model="options">
-        <div style="color:blue;cursor: pointer;">点击这里</div>
+        <div style="color:blue;cursor: pointer;">Click here</div>
     </ve-dropdown>
 </template>
 <script>
@@ -25,14 +25,14 @@
 
 :::
 
-单选 配合 radio
+Single Select with Radio
 
 :::demo
 
 ```html
 <template>
     <ve-dropdown showRadio v-model="options">
-        <div style="color:blue;cursor: pointer;">点击这里</div>
+        <div style="color:blue;cursor: pointer;">Click here</div>
     </ve-dropdown>
 </template>
 <script>

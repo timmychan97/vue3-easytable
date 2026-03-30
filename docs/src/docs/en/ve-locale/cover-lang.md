@@ -1,13 +1,13 @@
-:::anchor Override Default Configs
+:::anchor Override Language Pack
 
-Use Locale.update method to modify the default configs.
+You can modify and extend text content using the `VeLocale.update` method
 :::demo
 
 ```html
 <template>
     <div>
         <div>
-            <button class="button-demo" @click="coverLang()">Override Config</button>
+            <button class="button-demo" @click="coverLang()">Modify Text</button>
             <br />
             <br />
         </div>
@@ -22,7 +22,7 @@ Use Locale.update method to modify the default configs.
             coverLang() {
                 const lang = {
                     pagination: {
-                        goto: "to",
+                        goto: "Go to",
                     },
                 };
                 this.$veLocale.update(lang);

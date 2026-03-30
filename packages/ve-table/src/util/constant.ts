@@ -1,7 +1,7 @@
 export const PREFIX_CLS = 've-table-'
 
 // locale comp name
-export const LOCALE_COMP_NAME = 'table'
+export const LOCALE_COMP_NAME = '表格'
 
 // column types
 export const COLUMN_TYPES = {

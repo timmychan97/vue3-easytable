@@ -1,6 +1,6 @@
-:::anchor Fixed left and right columns
+:::anchor Fix Columns on Both Sides
 
-:::demo 1、Set the width of the scroll area through `scroll-width="1200"`，Via `style="width:100%"`set outer container width<br>2、Set the left column to be fixed by `fixed:"left"`; set the right column to be fixed by`fixed:"right"`
+:::demo 1. Set the scroll area width via `scroll-width="1200"` and set the outer container width via `style="width:100%"`<br>2. Use `fixed:"left"` to fix columns on the left; use `fixed:"right"` to fix columns on the right
 
 ```html
 <template>

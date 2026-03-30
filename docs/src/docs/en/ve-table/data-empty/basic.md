@@ -1,15 +1,15 @@
-:::anchor Data Empty
+:::anchor Empty Data
 
 :::demo
 
 ```html
 <template>
     <div>
-        <button class="button-demo" @click="request()">Toggle Request</button>
+        <button class="button-demo" @click="request()">切换请求</button>
         <br />
         <br />
         <ve-table :columns="columns" :table-data="tableData" border-y />
-        <div v-show="showEmpty" class="empty-data">Data Empty.</div>
+        <div v-show="showEmpty" class="empty-data">暂无数据</div>
     </div>
 </template>
 

@@ -1,6 +1,6 @@
-:::anchor Table body Row style
+:::anchor Body Row Style
 
-:::demo 1、Row styles can still be implemented through `bodyCellClass({ row, column, rowIndex })`
+:::demo 1. Row styling can still be achieved through `bodyCellClass({ row, column, rowIndex })`
 
 ```html
 <template>

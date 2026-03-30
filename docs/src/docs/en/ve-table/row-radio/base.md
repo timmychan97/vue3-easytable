@@ -1,4 +1,4 @@
-:::anchor Base Usage
+:::anchor Basic Usage
 
 :::demo
 
@@ -20,6 +20,7 @@
         data() {
             return {
                 radioOption: {
+                    // Row selection change event
                     selectedRowChange: ({ row }) => {
                         console.log(row);
                     },

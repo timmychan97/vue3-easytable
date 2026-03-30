@@ -1,6 +1,6 @@
-:::anchor Column width not set
+:::anchor No Column Width Set
 
-:::demo When the column width is not set, the cell width is automatically scaled according to the content
+:::demo When column width is not set, cell width scales automatically based on content
 
 ```html
 <template>

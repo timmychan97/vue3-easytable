@@ -1,6 +1,6 @@
-:::anchor Column width pixel value
+:::anchor Pixel Column Width
 
-:::demo 1、When the column width is set to PX, the cell width is scaled by pixel ratio. If you do not want to zoom, you need to set the outer container width<br>2、Set the pixel value, remember not to add units
+:::demo 1. When column width is set as a pixel value (px), cell width scales according to the pixel ratio. If you do not want scaling, set the outer container width<br>2. When setting pixel values, remember not to include units
 
 ```html
 <template>

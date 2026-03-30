@@ -1,5 +1,6 @@
-:::anchor Paging Configuration
-:::demo `pageSizeOption` set paging size drop-down option
+:::anchor Paging Dropdown Configuration
+
+:::demo The `pageSizeOption` property sets the paging dropdown configuration
 
 ```html
 <template>

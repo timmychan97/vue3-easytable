@@ -1,5 +1,6 @@
-:::anchor Page Index
-:::demo `page-index` sets the current page number
+:::anchor Current Page Number
+
+:::demo The `page-index` property sets the current page number
 
 ```html
 <template>

@@ -1,6 +1,6 @@
-:::anchor Multiple Column Configuration
+:::anchor Checkbox Column Configuration
 
-:::demo Select the existing column as the checkbox multi select column
+:::demo Use an existing column as the checkbox multi-select column
 
 ```html
 <template>

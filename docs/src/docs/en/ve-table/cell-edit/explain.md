@@ -1,5 +1,4 @@
 :::tip
-1、Configure the cell editing function through the `editoption` attribute<br>
-2、Set 'edit=true' allowed columns edit through the 'columns' object<br>
-3、You can use shortcut keys and edit like excel<br>
+1. Configure cell editing via the `editOption` property<br>
+2. Set `edit=true` in the `columns` object to allow editing for specific columns<br>
 :::

@@ -1,6 +1,6 @@
 :::anchor Auto Table Width
 
-:::demo If the table width is not set, it is equivalent to `style="width:100%;"`
+:::demo If no table width is set, it is equivalent to `style="width:100%;"`
 
 ```html
 <template>

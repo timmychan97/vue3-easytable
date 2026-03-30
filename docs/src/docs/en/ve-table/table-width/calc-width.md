@@ -1,6 +1,6 @@
-:::anchor Dynamic Table Width(calc css function)
+:::anchor Dynamic Table Width (calc CSS Function)
 
-:::demo 1、You can use [calc css function](<https://developer.mozilla.org/en-US/docs/Web/CSS/calc()>) to achieve table dynamic width<br>2、Try changing the browser width to see the effect
+:::demo 1. You can use the [calc CSS function](<https://developer.mozilla.org/en-US/docs/Web/CSS/calc()>) to achieve dynamic table width<br>2. Try resizing the browser window to see the effect
 
 ```html
 <template>

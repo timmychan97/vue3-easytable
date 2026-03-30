@@ -1,3 +1,3 @@
-:::anchor 快捷键
+:::anchor Shortcuts
 
-暂无
+None at this time

@@ -1,7 +1,7 @@
 export const PREFIX_CLS = 've-pagination-'
 
 // locale comp name
-export const LOCALE_COMP_NAME = 'pagination'
+export const LOCALE_COMP_NAME = '分页'
 
 export const EMIT_EVENTS = {
   PAGE_NUMBER_CHANGE: 'on-page-number-change',

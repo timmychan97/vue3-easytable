@@ -1,4 +1,4 @@
-:::anchor Base usage
+:::anchor Basic Usage
 
 :::demo
 
@@ -27,6 +27,7 @@
                     hoverHighlight: false,
                 },
                 virtualScrollOption: {
+                    // 是否开启
                     enable: true,
                 },
                 cellAutofillOption: {

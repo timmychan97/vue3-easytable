@@ -1,15 +1,15 @@
 :::anchor Usage
 
-import `VePagination`
+Import `VePagination`
 
 ```javascript
 import Vue from 'vue'
-import { VePagination } from 'vue-easytable'
+import { VePagination } from '@vue3-easytable/vue'
 
 Vue.use(VePagination)
 ```
 
-use
+Usage
 
 ```javascript
 <template>

@@ -1,6 +1,6 @@
-:::anchor Multi Condition Filter
+:::anchor Multiple Condition Filter
 
-:::demo The 'maxheight' property sets the maximum height of the filter box when there is a lot of content in the filter box
+:::demo When the filter box has many items, use the `maxHeight` property to set the maximum height of the filter box
 
 ```html
 <template>

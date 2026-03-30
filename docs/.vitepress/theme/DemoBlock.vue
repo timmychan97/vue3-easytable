@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { defineComponent, onMounted, ref, shallowRef } from 'vue'
+import { useData } from 'vitepress'
+import { computed, defineComponent, onMounted, ref, shallowRef } from 'vue'
 
 const props = defineProps<{
   code: string
@@ -9,6 +10,13 @@ const props = defineProps<{
 const showCode = ref(false)
 const demoComp = shallowRef<any>(null)
 const errorMsg = ref('')
+
+const { lang } = useData()
+const expandLabel = computed(() => {
+  if (lang.value === 'nb-NO') return showCode.value ? 'Skjul kode' : 'Vis kode'
+  if (lang.value === 'en-US') return showCode.value ? 'Hide code' : 'Show code'
+  return showCode.value ? '收起代码' : '展开代码'
+})
 
 // Decode the base64-encoded demo source (UTF-8 safe)
 const rawCode = new TextDecoder().decode(Uint8Array.from(atob(props.code), c => c.charCodeAt(0)))
@@ -117,7 +125,7 @@ onMounted(async () => {
     </div>
     <div class="demo-footer">
       <button class="demo-toggle" @click="showCode = !showCode">
-        {{ showCode ? '收起代码' : '展开代码' }}
+        {{ expandLabel }}
       </button>
     </div>
     <div v-show="showCode" class="demo-source">

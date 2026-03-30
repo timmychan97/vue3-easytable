@@ -1,6 +1,6 @@
-:::anchor Disable Select
+:::anchor Disable Selection
 
-:::demo `disableSelectedRowKeys`sets the rowKey array to be disabled(it is disable to check or cancel the check).
+:::demo `disableSelectedRowKeys` sets the rowKey array of rows that should be disabled for selection (prevents checking or unchecking).
 
 ```html
 <template>

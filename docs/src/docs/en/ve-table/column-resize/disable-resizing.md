@@ -1,6 +1,6 @@
-:::anchor Disable Column Resizing
+:::anchor Disable Column Width Dragging
 
-Col1, Col2, and Col3 resizing is disabled through `disableResizing`
+In the following example, column width dragging for Col1, Col2, and Col3 is disabled via `disableResizing`
 
 :::demo
 

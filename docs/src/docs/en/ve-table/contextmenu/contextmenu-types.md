@@ -1,29 +1,27 @@
-:::anchor contextmenu classification
+:::anchor Context Menu List
 
-You can choose and combine these contextmenu
+Header context menu list
 
-header contextmenus
+| Function                          | Type                           |
+| :-------------------------------- | :----------------------------- |
+| Separator                         | `SEPARATOR`                    |
+| Cut                               | `CUT`                          |
+| Copy                              | `COPY`                         |
+| Empty column                      | `EMPTY_COLUMN`                 |
+| Freeze left column to this column | `LEFT_FIXED_COLUMN_TO`         |
+| Freeze right column to this column| `RIGHT_FIXED_COLUMN_TO`        |
+| Cancel left column freeze         | `CANCEL_LEFT_FIXED_COLUMN_TO`  |
+| Cancel right column freeze        | `CANCEL_RIGHT_FIXED_COLUMN_TO` |
 
-| Feature                      | type                           |
-| :--------------------------- | :----------------------------- |
-| Split line                   | `SEPARATOR`                    |
-| Cut                          | `CUT`                          |
-| Copy                         | `COPY`                         |
-| Empty column                 | `EMPTY_COLUMN`                 |
-| Left fixed column to         | `LEFT_FIXED_COLUMN_TO`         |
-| Right fixed column to        | `RIGHT_FIXED_COLUMN_TO`        |
-| Cancel left fixed column to  | `CANCEL_LEFT_FIXED_COLUMN_TO`  |
-| Cancel right fixed column to | `CANCEL_RIGHT_FIXED_COLUMN_TO` |
+Body context menu list
 
-body contextmenus
-
-| Feature          | type               |
-| :--------------- | :----------------- |
-| Split line       | `SEPARATOR`        |
-| Cut              | `CUT`              |
-| Copy             | `COPY`             |
-| Insert row above | `INSERT_ROW_ABOVE` |
-| Insert row below | `INSERT_ROW_BELOW` |
-| Remove row       | `REMOVE_ROW`       |
-| Empty row        | `EMPTY_ROW`        |
-| Empty cell       | `EMPTY_CELL`       |
+| Function          | Type               |
+| :---------------- | :----------------- |
+| Separator         | `SEPARATOR`        |
+| Cut               | `CUT`              |
+| Copy              | `COPY`             |
+| Insert row above  | `INSERT_ROW_ABOVE` |
+| Insert row below  | `INSERT_ROW_BELOW` |
+| Remove row        | `REMOVE_ROW`       |
+| Empty row         | `EMPTY_ROW`        |
+| Empty cell        | `EMPTY_CELL`       |

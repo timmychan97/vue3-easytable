@@ -1,6 +1,6 @@
-:::anchor Footer Columns fixed
+:::anchor Footer with Fixed Columns
 
-:::demo Fixed columns are set in the table, which is automatically supported by footer without additional option
+:::demo 1. When the table has fixed columns set, footer summary automatically supports them without additional configuration
 
 ```html
 <template>
@@ -69,14 +69,14 @@
                 this.footerData = [
                     {
                         rowKey: 0,
-                        name: "Average Values",
+                        name: "平均值",
                         date: 213,
                         hobby: 355,
                         address: 189,
                     },
                     {
                         rowKey: 1,
-                        name: "Summary Values",
+                        name: "汇总值",
                         date: 1780,
                         hobby: 890,
                         address: 2988,

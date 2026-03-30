@@ -68,8 +68,8 @@ export default defineComponent({
       'showOperation': true,
       isMultiple,
       'showRadio': true, // when single selection
-      'confirmFilterText': t('confirmFilter'),
-      'resetFilterText': t('resetFilter'),
+      'confirmFilterText': t('确认筛选'),
+      'resetFilterText': t('重置筛选'),
       beforeVisibleChange,
       [getEmitEventName(EMIT_EVENTS.HEADER_FILTER_CONFIRM)]: this.filterConfirm,
       [getEmitEventName(EMIT_EVENTS.HEADER_FILTER_RESET)]: this.filterReset,

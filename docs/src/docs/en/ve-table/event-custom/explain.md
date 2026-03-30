@@ -1,7 +1,7 @@
 :::tip
-1、`eventCustomOption` Configure custom events<br>
-2、Support body, header, footer row and column event customization<br>
-3、The following event customization is supported
+1. Configure custom events with `eventCustomOption`<br>
+2. Supports custom events for body, header, and footer rows and cells<br>
+3. The following events are supported:
 
 -   click
 -   dblclick
@@ -15,11 +15,11 @@
 
 :::
 
-Quick view of option code
+Quick configuration overview
 
 ```
 eventCustomOption: {
-  // body row event custom
+  // body row custom events
   bodyRowEvents: ({ row, rowIndex }) => {
     return {
       click: (event) => {},
@@ -33,7 +33,7 @@ eventCustomOption: {
       mouseup: (event) => {},
     };
   },
-  // body column event custom
+  // body cell custom events
   bodyCellEvents: ({ row,column,rowIndx }) => {
     return {
       click: (event) => {},
@@ -47,7 +47,7 @@ eventCustomOption: {
       mouseup: (event) => {},
     };
   },
-  // header row event custom
+  // header row custom events
   headerRowEvents: ({ rowIndx }) => {
     return {
       click: (event) => {},
@@ -61,7 +61,7 @@ eventCustomOption: {
       mouseup: (event) => {},
     };
   },
-  // header column event custom
+  // header cell custom events
   headerCellEvents: ({ column,rowIndx }) => {
     return {
       click: (event) => {},
@@ -75,7 +75,7 @@ eventCustomOption: {
       mouseup: (event) => {},
     };
   },
-  // footer row event custom
+  // footer row custom events
   footerRowEvents: ({ row, rowIndex }) => {
     return {
       click: (event) => {},
@@ -89,7 +89,7 @@ eventCustomOption: {
       mouseup: (event) => {},
     };
   },
-  // footer column event custom
+  // footer cell custom events
   footerCellEvents: ({ row,column,rowIndx }) => {
     return {
       click: (event) => {},

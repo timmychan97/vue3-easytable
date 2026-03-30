@@ -1,4 +1,4 @@
-:::demo 多选功能
+:::demo Multiple Selection
 
 ```html
 <template>
@@ -66,14 +66,14 @@
         },
 
         computed: {
-            // 是否全部选中
+            // Whether all are checked
             hasAllChecked() {
                 return this.checkboxGroupInitValues.every((x) => {
                     return this.checkboxGroupDefaultValue2.indexOf(x.label) > -1;
                 });
             },
 
-            // 判断是否有部分选中
+            // Whether some are checked
             hasPartChecked() {
                 return this.checkboxGroupInitValues.some((x) => {
                     return this.checkboxGroupDefaultValue2.indexOf(x.label) > -1;
@@ -82,7 +82,7 @@
         },
 
         methods: {
-            // 全选
+            // Select all
             checkAll() {
                 let all = this.checkboxGroupInitValues.map((item) => {
                     return item.label;

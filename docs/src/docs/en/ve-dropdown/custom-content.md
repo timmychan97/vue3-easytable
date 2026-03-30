@@ -1,13 +1,13 @@
-自定义内容
+Custom Content
 
 :::demo
 
 ```html
 <template>
     <ve-dropdown isCustomContent v-model="options">
-        <div style="color:blue;cursor: pointer;">点击这里</div>
+        <div style="color:blue;cursor: pointer;">Click here</div>
         <template #custom-content>
-            <div>这是自定义内容</div>
+            <div>This is custom content</div>
         </template>
     </ve-dropdown>
 </template>

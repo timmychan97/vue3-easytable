@@ -1,11 +1,11 @@
-:::anchor Long text destroys layout
+:::anchor Long Text Breaking Layout
 
-:::demo 1、Too much text in a cell destroys the layout,This can be controlled by style [word-break](https://developer.mozilla.org/zh-CN/docs/Web/CSS/word-break) <br>2、You can also use it with [Cell Ellipsis](#/en/doc/table/cell-ellipsis)
+:::demo 1. When cell text content is too long, it can break the layout. You can control this with the CSS property [word-break](https://developer.mozilla.org/en-US/docs/Web/CSS/word-break)<br>2. You can also use this in combination with the [cell ellipsis](#/en/doc/table/cell-ellipsis) feature
 
 ```html
 <template>
     <div>
-        word-break：
+        word-break:
         <el-radio-group size="small" v-model="wordBreak">
             <el-radio-button label="normal">normal</el-radio-button>
             <el-radio-button label="keep-all">keep-all</el-radio-button>

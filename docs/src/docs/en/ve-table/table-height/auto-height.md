@@ -1,6 +1,6 @@
 :::anchor Auto Table Height
 
-:::demo When the table height is not set, the table height is auto height
+:::demo When no table height is set, the table height is determined by its content
 
 ```html
 <template>

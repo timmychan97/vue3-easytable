@@ -1,14 +1,14 @@
 :::anchor Shortcuts
 
-Cell selection support the following shortcut keys (refer to excel shortcut keys)：
+Cell selection supports the following keyboard shortcuts (based on Excel shortcuts):
 
-| Feature                           | Shortcuts         |
-| :-------------------------------- | :---------------- |
-| Move the active cell up           | `↑`               |
-| Move the active cell to the right | `→`               |
-| Move the active cell down         | `↓`               |
-| Move the active cell to the left  | `←`               |
-| Move the active cell down         | `Enter`           |
-| Move the active cell up           | `Shift` + `Enter` |
-| Move the active cell to the right | `Tab`             |
-| Move the active cell to the left  | `Shift` + `Tab`   |
+| Function                    | Shortcut          |
+| :-------------------------- | :---------------- |
+| Move active cell up         | `↑`               |
+| Move active cell right      | `→`               |
+| Move active cell down       | `↓`               |
+| Move active cell left       | `←`               |
+| Move active cell down       | `Enter`           |
+| Move active cell up         | `Shift` + `Enter` |
+| Move active cell right      | `Tab`             |
+| Move active cell left       | `Shift` + `Tab`   |

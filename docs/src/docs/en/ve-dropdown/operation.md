@@ -1,4 +1,4 @@
-包含操作
+With Operations
 
 :::demo
 
@@ -7,13 +7,13 @@
     <ve-dropdown
         v-model="options"
         show-operation
-        confirmFilterText="筛选"
-        resetFilterText="重置"
+        confirmFilterText="Filter"
+        resetFilterText="Reset"
         is-multiple
         @on-filter-confirm="filterConfirm"
         @on-filter-reset="filterReset"
     >
-        <div style="color:blue;cursor: pointer;">点击这里</div>
+        <div style="color:blue;cursor: pointer;">Click here</div>
     </ve-dropdown>
 </template>
 <script>

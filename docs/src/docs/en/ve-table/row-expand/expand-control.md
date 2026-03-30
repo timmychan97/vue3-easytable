@@ -1,13 +1,13 @@
-:::anchor Controllable Attribute
+:::anchor Controlled Properties
 
-:::demo 1、`expandedRowKeys`A is the controllable property of the expand row. When you expand and switch, you need to re assign values in the a event. More functions can be customized through this property<br>2、After setting the `expandedRowKeys` property, the `defaultExpandAllRows` and `defaultExpandedRowKeys` properties will be invalid
+:::demo 1. `expandedRowKeys` is a controlled property for expanded rows. You need to reassign its value in the `afterExpandRowChange` event when toggling expansion. This property allows you to customize more features.<br>2. Once the `expandedRowKeys` property is set, the `defaultExpandAllRows` and `defaultExpandedRowKeys` properties will be ignored.
 
 ```html
 <template>
     <div>
-        <button class="button-demo" @click="expandSwitch(1003)">Row 3 expand switch</button>
-        <button class="button-demo" @click="expandAll()">Expand all</button>
-        <button class="button-demo" @click="foldAll()">Fold all</button>
+        <button class="button-demo" @click="expandSwitch(1003)">Toggle Row 3 Expansion</button>
+        <button class="button-demo" @click="expandAll()">Expand All</button>
+        <button class="button-demo" @click="foldAll()">Collapse All</button>
         <br />
         <br />
         <ve-table
@@ -34,7 +34,7 @@
                             </p>
                         );
                     },
-                    // 重新赋值处理
+                    // Reassign value
                     afterExpandRowChange: ({ afterExpandedRowKeys, row, rowIndex }) => {
                         this.changeExpandedRowKeys(afterExpandedRowKeys);
                     },
@@ -43,7 +43,7 @@
                     {
                         field: "",
                         key: "a",
-                        // 设置需要显示展开图标的列
+                        // Set the column that displays the expand icon
                         type: "expand",
                         title: "",
                         width: 50,
@@ -111,11 +111,11 @@
             };
         },
         methods: {
-            // 给可控属性重新赋值
+            // Reassign value to controlled property
             changeExpandedRowKeys(keys) {
                 this.expandOption.expandedRowKeys = keys;
             },
-            // 切换展开行
+            // Toggle expand row
             expandSwitch(key) {
                 const rowKeyIndex = this.expandOption.expandedRowKeys.indexOf(key);
 
@@ -125,11 +125,11 @@
                     this.expandOption.expandedRowKeys.push(key);
                 }
             },
-            // 展开全部
+            // Expand all
             expandAll() {
                 this.expandOption.expandedRowKeys = this.tableData.map((x) => x.rowKey);
             },
-            // 折叠全部
+            // Collapse all
             foldAll() {
                 this.expandOption.expandedRowKeys = [];
             },

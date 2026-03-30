@@ -101,7 +101,7 @@ export default defineComponent({
         >
           <button
             type="button"
-            aria-label={pageIndex === 1 ? t('currentPageLabel', 1) : t('pageLabel', 1)}
+            aria-label={pageIndex === 1 ? t('当前页', 1) : t('第N页', 1)}
             aria-current={pageIndex === 1 ? 'page' : undefined}
           >
             1
@@ -115,12 +115,12 @@ export default defineComponent({
               clsName('li'),
               clsName('jump-prev'),
             ]}
-            title={t('prev5', pagingCount)}
+            title={t('向前N页', pagingCount)}
             onClick={() => jumpPage(pageIndex - pagingCount)}
           >
             <button
               type="button"
-              aria-label={t('prev5', pagingCount)}
+              aria-label={t('向前N页', pagingCount)}
             >
               <VeIcon name={ICON_NAMES.DOUBLE_LEFT_ARROW} />
             </button>
@@ -139,7 +139,7 @@ export default defineComponent({
             >
               <button
                 type="button"
-                aria-label={isActive ? t('currentPageLabel', number) : t('pageLabel', number)}
+                aria-label={isActive ? t('当前页', number) : t('第N页', number)}
                 aria-current={isActive ? 'page' : undefined}
               >
                 {number}
@@ -151,12 +151,12 @@ export default defineComponent({
         {showJumpNext && (
           <li
             class={[clsName('li'), clsName('jump-next')]}
-            title={t('next5', pagingCount)}
+            title={t('向后N页', pagingCount)}
             onClick={() => jumpPage(pageIndex + pagingCount)}
           >
             <button
               type="button"
-              aria-label={t('next5', pagingCount)}
+              aria-label={t('向后N页', pagingCount)}
             >
               <VeIcon name={ICON_NAMES.DOUBLE_RIGHT_ARROW} />
             </button>
@@ -173,7 +173,7 @@ export default defineComponent({
           >
             <button
               type="button"
-              aria-label={pageIndex === pageCount ? t('currentPageLabel', pageCount) : t('pageLabel', pageCount)}
+              aria-label={pageIndex === pageCount ? t('当前页', pageCount) : t('第N页', pageCount)}
               aria-current={pageIndex === pageCount ? 'page' : undefined}
             >
               {pageCount}

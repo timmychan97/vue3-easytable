@@ -1,4 +1,4 @@
-:::anchor Basic usage
+:::anchor Basic Usage
 
 :::demo
 

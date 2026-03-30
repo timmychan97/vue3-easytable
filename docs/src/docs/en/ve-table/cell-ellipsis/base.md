@@ -1,6 +1,6 @@
-:::anchor Default Wrap
+:::anchor Text Wrapping
 
-When the default text content exceeds the cell width, it will be displayed as a new line
+By default, text in cells wraps when it exceeds the width
 :::demo
 
 ```html

@@ -1,4 +1,4 @@
 :::tip
-It's very simple for the table component to start loading. You can start loading when you request data<br>
+1. Enabling the Loading effect on the Table component is very simple -- just enable Loading when requesting data<br>
 
 :::

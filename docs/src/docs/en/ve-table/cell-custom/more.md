@@ -1,12 +1,12 @@
-:::anchor Customization through external components
+:::anchor Customize via External Components
 
 :::tip
 
-1、 Of course, you can also customize the cell content through external components,This example defines an `OtherComp` component inside the component,You can also use the `import` keyword to import a component as a custom component<br>
-2、`renderBodyCell`、`renderHeaderCell`, etc. are also applicable
+1. You can also customize cell content through external components. This example defines an `OtherComp` component inside the component. You can also use the `import` keyword to import a component as a custom component<br>
+2. `renderBodyCell`, `renderHeaderCell`, etc. all work the same way<br>
 :::
 
-:::demo Customization through external components
+:::demo Customize via external components
 
 ```html
 <template>

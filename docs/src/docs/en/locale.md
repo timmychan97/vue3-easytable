@@ -1,46 +1,46 @@
 ## Internationalization
 
-:::anchor Switch Languages
+:::anchor Language Switching
 
-You can implement multilingual support using the `VeLocal` component, using `VeLocal.use` method toggles the currently used language.
+You can achieve multi-language support through the `VeLocale` component. Use the `VeLocale.use` method to switch the current language.
 
 ```javascript
-import { VeLocale } from 'vue-easytable'
-// import language
-import enUS from 'vue-easytable/libs/locale/lang/en-US.js'
+import { VeLocale } from '@vue3-easytable/vue'
+// Import the English language pack
+import enUS from '@vue3-easytable/vue/libs/locale/lang/en-US.js'
 
 VeLocale.use(enUS)
 ```
 
-:::anchor Override Default Configs
+:::anchor Modify Language Pack
 
-Use `Locale.update` method to modify the default configs.
+You can modify and extend text content using the `VeLocale.update` method.
 
 ```javascript
-import { VeLocale } from 'vue-easytable'
+import { VeLocale } from '@vue3-easytable/vue'
 
 const lang = {
   pagination: {
-    goto: 'goto',
+    goto: 'Go to',
   },
 }
 
 VeLocale.update(lang)
 ```
 
-:::anchor Using By CDN
+:::anchor Loading Language Files via CDN
 
 :::tip
-1、import languages from "//unpkg.com/vue-easytable/libs/locale/lang/"<br>
-2、Use `VETable.VeLocale.use` method to switch languages.<br>
-3、Language configs are fixed format `VETable.lang.[Language config name]`,[Language config name] does not contain the '-' symbol, as shown in the following example
+1. Reference the required language pack from the directory "//unpkg.com/@vue3-easytable/vue/libs/locale/lang/"<br>
+2. Use the `VETable.VeLocale.use` method to use and switch language packs<br>
+3. Language packs follow the fixed format `VETable.lang.[language pack name]`, where [language pack name] does not contain the '-' symbol. See the example below<br>
 :::
 
 ```
 <script src="//unpkg.com/vue"></script>
-<script src="//unpkg.com/vue-easytable"></script>
-<script src="//unpkg.com/vue-easytable/libs/locale/lang/en-US.js"></script>
-<script src="//unpkg.com/vue-easytable/libs/locale/lang/zh-CN.js"></script>
+<script src="//unpkg.com/@vue3-easytable/vue"></script>
+<script src="//unpkg.com/@vue3-easytable/vue/libs/locale/lang/en-US.js"></script>
+<script src="//unpkg.com/@vue3-easytable/vue/libs/locale/lang/zh-CN.js"></script>
 
 <script>
   // Switch to English
@@ -53,18 +53,19 @@ VeLocale.update(lang)
 </script>
 ```
 
-:::anchor Languages Configs
-The following languages are currently supported：
-| language | file name |
+:::anchor Language Packs
+
+Currently supported languages:
+| Language | Filename |
 | -------- | ------ |
 | Simplified Chinese | zh-CN |
-| Traditional Chinese (Traditional) | zh-TW |
+| Traditional Chinese (Taiwan) | zh-TW |
 | English | en-US |
-| South Africa (Afrikaans) | af-ZA |
-| South Africa (ZA) | zu-ZA |
-| French(FR) | fr-FR |
+| Afrikaans (South Africa) | af-ZA |
+| Zulu (South Africa) | zu-ZA |
+| French | fr-FR |
 | Brazilian Portuguese | pt-BR |
-| Korean(KR) | ko-KR |
-| Russian (RU) | ru-RU |
+| Korean | ko-KR |
+| Russian | ru-RU |
 
-If you need to use other languages, you are welcome to contribute PR: just add a language configuration file in [here](https://github.com/huangshuwei/vue-easytable/tree/master/packages/src/locale/lang).
+If you need to use another language, feel free to contribute a PR: simply add a language configuration file [here](https://github.com/huangshuwei/vue-easytable/tree/master/packages/src/locale/lang).

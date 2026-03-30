@@ -1,8 +1,7 @@
-:::anchor Multiline Ellipsis
+:::anchor Multi-line Ellipsis
 
-At present, this function only supports browser with [-webkit-line-clamp attribute](https://developer.mozilla.org/zh-CN/docs/Web/CSS/-webkit-line-clamp)
-
-:::demo How many lines cell ellipsis through `lineClamp`
+This feature currently only supports browsers that support the [-webkit-line-clamp property](https://developer.mozilla.org/en-US/docs/Web/CSS/-webkit-line-clamp)
+:::demo Use `lineClamp` to set the number of lines after which text is truncated
 
 ```html
 <template>

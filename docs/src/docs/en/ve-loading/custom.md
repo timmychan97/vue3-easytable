@@ -1,13 +1,12 @@
-:::anchor Custom Loading
-
-You can also customize the loading text, background color and size
-:::demo 1、`color` Set the color of the loading effect<br>2、`tip`Set loading text<br>2、`overlayBackgroundColor`Set mask background color，Can be specified by [rgba](https://www.w3schools.com/cssref/func_rgba.asp),Make the background transparent.
+:::anchor Customization
+You can also customize the loading text, background color, and size
+:::demo 1. `color` sets the loading effect color<br>2. `tip` sets the loading text<br>3. `overlayBackgroundColor` sets the overlay background color. You can specify [rgba](https://www.w3schools.com/cssref/func_rgba.asp) to make the background transparent
 
 ```html
 <template>
     <div>
-        <button class="button-demo" @click="show()">Open</button>
-        <button class="button-demo" @click="close()">Close</button>
+        <button class="button-demo" @click="show()">Show Loading</button>
+        <button class="button-demo" @click="close()">Close Loading</button>
         <br />
         <br />
         <div

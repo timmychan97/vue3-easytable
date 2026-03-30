@@ -2,21 +2,21 @@
 
 ### props
 
-| Property               | Description                                                                           | Type      | Optional value   | Default                    |
-| ---------------------- | ------------------------------------------------------------------------------------- | --------- | ---------------- | -------------------------- | --- |
-| name                   | Load effect type name                                                                 | `String`  | refer to example | "plane"                    |
-| target                 | DOM object or string that can be obtained through <code>document.querySelector</code> | `Object   | String`          | -                          | -   |
-| fullscreen             | Full screen display                                                                   | `Boolean` | -                | false                      |
-| tip                    | Loading text                                                                          | `String`  | -                | -                          |
-| color                  | The color of the loading icon                                                         | `String`  | -                | "#1890ff"                  |
-| overlayBackgroundColor | Mask background color                                                                 | `String`  | -                | "rgba(255, 255, 255, 0.5)" |
-| height                 | The height of the loaded icon                                                         | `String   | Number`          | -                          | 40  |
-| width                  | The width of the loading icon                                                         | `String   | Number`          | -                          | 40  |
+| Parameter              | Description                                                          | Type      | Options                    | Default                    |
+| ---------------------- | -------------------------------------------------------------------- | --------- | -------------------------- | -------------------------- |
+| name                   | Loading effect type name                                             | `String`  | See "Loading Collection" examples | "plane"             |
+| target                 | DOM element or a string selector accessible via `document.querySelector` | `Object   \| String`              | -                          | -   |
+| fullscreen             | Whether to display in fullscreen                                     | `Boolean` | -                          | false                      |
+| tip                    | Loading text                                                         | `String`  | -                          | -                          |
+| color                  | Loading icon color                                                   | `String`  | -                          | "#1890ff"                  |
+| overlayBackgroundColor | Overlay background color                                             | `String`  | -                          | "rgba(255, 255, 255, 0.5)" |
+| height                 | Loading icon height                                                  | `String   \| Number`              | -                          | 40  |
+| width                  | Loading icon width                                                   | `String   \| Number`              | -                          | 40  |
 
 ### methods
 
-| Methods | Description                                                                    | Parameters |
-| ------- | ------------------------------------------------------------------------------ | ---------- |
-| show    | Show the effect of loading                                                     | -          |
-| close   | Turn off loading effect                                                        | -          |
-| destroy | It will not be destroyed by default. You need to call destroy loading manually | -          |
+| Method Name | Description                                              | Parameters |
+| ----------- | -------------------------------------------------------- | ---------- |
+| show        | Show the Loading effect                                  | -          |
+| close       | Close the Loading effect                                 | -          |
+| destroy     | By default, closing does not destroy it; call this method to manually destroy the Loading instance | - |

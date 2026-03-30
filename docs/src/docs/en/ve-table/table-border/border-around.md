@@ -1,4 +1,4 @@
-:::anchor Outer border
+:::anchor Outer Border
 
 :::demo
 

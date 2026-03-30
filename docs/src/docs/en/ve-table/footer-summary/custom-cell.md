@@ -1,6 +1,6 @@
-:::anchor Footer Cell Custom
+:::anchor Footer Summary Custom Cell
 
-:::demo 1、In the column option, the render function can be passed in through the property `renderFooterCell`,Consistent with body custom cell usage.<br>2、The render function takes 3 parameters，row:Current row data、column:Current column option、rowIndex:Row index
+:::demo 1. In the column configuration, you can pass a render function via the `renderFooterCell` property, which works the same way as body custom cells.<br>2. The render function receives three parameters: row (current row data), column (current column configuration), rowIndex (row index)
 
 ```html
 <template>
@@ -70,14 +70,14 @@
                 this.footerData = [
                     {
                         rowKey: 0,
-                        name: "Average Values",
+                        name: "平均值",
                         date: 213,
                         hobby: 355,
                         address: 189,
                     },
                     {
                         rowKey: 1,
-                        name: "Summary Values",
+                        name: "汇总值",
                         date: 1780,
                         hobby: 890,
                         address: 2988,

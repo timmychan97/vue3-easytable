@@ -1,4 +1,4 @@
-:::demo 基本用法。？？
+:::demo Basic usage.
 
 ```html
 <template>

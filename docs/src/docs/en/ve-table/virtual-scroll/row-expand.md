@@ -1,4 +1,4 @@
-:::anchor Combination Row Expand
+:::anchor Combined with Row Expand
 
 :::demo
 
@@ -22,7 +22,7 @@
         data() {
             return {
                 virtualScrollOption: {
-                    // 是否开启
+                    // Enable or not
                     enable: true,
                 },
                 expandOption: {

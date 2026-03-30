@@ -1,13 +1,13 @@
-:::anchor Instance method
+:::anchor Instance Methods
 
-:::demo 1、Open the edited cell through instance method `startEditingCell({ rowKey, colKey, defaultValue })`
+:::demo 1. Use the instance method `startEditingCell({ rowKey, colKey, defaultValue })` to edit a specific cell
 
 ```html
 <template>
     <div>
-        <button class="button-demo" @click="startEditingCell(0,'name')">Edit Cell 0-0</button>
+        <button class="button-demo" @click="startEditingCell(0,'name')">Edit cell 0-0</button>
         <button class="button-demo" @click="startEditingCell(2,'hobby','')">
-            Edit And Clear Cell 2-2
+            Edit and clear cell 2-2
         </button>
         <br />
         <br />
@@ -33,7 +33,7 @@
                     clickHighlight: false,
                     hoverHighlight: false,
                 },
-                // edit option
+                // edit option 可控单元格编辑
                 editOption: {
                     // cell value change
                     cellValueChange: ({ row, column }) => {
@@ -48,6 +48,7 @@
                         title: "",
                         width: 50,
                         align: "center",
+                        operationColumn: true,
                         renderBodyCell: ({ row, column, rowIndex }, h) => {
                             return ++rowIndex;
                         },

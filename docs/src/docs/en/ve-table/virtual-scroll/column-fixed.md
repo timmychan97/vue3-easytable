@@ -1,4 +1,4 @@
-:::anchor Combination Column fixed
+:::anchor Combined with Fixed Columns
 
 :::demo
 
@@ -23,7 +23,7 @@
         data() {
             return {
                 virtualScrollOption: {
-                    // 是否开启
+                    // enable
                     enable: true,
                 },
                 columns: [

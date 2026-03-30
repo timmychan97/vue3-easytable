@@ -1,6 +1,6 @@
 :::anchor Row Hover Highlight
 
-:::demo The default row hover highlight is on
+:::demo Row hover highlight is enabled by default.
 
 ```html
 <template>

@@ -1,6 +1,6 @@
-:::anchor Trigger Type
+:::anchor Trigger Mode
 
-:::demo 1、The `trigger` property controls the trigger type of the expanded row event.<br />2、`"icon"`：Click the expand icon;`"cell"`：Click on the td cell;`"row"`:Click on the row
+:::demo 1. The `trigger` property controls the event trigger type for row expansion.<br />2. `"icon"`: click the expand icon; `"cell"`: click the cell; `"row"`: click the row.
 
 ```html
 <template>
@@ -32,7 +32,7 @@
                     {
                         field: "",
                         key: "a",
-                        // 设置需要显示展开图标的列
+                        // Set the column that displays the expand icon
                         type: "expand",
                         title: "",
                         width: 50,

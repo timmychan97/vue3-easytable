@@ -1,17 +1,17 @@
-:::anchor scrollTo
+:::anchor scrollTo Scroll Method
 
-:::demo 1、Scroll the table to the specified location(px)<br>2、Params refer to [scrollTo](https://developer.mozilla.org/zh-CN/docs/Web/API/Element/scrollTo)
+:::demo 1. Scroll the table to a specified position (px)<br>2. For parameter details, refer to [scrollTo](https://developer.mozilla.org/en-US/docs/Web/API/Element/scrollTo)
 
 ```html
 <template>
     <div>
         <div style="margin-bottom:20px;line-height:3.0;">
-            <button class="button-demo" @click="scrollY(1000)">Scroll vertically to 1000px</button>
-            <button class="button-demo" @click="scrollY(500)">Scroll vertically to 500px</button>
-            <button class="button-demo" @click="scrollY(0)">Scroll vertically to 0px</button>
-            <button class="button-demo" @click="scrollX(500)">Scroll horizontally to 300px</button>
-            <button class="button-demo" @click="scrollX(300)">Scroll horizontally to 200px</button>
-            <button class="button-demo" @click="scrollX(0)">Scroll horizontally to 0px</button>
+            <button class="button-demo" @click="scrollY(1000)">垂直滚动到1000px</button>
+            <button class="button-demo" @click="scrollY(500)">垂直滚动到500px</button>
+            <button class="button-demo" @click="scrollY(0)">垂直滚动到0px</button>
+            <button class="button-demo" @click="scrollX(500)">水平滚动到300px</button>
+            <button class="button-demo" @click="scrollX(300)">水平滚动到200px</button>
+            <button class="button-demo" @click="scrollX(0)">水平滚动到0px</button>
         </div>
         <ve-table
             ref="tableRef"
@@ -120,8 +120,6 @@
                         col6: i,
                         col7: i,
                         col8: i,
-                        col9: i,
-                        col10: i,
                     });
                 }
                 this.tableData = data;

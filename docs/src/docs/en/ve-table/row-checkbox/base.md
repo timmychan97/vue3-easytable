@@ -1,4 +1,4 @@
-:::anchor Base Usage
+:::anchor Basic Usage
 
 :::demo
 
@@ -20,11 +20,11 @@
         data() {
             return {
                 checkboxOption: {
-                    // row select change event
+                    // 行选择改变事件
                     selectedRowChange: ({ row, isSelected, selectedRowKeys }) => {
                         console.log(row, isSelected, selectedRowKeys);
                     },
-                    // selected all change event
+                    // 全选改变事件
                     selectedAllChange: ({ isSelected, selectedRowKeys }) => {
                         console.log(isSelected, selectedRowKeys);
                     },

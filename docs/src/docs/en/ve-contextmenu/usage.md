@@ -1,21 +1,21 @@
 :::anchor Usage
 
-import `VeContextmenu`
+Import `VeContextmenu`
 
 ```javascript
-import Vue from 'vue'
-import { VeContextmenu } from 'vue-easytable'
+import { VeContextmenu } from '@vue3-easytable/vue'
+import { createApp } from 'vue'
 
-Vue.use(VeContextmenu)
+createApp(App).use(VeContextmenu)
 ```
 
-use
+Usage
 
 ```javascript
 <template>
     <div>
          <div id="contextmenu-target" ref="contextmenuTargetRef">
-            <div>Right click this area</div>
+            <div>Right-click this area</div>
         </div>
         <ve-contextmenu eventTarget="#contextmenu-target" :options="options" />
     </div>

@@ -1,5 +1,5 @@
 :::tip
-1、Use `columnHiddenOption` to hide columns<br>
-2、You can also control the hiding and show of columns through instance methods
+1. Use `columnHiddenOption` to implement the column hiding feature<br>
+2. You can also control column visibility through instance methods
 
 :::

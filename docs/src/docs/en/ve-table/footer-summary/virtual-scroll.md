@@ -1,6 +1,6 @@
-:::anchor Footer Width Virtual Scrolling
+:::anchor Footer with Virtual Scroll
 
-:::demo Virtual scrolling is set in the table, and footer supports it automatically without additional option
+:::demo 1. When the table has virtual scrolling enabled, footer summary is automatically supported without additional configuration
 
 ```html
 <template>
@@ -22,6 +22,7 @@
         data() {
             return {
                 virtualScrollOption: {
+                    // enable
                     enable: true,
                 },
 
@@ -52,18 +53,14 @@
             };
         },
         methods: {
-            getRandom(min, max) {
-                return Math.floor(Math.random() * (max - min) + min);
-            },
             initData() {
                 let data = [];
                 for (let i = 0; i < 10000; i++) {
                     data.push({
                         rowKey: i,
-                        name: i,
-                        date: i,
-                        hobby: i,
-                        address: i,
+                        name: `name${i}`,
+                        hobby: `hobby${i}`,
+                        address: `address${i}`,
                     });
                 }
 
@@ -72,14 +69,14 @@
                 this.footerData = [
                     {
                         rowKey: 0,
-                        name: "Average Values",
+                        name: "平均值",
                         date: 1100,
                         hobby: 1200,
                         address: 1300,
                     },
                     {
                         rowKey: 1,
-                        name: "Summary Values",
+                        name: "汇总值",
                         date: 701000,
                         hobby: 801000,
                         address: 801000,

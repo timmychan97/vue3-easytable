@@ -1,4 +1,4 @@
-:::anchor Customize contextmenu
+:::anchor Custom Context Menu
 
 :::demo
 
@@ -26,7 +26,7 @@
         data() {
             return {
                 virtualScrollOption: {
-                    // 是否开启
+                    // enable
                     enable: true,
                     scrolling: this.scrolling,
                 },

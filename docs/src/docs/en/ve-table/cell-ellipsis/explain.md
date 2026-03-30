@@ -1,4 +1,4 @@
 :::tip
-1、The `ellipsis` attribute of `column` is used to set cell ellipsis<br>
-2、How many lines beyond the content of `lineClamp` are omitted
+1. Use the `ellipsis` property on a `column` to show ellipsis when content overflows<br>
+2. Use `lineClamp` to set the number of lines after which content is truncated with ellipsis
 :::

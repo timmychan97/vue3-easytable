@@ -1,6 +1,6 @@
-:::anchor Hide Select All Checkbox
+:::anchor Hide Select All
 
-:::demo Hide the select all checkbox by `hideSelectAll=true`
+:::demo Hide the select-all button with `hideSelectAll=true`
 
 ```html
 <template>

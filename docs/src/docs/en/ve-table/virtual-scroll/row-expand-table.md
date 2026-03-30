@@ -1,4 +1,4 @@
-:::anchor Combination Row Expand Table
+:::anchor Combined with Row Expand Table
 
 :::demo
 
@@ -18,7 +18,7 @@
 </template>
 
 <script>
-    // 此示例是在组件内部定义了一个子组件。你当然也可以通过 `import`关键字导入一个组件
+    // This example defines a child component inside the component. You can also import a component using the `import` keyword.
     const ChildTableComp = {
         name: "ChildTableComp",
         template: `
@@ -86,7 +86,7 @@
         data() {
             return {
                 virtualScrollOption: {
-                    // 是否开启
+                    // Enable or not
                     enable: true,
                 },
                 expandOption: {

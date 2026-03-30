@@ -1,6 +1,6 @@
-:::anchor Single field sorting
+:::anchor Single Field Sorting
 
-:::demo 1、The default is single field sorting<br>2、`sortChange(params)`callback function receives the collation of the column
+:::demo 1. Single field sorting is the default behavior<br>2. The `sortChange(params)` callback function receives the column sort rules
 
 ```html
 <template>

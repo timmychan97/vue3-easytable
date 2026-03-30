@@ -1,6 +1,6 @@
-:::anchor Base Usage
+:::anchor Usage
 
-:::demo 1、The `name` property sets the name of the icon<br> 2、The `size` property sets the size of the icon<br> 3、The `color` property sets the color of the icon
+:::demo 1. The `name` property sets the icon name<br> 2. The `size` property sets the icon size<br> 3. The `color` property sets the icon color
 
 ```html
 <template>

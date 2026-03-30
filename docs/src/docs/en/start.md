@@ -1,47 +1,55 @@
 ## Quick Start
 
-:::anchor npm & yarn
+:::anchor Installation via npm & yarn
 
-```javascript
-npm install vue-easytable
+```bash
+npm install @vue3-easytable/vue
 ```
 
 or
 
-```javascript
-yarn add vue-easytable
+```bash
+pnpm add @vue3-easytable/vue
+```
+
+or
+
+```bash
+yarn add @vue3-easytable/vue
 ```
 
 :::anchor Usage
 
-#### Fully import
+#### Full Import
 
-Write the following in main.js：
+Add the following to your main.js:
 
 ```javascript
-import Vue from 'vue'
-import VueEasytable from 'vue-easytable' // import library
-import 'vue-easytable/libs/theme-default/index.css' // import style
+// Import the component library
+import { useVeTable } from '@vue3-easytable/vue'
+import { createApp } from 'vue'
+// Import styles
+import '@vue3-easytable/vue/libs/theme-default/index.css'
 
-Vue.use(VueEasytable)
-
-new Vue({
-  el: '#app',
+createApp({
   render: h => h(App),
 })
+  .use(useVeTable())
+  .mount('#app')
 ```
 
-The above code completes the introduction of vue-easytable.Don't forget to import style files.
+The above code completes the import of @vue3-easytable/vue. Don't forget to import the style file.
 
-#### On demand
+#### On-demand Import
 
-Write the following in main.js：
+Add the following to your main.js:
 
 ```javascript
-import Vue from 'vue'
-import { VeIcon, VeLoading, VeLocale, VePagination, VeTable } from 'vue-easytable' // import library
-
-import 'vue-easytable/libs/theme-default/index.css' // import style
+// Import the component library
+import { VeIcon, VeLoading, VeLocale, VePagination, VeTable } from '@vue3-easytable/vue'
+import { createApp } from 'vue'
+// Import styles
+import '@vue3-easytable/vue/libs/theme-default/index.css'
 
 Vue.use(VeTable)
 Vue.use(VePagination)
@@ -79,7 +87,11 @@ new Vue({
                         title: "Hobby",
                         align: "right",
                     },
-                    { field: "address", key: "d", title: "Address" },
+                    {
+                        field: "address",
+                        key: "d",
+                        title: "Address",
+                    },
                 ],
                 tableData: [
                     {
@@ -121,17 +133,17 @@ new Vue({
 
 :::
 
-:::anchor Usage By CDN
+:::anchor Usage via CDN
 
-Through [https://unpkg.com/vue-easytable/](https://unpkg.com/vue-easytable/), you can see the resources of the latest version of Vue vue3-easytable,You can also switch versions to select the required resources,You can start using JS and CSS files on the page
+You can view the latest version resources of @vue3-easytable/vue at [https://unpkg.com/@vue3-easytable/vue/](https://unpkg.com/@vue3-easytable/vue/). You can also switch versions to select the resources you need. Include the JS and CSS files on your page to get started:
 
-```css
-<!-- import style -->
-<link rel="stylesheet" href="https://unpkg.com/vue-easytable/libs/theme-default/index.css">
-<!-- import Vue -->
-<script src="https://cdn.jsdelivr.net/npm/vue@2"></script>
-<!-- import library -->
-<script src="https://unpkg.com/vue-easytable/libs/umd/index.js"></script>
+```html
+<!-- Import styles -->
+<link rel="stylesheet" href="https://unpkg.com/@vue3-easytable/vue/libs/theme-default/index.css">
+<!-- Import Vue -->
+<script src="https://cdn.jsdelivr.net/npm/vue@3"></script>
+<!-- Import the component library -->
+<script src="https://unpkg.com/@vue3-easytable/vue/libs/umd/index.js"></script>
 ```
 
 #### Example
@@ -141,10 +153,10 @@ Through [https://unpkg.com/vue-easytable/](https://unpkg.com/vue-easytable/), yo
 <html>
     <head>
         <meta charset="UTF-8" />
-        <!-- import style -->
+        <!-- Import styles -->
         <link
             rel="stylesheet"
-            href="https://unpkg.com/vue-easytable/libs/theme-default/index.css"
+            href="https://unpkg.com/@vue3-easytable/vue/libs/theme-default/index.css"
         />
     </head>
     <body>
@@ -152,13 +164,15 @@ Through [https://unpkg.com/vue-easytable/](https://unpkg.com/vue-easytable/), yo
             <ve-table :columns="columns" :table-data="tableData"></ve-table>
         </div>
     </body>
-    <!-- import Vue -->
-    <script src="https://cdn.jsdelivr.net/npm/vue@2"></script>
-    <!-- import library -->
-    <script src="https://unpkg.com/vue-easytable/libs/umd/index.js"></script>
+    <!-- Import Vue -->
+    <script src="https://cdn.jsdelivr.net/npm/vue@3"></script>
+    <!-- Import the component library -->
+    <script src="https://unpkg.com/@vue3-easytable/vue/libs/umd/vue3-easytable-vue.js"></script>
     <script>
-        new Vue({
-            el: "#app",
+        const { createApp } = Vue
+        const { useVeTable } = EasytableVue
+
+        createApp({
             data: function () {
                 return {
                     columns: [
@@ -216,14 +230,16 @@ Through [https://unpkg.com/vue-easytable/](https://unpkg.com/vue-easytable/), yo
                     ],
                 };
             },
-        });
+        })
+        .use(useVeTable())
+        .mount("#app");
     </script>
 </html>
 ```
 
 :::anchor WSL Development
 
-If you develop in WSL (Windows Subsystem for Linux), run directly from the WSL terminal:
+If you are developing in WSL (Windows Subsystem for Linux), simply run the following in the WSL terminal:
 
 ```bash
 # Install pnpm (if not already installed)
@@ -234,23 +250,23 @@ git clone https://github.com/timmychan97/vue3-easytable.git
 cd vue3-easytable
 pnpm install
 
-# Start the docs dev server
+# Start the documentation dev server
 pnpm docs
 # Open http://localhost:5173 in your browser
 ```
 
-WSL2 automatically forwards ports to Windows, so you can access `localhost` directly from your Windows browser.
+WSL2 automatically forwards ports to Windows, so you can access `localhost` directly in your Windows browser.
 
 :::anchor Docker Development
 
-If you use Docker for development, there's no need to install Node.js or pnpm manually. The project includes a `Dockerfile` and `docker-compose.yml` at the root:
+If you use Docker for development, there is no need to manually install Node.js or pnpm. The project root provides a `Dockerfile` and `docker-compose.yml`:
 
 ```bash
 # Clone the repository
 git clone https://github.com/timmychan97/vue3-easytable.git
 cd vue3-easytable
 
-# Start the docs dev server
+# Start the documentation dev server
 docker compose up docs
 
 # Open http://localhost:5173 in your browser
@@ -262,8 +278,8 @@ docker compose up docs
 | --- | --- |
 | Start dev server | `docker compose up docs` |
 | Rebuild after dependency changes | `docker compose up --build docs` |
-| Clean cache and rebuild | `docker compose down -v` then `docker compose up --build docs` |
-| Run tests inside container | `docker compose exec docs pnpm test` |
+| Clear cache and rebuild | `docker compose down -v` then `docker compose up --build docs` |
+| Run tests inside the container | `docker compose exec docs pnpm test` |
 
-:::anchor Browser Compatible
-Support modern browser and ie10 and above
+:::anchor Browser Compatibility
+Supports modern browsers and IE11+ by default

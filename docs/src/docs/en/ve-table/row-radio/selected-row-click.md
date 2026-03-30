@@ -1,7 +1,7 @@
-:::anchor Row Click Trigger
+:::anchor Row Click to Select
 
-This example is row click trigger selection,You can also click and select columns through event customization
-:::demo The controllable attribute combined with "event customization" can trigger the selection effect by clicking the line
+This example demonstrates selection triggered by row click. You can also achieve column click selection through "Custom Events".
+:::demo Combine controlled properties with "Custom Events" to achieve row click selection.
 
 ```html
 <template>
@@ -33,6 +33,7 @@ This example is row click trigger selection,You can also click and select column
                 },
                 radioOption: {
                     selectedRowKey: "",
+                    // Row selection change event
                     selectedRowChange: ({ row }) => {
                         this.changeSelectedRowKey(row.rowKey);
                     },
@@ -112,7 +113,7 @@ This example is row click trigger selection,You can also click and select column
             changeSelectedRowKey(key) {
                 this.radioOption.selectedRowKey = key;
             },
-            // 行点击触发
+            // Triggered by row click
             changeSelectedRowKeyByRowClick(currentRowKey) {
                 this.radioOption.selectedRowKey = currentRowKey;
             },

@@ -2,7 +2,7 @@
 
 The following example hides the hobby and name columns by default
 
-:::demo Set the default hidden columns through the `defaultHiddenColumnKeys` property
+:::demo Set default hidden columns via the `defaultHiddenColumnKeys` property
 
 ```html
 <template>

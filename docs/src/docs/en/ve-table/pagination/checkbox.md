@@ -1,11 +1,11 @@
-:::anchor With Row Checkbox
+:::anchor Combined with Row Multi-Select
 
-:::demo Logic of this example, refer to [mail.google.com](https://mail.google.com/)
+:::demo The multi-select logic in this example can refer to [mail.google.com](https://mail.google.com/)
 
 ```html
 <template>
     <div>
-        <div>current selected row keys:{{selectedRowKeysCollection}}</div>
+        <div>当前选中的行key：{{selectedRowKeysCollection}}</div>
         <ve-table
             :columns="columns"
             :table-data="currentPageData"

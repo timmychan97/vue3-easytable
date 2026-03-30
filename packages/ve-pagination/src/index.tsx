@@ -15,7 +15,7 @@ export default defineComponent({
       render() {
         return (
           <span class={clsName('total')} aria-live="polite">
-            {t('total', this.$parent.total)}
+            {t('合计', this.$parent.total)}
           </span>
         )
       },
@@ -35,7 +35,7 @@ export default defineComponent({
           >
             <button
               type="button"
-              aria-label={t('prevPage')}
+              aria-label={t('上一页')}
               aria-disabled={isDisabled}
               disabled={isDisabled}
               tabindex={isDisabled ? -1 : 0}
@@ -63,7 +63,7 @@ export default defineComponent({
           >
             <button
               type="button"
-              aria-label={t('nextPage')}
+              aria-label={t('下一页')}
               aria-disabled={isDisabled}
               disabled={isDisabled}
               tabindex={isDisabled ? -1 : 0}
@@ -80,7 +80,7 @@ export default defineComponent({
         return (
           <div class={clsName('select-wrapper')}>
             <span class={clsName('select-label')} id="ve-pagination-size-label">
-              {t('pageSizeLabel')}
+              {t('每页显示条数')}
             </span>
             <VeSelect
               class={clsName('select')}
@@ -121,7 +121,7 @@ export default defineComponent({
         return (
           <span class={clsName('goto')}>
             <label class={clsName('goto-label')} for="ve-pagination-jumper">
-              {t('goto')}
+              {t('前往')}
             </label>
             <input
               id="ve-pagination-jumper"
@@ -131,10 +131,10 @@ export default defineComponent({
               type="text"
               inputmode="numeric"
               pattern="[0-9]*"
-              aria-label={t('jumpToLabel')}
+              aria-label={t('跳转到')}
             />
             <span class={clsName('goto-suffix')} aria-hidden="true">
-              {t('page')}
+              {t('页')}
             </span>
           </span>
         )
@@ -212,7 +212,7 @@ export default defineComponent({
         }
 
         temp.value = x
-        temp.label = x + t('itemsPerPage')
+        temp.label = x + t('每页条数')
         if (this.newPageSize === x)
           temp.selected = true
 
@@ -317,7 +317,7 @@ export default defineComponent({
     }
 
     return (
-      <nav class={clsName('nav')} aria-label={t('paginationLabel')}>
+      <nav class={clsName('nav')} aria-label={t('分页导航')}>
         <ul class="ve-pagination" role="list">
           {
             this.layout.map((item) => {

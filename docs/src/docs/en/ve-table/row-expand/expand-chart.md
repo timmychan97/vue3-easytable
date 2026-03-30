@@ -1,6 +1,6 @@
 :::anchor Expand Chart
 
-:::demo 1、The third party chart library used by this example：[echarts](https://github.com/apache/incubator-echarts)。The purpose is to fully customize the content of the exhibition line<br>Please refer to the official documents for the specific use of ecarts.This sample document:https://echarts.apache.org/examples/zh/editor.html?c=mix-line-bar
+:::demo 1. This example uses the third-party charting library: [echarts](https://github.com/apache/incubator-echarts). The purpose is to demonstrate that the expanded row content is fully customizable.<br>For detailed usage of echarts, please refer to the official documentation. Example reference: https://echarts.apache.org/examples/zh/editor.html?c=mix-line-bar
 
 ```html
 <template>
@@ -14,7 +14,7 @@
 </template>
 
 <script>
-    import echarts from "echarts";
+    import * as echarts from "echarts";
     export default {
         data() {
             return {
@@ -37,7 +37,7 @@
                     {
                         field: "",
                         key: "a",
-                        // 设置需要显示展开图标的列
+                        // Set the column that displays the expand icon
                         type: "expand",
                         title: "",
                         width: 50,
@@ -203,7 +203,8 @@
             },
         },
         mounted() {
-            this.renderChart();
+            console.log(document.getElementById("chart-container"));
+            // this.renderChart();
         },
     };
 </script>

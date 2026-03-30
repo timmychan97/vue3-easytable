@@ -1,6 +1,6 @@
 :::anchor Custom Icon
 
-filterIcon function Support to return custom icon. The built-in `<ve-icon name="search" />` icon is used here,You can also use other icon libraries
+The filterIcon callback function supports returning a custom icon. Here the built-in `<ve-icon name="search" />` icon is used, but you can also use other icon libraries
 :::demo
 
 ```html

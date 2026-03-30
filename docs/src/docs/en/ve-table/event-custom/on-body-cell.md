@@ -1,11 +1,11 @@
-:::anchor Body Column Event Custom
+:::anchor Body Cell Custom Events
 
 :::demo
 
 ```html
 <template>
     <div>
-        Open F12 to view the console information
+        打开F12 查看 console 信息
         <ve-table
             :columns="columns"
             :table-data="tableData"

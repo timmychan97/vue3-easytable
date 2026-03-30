@@ -5,7 +5,7 @@
 ```html
 <template>
     <div>
-        Open F12 to view the console information
+        打开F12 查看 console 信息
         <ve-table
             border-y
             fixed-header
@@ -99,14 +99,14 @@
                 this.footerData = [
                     {
                         rowKey: 0,
-                        name: "Average Values",
+                        name: "平均值",
                         date: 213,
                         hobby: 355,
                         address: 189,
                     },
                     {
                         rowKey: 1,
-                        name: "Summary Values",
+                        name: "汇总值",
                         date: 1780,
                         hobby: 890,
                         address: 2988,

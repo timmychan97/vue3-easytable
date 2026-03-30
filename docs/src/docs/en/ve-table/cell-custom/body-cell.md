@@ -1,6 +1,6 @@
-:::anchor Body cell custom
+:::anchor Body Custom Cell
 
-:::demo 1、In the`column` option, the rendering function can be passed in through the attribute `renderBodyCell({row,column,rowIndex},h)`<br>2、The render function takes 3 parameters,`row`:Current row data、`column`:Current column option、`rowIndex`:Row index
+:::demo 1. In the `column` configuration, you can pass a render function via the `renderBodyCell({row,column,rowIndex},h)` property. This uses JSX syntax, which is similar to template syntax. For more information about JSX, refer to the [Vue.js official documentation](https://vuejs.org/v2/guide/render-function.html#JSX)<br>2. The render function receives three parameters: `row`: current row data, `column`: current column configuration, `rowIndex`: row index
 
 ```html
 <template>

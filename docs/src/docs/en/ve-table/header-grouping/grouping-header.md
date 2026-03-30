@@ -1,6 +1,6 @@
 :::anchor Header Grouping
 
-:::demo 1、Specify the currently merged column by setting `children`
+:::demo 1. Specify the columns to merge by setting the `children` property
 
 ```html
 <template>

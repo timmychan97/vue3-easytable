@@ -1,6 +1,6 @@
-:::anchor Table body cell style
+:::anchor Body Cell Style
 
-:::demo 1、The callback function `bodyCellClass({ row, column, rowIndex })` receives 3 parameters,row：Current row data、column：Current column option、rowIndex：Row index<br>2、Returns the qualified cells to the specified class name.<br>3、If you need to set the background color or font color to cells, you need to add `!Important`
+:::demo 1. The callback function `bodyCellClass({ row, column, rowIndex })` receives 3 parameters: row (current row data), column (current column configuration), rowIndex (row index)<br>2. Return the specified class name for cells that match the condition. The class name is user-defined<br>3. If you need to set background color or font color for cells, you must add `!important`
 
 ```html
 <template>

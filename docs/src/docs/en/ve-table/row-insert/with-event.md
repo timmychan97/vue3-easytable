@@ -1,6 +1,6 @@
-:::anchor With Event Handler
+:::anchor With Event Handling
 
-:::demo Use the `@on-row-insert` event to handle row insertion. The event provides the `insertRowIndex` which indicates where the new row should be inserted.
+:::demo Use the `@on-row-insert` event to handle row insertion. The event provides `insertRowIndex`, indicating where the new row should be inserted.
 
 ```html
 <template>
@@ -13,7 +13,7 @@
             :max-height="300"
             @on-row-insert="handleRowInsert"
         />
-        <p style="margin-top: 10px;">Total rows: {{ tableData.length }}</p>
+        <p style="margin-top: 10px;">总行数: {{ tableData.length }}</p>
     </div>
 </template>
 
@@ -39,28 +39,28 @@
                     {
                         field: "name",
                         key: "name",
-                        title: "Name",
+                        title: "姓名",
                         width: 150,
                         align: "left",
                     },
                     {
                         field: "date",
                         key: "date",
-                        title: "Date",
+                        title: "日期",
                         width: 150,
                         align: "left",
                     },
                     {
                         field: "hobby",
                         key: "hobby",
-                        title: "Hobby",
+                        title: "爱好",
                         width: 200,
                         align: "left",
                     },
                     {
                         field: "address",
                         key: "address",
-                        title: "Address",
+                        title: "地址",
                         width: "",
                         align: "left",
                     },
@@ -68,24 +68,24 @@
                 tableData: [
                     {
                         rowKey: 1001,
-                        name: "John",
+                        name: "张三",
                         date: "1900-05-20",
-                        hobby: "coding",
-                        address: "No.1 Century Avenue, Shanghai",
+                        hobby: "编程",
+                        address: "上海市世纪大道1号",
                     },
                     {
                         rowKey: 1002,
-                        name: "Dickerson",
+                        name: "李四",
                         date: "1910-06-20",
-                        hobby: "coding",
-                        address: "No.1 Century Avenue, Beijing",
+                        hobby: "编程",
+                        address: "北京市世纪大道1号",
                     },
                     {
                         rowKey: 1003,
-                        name: "Larsen",
+                        name: "王五",
                         date: "2000-07-20",
-                        hobby: "coding and coding repeat",
-                        address: "No.1 Century Avenue, Chongqing",
+                        hobby: "编程、重复编程",
+                        address: "重庆市世纪大道1号",
                     },
                 ],
             };
@@ -94,7 +94,7 @@
             handleRowInsert({ insertRowIndex }) {
                 const newRow = {
                     rowKey: Date.now(),
-                    name: "New Row",
+                    name: "新行",
                     date: new Date().toISOString().split('T')[0],
                     hobby: "",
                     address: "",
@@ -107,4 +107,3 @@
 ```
 
 :::
-

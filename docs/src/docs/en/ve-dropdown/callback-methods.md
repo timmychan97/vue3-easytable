@@ -1,11 +1,11 @@
-回调函数
+Callback Functions
 
 :::demo
 
 ```html
 <template>
     <ve-dropdown hideByItemClick :beforeVisibleChange="beforeVisibleChange" v-model="options">
-        <div style="color:blue;cursor: pointer;">点击这里</div>
+        <div style="color:blue;cursor: pointer;">Click here</div>
     </ve-dropdown>
 </template>
 <script>

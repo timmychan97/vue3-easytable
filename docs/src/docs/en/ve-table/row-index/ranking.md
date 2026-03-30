@@ -1,4 +1,4 @@
-:::anchor Ranking Example
+:::anchor Ranking Scenario
 
 :::demo
 

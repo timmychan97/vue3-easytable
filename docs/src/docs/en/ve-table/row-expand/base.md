@@ -1,4 +1,4 @@
-:::anchor Base Usage
+:::anchor Basic Usage
 
 :::demo
 
@@ -31,7 +31,7 @@
                     {
                         field: "",
                         key: "a",
-                        // 设置需要显示展开图标的列
+                        // Set the column that displays the expand icon
                         type: "expand",
                         title: "",
                         width: 50,

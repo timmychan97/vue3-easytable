@@ -1,6 +1,6 @@
 :::anchor Language Switching
 
-You can use the velocal component to support multiple languages `VeLocal.use` Method to switch the current language
+You can implement multi-language support through the VeLocale component. Use the `VeLocale.use` method to switch the current language
 :::demo
 
 ```html
@@ -18,8 +18,8 @@ You can use the velocal component to support multiple languages `VeLocal.use` Me
     </div>
 </template>
 <script>
-    import zhCN from "vue-easytable/libs/locale/lang/zh-CN";
-    import enUS from "vue-easytable/libs/locale/lang/en-US";
+    import zhCN from "@vue3-easytable/vue/libs/locale/lang/zh-CN";
+    import enUS from "@vue3-easytable/vue/libs/locale/lang/en-US";
 
     export default {
         methods: {

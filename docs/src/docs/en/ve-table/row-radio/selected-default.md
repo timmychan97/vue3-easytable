@@ -1,6 +1,6 @@
-:::anchor Selected by default
+:::anchor Default Selected
 
-:::demo `defaultSelectedRowKey` sets the default selected rowKey
+:::demo `defaultSelectedRowKey` sets the rowKey that should be selected by default.
 
 ```html
 <template>
@@ -21,6 +21,7 @@
             return {
                 radioOption: {
                     defaultSelectedRowKey: 1003,
+                    // Row selection change event
                     selectedRowChange: ({ row }) => {
                         console.log(row);
                     },

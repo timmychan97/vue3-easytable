@@ -1,4 +1,4 @@
-:::anchor Usage
+:::anchor Set Cell Alignment
 
 :::demo
 

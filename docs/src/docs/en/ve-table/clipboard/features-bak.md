@@ -1,4 +1,4 @@
-:::anchor 基础功能
+:::anchor Basic Usage
 
 :::demo
 

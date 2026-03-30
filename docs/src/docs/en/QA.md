@@ -1,26 +1,24 @@
-## Common Problem
+## FAQ
 
-:::anchor 'scrollWidth' attribute
+:::anchor scrollWidth Property
+Q: How to use the `scrollWidth` property?
 
-Q:When to use `scrollWidth` attribute?
+A: When the outer container width is less than the `scrollWidth` value, a horizontal scrollbar will appear. When the outer container width is greater than the `scrollWidth` value, it will adapt to the container width automatically.
 
-A:When the outer container width is less than the `scrollwidth` value, a horizontal scroll bar will appear; when the outer container width is greater than the `scrollwidth` value, it will follow the container adaptively
+:::anchor Fixed Columns
+Q: Why are some columns not displayed after setting fixed columns?
 
-:::anchor Column Fixed
-Q:Why can't some columns be displayed after setting fixed columns?
+A: Because the `scrollWidth` value is less than the sum of columns with explicit widths, columns without a set width or with percentage-based widths will be squeezed out.
 
-A:Because the set scrollWidth value is less than the sum of the width of the column (setting the specific width), it will cause the column with no width or set percentage to be squeezed out
+:::anchor rowKeyFieldName Property
+Q: When should the `rowKeyFieldName` property be used?
 
-:::anchor 'rowKeyFieldName' property
+A: This property ensures correct rendering when data is updated. It applies to the following features: row expand, row single selection, row multiple selection, row click highlight, and virtual scrolling.
 
-Q:When to use `rowKeyFieldName` property?
+:::anchor Error: 'ReferenceError: h is not defined'
+Q: Why does the custom column render function `renderBodyCell` throw 'ReferenceError: h is not defined'?
 
-A:This attribute is to solve the correctness of rendering when the data is updated. Applicable functions are: row expansion, row single selection, row multiple selection, row click highlighting, virtual scroll
-
-:::anchor Error：'ReferenceError: h is not defined'
-Q:Why ‘ReferenceError: h is not defined’
-
-A:Refer to[official documents](https://cn.vuejs.org/v2/guide/render-function.html#JSX)。You can add the second parameter to solve,Such as:
+A: Refer to the [official documentation](https://cn.vuejs.org/v2/guide/render-function.html#JSX). You can **add** the second parameter to fix this, for example:
 
 ```
 renderBodyCell: ({ row, column, rowIndex },h) => {
@@ -28,10 +26,10 @@ renderBodyCell: ({ row, column, rowIndex },h) => {
 }
 ```
 
-:::anchor Long text destroys layout
-Q:When there are too many cell contents, the width set does not take effect?
+:::anchor Long Text Breaks Layout
+Q: Why does the set width not take effect when cell content is too long?
 
-A:Too much text in a cell destroys the layout,This can be controlled by style [word-break](https://developer.mozilla.org/zh-CN/docs/Web/CSS/word-break) ,[Refer to this example](#/en/doc/table/column-width?anchor=long-text-destroys-layout),Such as:
+A: When cell text content is too long, it can break the layout. You can control this with the CSS property [word-break](https://developer.mozilla.org/en-US/docs/Web/CSS/word-break) ([see this example for reference](#/en/doc/table/column-width?anchor=long-text-destroys-layout)), for example:
 
 ```html
 <template>
@@ -39,7 +37,7 @@ A:Too much text in a cell destroys the layout,This can be controlled by style [w
 </template>
 ```
 
-:::anchor Customize scroll bar styles
-Q:How to customize scroll bar styles
+:::anchor Custom Scrollbar Styles
+Q: How to customize scrollbar styles?
 
-A:There is no customized scroll bar style inside the component, which can be customized according to your business.For the customization of scroll bar style, please refer to:https://developer.mozilla.org/zh-CN/docs/Web/CSS/::-webkit-scrollbar
+A: The component does not have built-in custom scrollbar styles. You can customize them according to your needs. For scrollbar style customization, refer to: https://developer.mozilla.org/en-US/docs/Web/CSS/::-webkit-scrollbar

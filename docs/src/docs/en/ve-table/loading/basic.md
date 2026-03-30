@@ -1,14 +1,14 @@
-:::anchor Usage
+:::anchor Example
 
-More about Loading, Please refer to [Loading component](#/en/doc/base/loading)
+For more Loading usage, please refer to the [Loading Component](#/en/doc/base/loading)
 
 :::demo
 
 ```html
 <template>
     <div>
-        <button class="button-demo" @click="show()">Open</button>
-        <button class="button-demo" @click="close()">Close</button>
+        <button class="button-demo" @click="show()">开启 Loading</button>
+        <button class="button-demo" @click="close()">关闭 Loading</button>
         <br />
         <br />
         <ve-table id="loading-container" :columns="columns" :table-data="tableData" />

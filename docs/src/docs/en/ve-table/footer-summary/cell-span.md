@@ -1,6 +1,6 @@
-:::anchor Footer Column Span
+:::anchor Footer Column Merge
 
-:::demo Set the `date` column and `hoby` column in the first row of footer summary to merge. At the same time, you need to specify that the `hoby` column in the second row will not be rendered
+:::demo Set footer summary row 1 to merge the `date` and `hobby` columns. Also specify that row 2's `hobby` column should not be rendered
 
 ```html
 <template>
@@ -118,14 +118,14 @@
                 this.footerData = [
                     {
                         rowKey: 0,
-                        name: "Average Values",
+                        name: "平均值",
                         date: 213,
                         hobby: 355,
                         address: 189,
                     },
                     {
                         rowKey: 1,
-                        name: "Summary Values",
+                        name: "汇总值",
                         date: 1780,
                         hobby: 890,
                         address: 2988,

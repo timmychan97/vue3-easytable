@@ -1,6 +1,6 @@
-:::anchor Radio column option
+:::anchor Radio Column Configuration
 
-:::demo Select the existing column as radio radio column
+:::demo Use an existing column as the radio selection column
 
 ```html
 <template>
@@ -20,7 +20,7 @@
         data() {
             return {
                 radioOption: {
-                    // 行选择改变事件
+                    // Row selection change event
                     selectedRowChange: ({ row }) => {
                         console.log(row);
                     },

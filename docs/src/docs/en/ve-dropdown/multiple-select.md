@@ -1,11 +1,11 @@
-多选
+Multiple Selection
 
 :::demo
 
 ```html
 <template>
     <ve-dropdown v-model="options" is-multiple>
-        <div style="color:blue;cursor: pointer;">点击这里</div>
+        <div style="color:blue;cursor: pointer;">Click here</div>
     </ve-dropdown>
 </template>
 <script>

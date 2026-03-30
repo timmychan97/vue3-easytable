@@ -1,6 +1,6 @@
-:::anchor Body Column Span
+:::anchor Body Column Merge
 
-:::demo Set the `date` and `hoby` columns in the second row to merge.At the same time, you need to specify that the `hoby` column in the second row will not be rendered
+:::demo Merge the `date` and `hobby` columns in row 2. The `hobby` column in row 2 also needs to be set as not rendered
 
 ```html
 <template>

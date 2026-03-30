@@ -1,12 +1,12 @@
-:::anchor Example
+:::anchor Basic Example
 
-:::demo Split line by `type=SEPARATOR`
+:::demo `type=SEPARATOR` renders as a separator line
 
 ```html
 <template>
     <div>
         <div id="contextmenu-target" ref="contextmenuTargetRef">
-            <div>Right click this area</div>
+            <div>Right-click this area</div>
             <div style="font-size:30px;color:red;">{{contextmenuType}}</div>
         </div>
 
@@ -73,6 +73,16 @@
                                     {
                                         label: "menu5-1-1",
                                         type: "menu5-1-1-type",
+                                        children: [
+                                            {
+                                                label: "menu5-1-1-1",
+                                                type: "menu5-1-1-1-type",
+                                            },
+                                            {
+                                                label: "menu5-1-1-2",
+                                                type: "menu5-1-1-2-type",
+                                            },
+                                        ],
                                     },
                                     {
                                         label: "menu5-2-2",

@@ -1,10 +1,10 @@
-:::anchor Shortcuts
+:::anchor Keyboard Shortcuts
 
-Clipboard supports the following shortcut keys (refer to excel shortcut keys):
+The clipboard feature supports the following keyboard shortcuts (based on Excel shortcuts):
 
-| Feature                              | Shortcuts    |
-| :----------------------------------- | :----------- |
-| Copy range cell values               | `Ctrl` + `C` |
-| Paste (support excel content format) | `Ctrl` + `V` |
-| Cut range cell values                | `Ctrl` + `X` |
-| Delete range cell values             | `Delete`     |
+| Function                                  | Shortcut     |
+| :---------------------------------------- | :----------- |
+| Copy selected cell contents               | `Ctrl` + `C` |
+| Paste (supports Excel content format)     | `Ctrl` + `V` |
+| Cut selected cell contents                | `Ctrl` + `X` |
+| Delete selected cell contents             | `Delete`     |

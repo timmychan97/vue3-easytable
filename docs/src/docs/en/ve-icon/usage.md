@@ -1,15 +1,15 @@
 :::anchor Usage
 
-import `VeIcon`
+Import `VeIcon`
 
 ```javascript
 import Vue from 'vue'
-import { VeIcon } from 'vue-easytable'
+import { VeIcon } from '@vue3-easytable/vue'
 
 Vue.use(VeIcon)
 ```
 
-use
+Usage
 
 ```javascript
 <template>

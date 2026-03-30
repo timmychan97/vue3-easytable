@@ -1,4 +1,4 @@
-:::anchor Border radius
+:::anchor Border Radius
 
 :::demo
 
