@@ -14,7 +14,7 @@ export default defineComponent({
     Total: {
       render() {
         return (
-          <span class={clsName('total')}>
+          <span class={clsName('total')} aria-live="polite">
             {t('total', this.$parent.total)}
           </span>
         )
@@ -23,20 +23,25 @@ export default defineComponent({
 
     Prev: {
       render() {
+        const isDisabled = this.$parent.newPageIndex === 1
         return (
           <li
             onClick={this.$parent.prevPage}
             class={[
-              this.$parent.newPageIndex === 1
-                ? clsName('disabled')
-                : '',
+              isDisabled ? clsName('disabled') : '',
               clsName('li'),
               clsName('prev'),
             ]}
           >
-            <a>
+            <button
+              type="button"
+              aria-label={t('prevPage')}
+              aria-disabled={isDisabled}
+              disabled={isDisabled}
+              tabindex={isDisabled ? -1 : 0}
+            >
               <VeIcon name={ICON_NAMES.LEFT_ARROW} />
-            </a>
+            </button>
           </li>
         )
       },
@@ -46,20 +51,25 @@ export default defineComponent({
 
     Next: {
       render() {
+        const isDisabled = this.$parent.newPageIndex === this.$parent.pageCount
         return (
           <li
             onClick={this.$parent.nextPage}
             class={[
-              this.$parent.newPageIndex === this.$parent.pageCount
-                ? clsName('disabled')
-                : '',
+              isDisabled ? clsName('disabled') : '',
               clsName('li'),
               clsName('next'),
             ]}
           >
-            <a>
+            <button
+              type="button"
+              aria-label={t('nextPage')}
+              aria-disabled={isDisabled}
+              disabled={isDisabled}
+              tabindex={isDisabled ? -1 : 0}
+            >
               <VeIcon name={ICON_NAMES.RIGHT_ARROW} />
-            </a>
+            </button>
           </li>
         )
       },
@@ -68,14 +78,20 @@ export default defineComponent({
     Sizer: {
       render() {
         return (
-          <VeSelect
-            class={clsName('select')}
-            modelValue={this.$parent.newPageSizeOption}
-            popperAppendTo={this.$parent.popperAppendTo}
-            // eslint-disable-next-line ts/ban-ts-comment
-            // @ts-expect-error
-            onUpdate:modelValue={this.handleChange}
-          />
+          <div class={clsName('select-wrapper')}>
+            <span class={clsName('select-label')} id="ve-pagination-size-label">
+              {t('pageSizeLabel')}
+            </span>
+            <VeSelect
+              class={clsName('select')}
+              modelValue={this.$parent.newPageSizeOption}
+              popperAppendTo={this.$parent.popperAppendTo}
+              aria-labelledby="ve-pagination-size-label"
+              // eslint-disable-next-line ts/ban-ts-comment
+              // @ts-expect-error
+              onUpdate:modelValue={this.handleChange}
+            />
+          </div>
         )
       },
 
@@ -93,11 +109,10 @@ export default defineComponent({
     Jumper: {
       methods: {
         jumperEnter(event: KeyboardEvent) {
-          if (event.keyCode !== 13)
+          if (event.key !== 'Enter')
             return
           const target = event.target as HTMLInputElement
           const val = this.$parent.getValidNum(target.value)
-          // bug fixed #483
           target.value = val
           this.$parent.jumpPageHandler(val)
         },
@@ -105,18 +120,22 @@ export default defineComponent({
       render() {
         return (
           <span class={clsName('goto')}>
-                        &nbsp;
-            {t('goto')}
-&nbsp;
+            <label class={clsName('goto-label')} for="ve-pagination-jumper">
+              {t('goto')}
+            </label>
             <input
+              id="ve-pagination-jumper"
               class={clsName('goto-input')}
               value={this.$parent.newPageIndex}
               onKeyup={this.jumperEnter}
-              type="input"
+              type="text"
+              inputmode="numeric"
+              pattern="[0-9]*"
+              aria-label={t('jumpToLabel')}
             />
-                        &nbsp;
-            {t('page')}
-&nbsp;
+            <span class={clsName('goto-suffix')} aria-hidden="true">
+              {t('page')}
+            </span>
           </span>
         )
       },
@@ -281,7 +300,6 @@ export default defineComponent({
   },
   render() {
     const comps = {
-      // 'total','prev','pager','next','sizer','jumper'
       total: <total></total>,
       prev: <prev></prev>,
       pager: (
@@ -297,16 +315,17 @@ export default defineComponent({
       sizer: <sizer></sizer>,
       jumper: <jumper onJumpPageHandler={this.jumpPageHandler}></jumper>,
     }
-    const template = (
-      <ul class="ve-pagination">
-        {
-          this.layout.map((item) => {
-            return comps[item]
-          })
-        }
-      </ul>
-    )
 
-    return template
+    return (
+      <nav class={clsName('nav')} aria-label={t('paginationLabel')}>
+        <ul class="ve-pagination" role="list">
+          {
+            this.layout.map((item) => {
+              return comps[item]
+            })
+          }
+        </ul>
+      </nav>
+    )
   },
 })

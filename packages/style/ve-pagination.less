@@ -4,150 +4,312 @@
     box-sizing: border-box;
 }
 
+// 导航容器
+.ve-pagination-nav {
+    display: block;
+    width: 100%;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+        'Helvetica Neue', Arial, 'Noto Sans SC', sans-serif;
+}
+
 .ve-pagination {
     font-size: 14px;
-    height: 32px;
-    line-height: 32px;
+    line-height: 1;
     background-color: @ve-pagination-background-color;
     margin: 0;
-    padding: 0;
-    display: inline-block;
-    margin: 0 4px;
+    padding: 8px 0;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
     list-style-type: none;
 
-    // 总页数信息
+    // 重置外部样式（如 VitePress .vp-doc li + li）
+    li,
+    li + li {
+        margin: 0;
+        padding: 0;
+    }
+
+    // 总数信息
     .ve-pagination-total {
-        float: left;
-        margin: 0 4px;
-        color: @ve-pagination-item-text-color;
+        color: @ve-pagination-secondary-text-color;
+        font-size: 13px;
+        padding: 0 8px 0 0;
+        white-space: nowrap;
+        font-variant-numeric: tabular-nums;
     }
 
-    // 分页大小
+    // 分页大小选择器
+    .ve-pagination-select-wrapper {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+
+        .ve-pagination-select-label {
+            // 仅屏幕阅读器可见
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            border: 0;
+        }
+    }
+
     .ve-pagination-select {
-        float: left;
-        margin: 0 4px;
-        margin: 0 4px;
+        // VeSelect 自身样式控制
     }
 
-    // 数字项
+    // 数字分页器
     .ve-pagination-pager {
-        float: left;
+        display: flex;
+        align-items: center;
+        gap: 2px;
     }
 
     // 跳转器
     .ve-pagination-goto {
-        float: left;
-        margin: 0 4px;
-        color: @ve-pagination-item-text-color;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        color: @ve-pagination-secondary-text-color;
+        font-size: 13px;
+        white-space: nowrap;
+        margin-left: 4px;
+
+        .ve-pagination-goto-label {
+            color: @ve-pagination-secondary-text-color;
+        }
+
+        .ve-pagination-goto-suffix {
+            color: @ve-pagination-secondary-text-color;
+        }
 
         .ve-pagination-goto-input {
-            width: 50px;
+            width: 48px;
             height: 32px;
-            padding: 1px 7px;
+            padding: 4px 6px;
             display: inline-block;
-            border: 1px solid @ve-pagination-item-border-color;
-            background-color: @ve-pagination-goto-background-color;
+            border: 1.5px solid @ve-pagination-border-color;
+            background-color: @ve-pagination-input-background-color;
             background-image: none;
-            transition: border 0.2s ease-in-out,
-                background-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
-            border-radius: 4px;
-            color: @ve-pagination-goto-input-color;
-            &:focus {
-                outline: none !important;
-                border-color: @ve-pagination-goto-input-hover-color;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+            border-radius: 8px;
+            color: @ve-pagination-text-color;
+            font-size: 13px;
+            font-variant-numeric: tabular-nums;
+            text-align: center;
+            outline: none;
+
+            &:focus-visible {
+                border-color: @ve-pagination-focus-color;
+                box-shadow: 0 0 0 3px @ve-pagination-focus-ring-color;
             }
-            &:hover {
-                border-color: @ve-pagination-goto-input-hover-color;
+
+            &:hover:not(:focus-visible) {
+                border-color: @ve-pagination-hover-color;
             }
         }
     }
 
-    // 共用部分
+    // 分页项公共样式 — 无边框现代风格
     .ve-pagination-li {
         min-width: 32px;
         height: 32px;
-        float: left;
-        margin-right: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
         cursor: pointer;
-        transition: all 0.1s ease-in-out;
+        transition: background-color 0.15s ease, color 0.15s ease;
         text-align: center;
         list-style: none;
-        background-color: @ve-pagination-item-background-color;
-        border: 1px solid @ve-pagination-item-border-color;
-        border-radius: 4px;
+        background-color: transparent;
+        border: none;
+        border-radius: 8px;
+
+        // 内部按钮 — 填满整个 li
+        button {
+            all: unset;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+            min-width: 32px;
+            padding: 0 8px;
+            cursor: inherit;
+            color: @ve-pagination-text-color;
+            font-size: 13px;
+            font-variant-numeric: tabular-nums;
+            line-height: 1;
+            border-radius: 8px;
+            box-sizing: border-box;
+
+            &:focus-visible {
+                outline: 2px solid @ve-pagination-focus-color;
+                outline-offset: 1px;
+            }
+
+            &:disabled {
+                cursor: not-allowed;
+            }
+        }
+
         a {
-            color: @ve-pagination-item-text-color;
+            color: @ve-pagination-text-color;
+            text-decoration: none;
+        }
+
+        &:hover:not(.ve-pagination-disabled):not(.ve-pagination-li-active) {
+            background-color: @ve-pagination-hover-background-color;
+
+            button,
+            a {
+                color: @ve-pagination-hover-color;
+            }
+        }
+
+        &:active:not(.ve-pagination-disabled):not(.ve-pagination-li-active) {
+            background-color: @ve-pagination-active-press-background-color;
+        }
+
+        // 当前页 — 实心填充
+        &.ve-pagination-li-active {
+            background-color: @ve-pagination-active-background-color;
+
+            button,
+            a {
+                font-weight: 600;
+                color: @ve-pagination-active-text-color;
+            }
+
+            &:hover {
+                background-color: @ve-pagination-active-hover-background-color;
+            }
+        }
+    }
+
+    // 上一页 / 下一页
+    .ve-pagination-prev,
+    .ve-pagination-next {
+        button {
+            color: @ve-pagination-text-color;
+        }
+
+        i {
+            color: @ve-pagination-icon-color;
+            transition: color 0.15s ease;
+            font-size: 12px;
+        }
+
+        &:hover:not(.ve-pagination-disabled) i {
+            color: @ve-pagination-hover-color;
+        }
+    }
+
+    // 快速跳转 — 省略号 / 双箭头
+    .ve-pagination-jump-prev,
+    .ve-pagination-jump-next {
+        position: relative;
+        color: @ve-pagination-ellipsis-color;
+
+        &::after {
+            content: "\00B7\00B7\00B7";
+            display: block;
+            letter-spacing: 2px;
+            color: @ve-pagination-ellipsis-color;
+            text-align: center;
+            font-size: 14px;
+            font-weight: 700;
+            line-height: 32px;
+        }
+
+        button {
+            position: absolute;
+            inset: 0;
+        }
+
+        i {
+            display: none;
         }
 
         &:hover {
-            border-color: @ve-pagination-li-color;
-            a {
-                color: @ve-pagination-li-color;
-            }
-        }
+            background-color: @ve-pagination-hover-background-color;
 
-        &.ve-pagination-li-active {
-            border-color: @ve-pagination-li-color;
-            a {
-                font-weight: bold;
-                color: @ve-pagination-li-color;
+            &::after {
+                display: none;
             }
-            &:hover {
-                border-color: @ve-pagination-li-color;
-                a {
-                    font-weight: bold;
-                    color: @ve-pagination-li-color;
-                }
+
+            i {
+                display: inline;
+                color: @ve-pagination-hover-color;
             }
         }
     }
 
-    .ve-pagination-prev i,
-    .ve-pagination-next i {
-        color: #666;
-    }
-
-    .ve-pagination-prev:hover i,
-    .ve-pagination-next:hover i {
-        color: @ve-pagination-jump-hover-color;
-    }
-
-    .ve-pagination-jump-prev:after,
-    .ve-pagination-jump-next:after {
-        content: "\2022\2022\2022";
-        display: block;
-        letter-spacing: 1px;
-        color: #666;
-        text-align: center;
-    }
-
-    .ve-pagination-jump-prev i,
-    .ve-pagination-jump-prev:hover:after,
-    .ve-pagination-jump-next i,
-    .ve-pagination-jump-next:hover:after {
-        display: none;
-    }
-
-    .ve-pagination-jump-prev:hover i,
-    .ve-pagination-jump-next:hover i {
-        display: inline;
-        color: @ve-pagination-jump-hover-color;
-    }
-
+    // 禁用状态
     .ve-pagination-disabled {
         cursor: not-allowed;
-        border-color: @ve-pagination-item-border-color;
+        opacity: 0.35;
 
         &:hover {
-            border-color: @ve-pagination-item-border-color;
+            background-color: transparent;
+
             i {
-                color: #ccc;
+                color: @ve-pagination-disabled-color;
                 cursor: not-allowed;
             }
         }
 
         i {
-            color: #ccc;
+            color: @ve-pagination-disabled-color;
+        }
+    }
+}
+
+// 响应式适配
+@media (max-width: 640px) {
+    .ve-pagination {
+        gap: 4px;
+        padding: 6px 0;
+
+        .ve-pagination-li {
+            min-width: 28px;
+            height: 28px;
+
+            button {
+                min-width: 28px;
+                padding: 0 6px;
+                font-size: 12px;
+            }
+        }
+
+        // 小屏隐藏跳转器
+        .ve-pagination-goto {
+            display: none;
+        }
+
+        .ve-pagination-goto-input {
+            height: 28px;
+        }
+    }
+}
+
+@media (max-width: 480px) {
+    .ve-pagination {
+        gap: 2px;
+
+        // 极小屏隐藏分页大小选择器
+        .ve-pagination-select-wrapper {
+            display: none;
+        }
+
+        // 极小屏隐藏总数
+        .ve-pagination-total {
+            display: none;
         }
     }
 }

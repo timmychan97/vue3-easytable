@@ -38,7 +38,7 @@ exports[`veTable header filter > render filter custom icon 1`] = `
                             <li class="ve-dropdown-items-li"><a href="javascript:void(0);" class="ve-dropdown-items-li-a ve-dropdown-items-li-a-left"><label class="ve-radio"><span class="ve-radio-container"><input class="ve-radio-input" type="radio"><span class="ve-radio-inner"></span></span><span class="ve-radio-label">2010-08-20</span></label></a></li>
                             <li class="ve-dropdown-items-li"><a href="javascript:void(0);" class="ve-dropdown-items-li-a ve-dropdown-items-li-a-left"><label class="ve-radio"><span class="ve-radio-container"><input class="ve-radio-input" type="radio"><span class="ve-radio-inner"></span></span><span class="ve-radio-label">2020-09-20</span></label></a></li>
                           </div>
-                          <li class="ve-dropdown-operation"><a href="javascript:void(0)" class="ve-dropdown-operation-item ve-dropdown-filter-disable">Reset</a><a class="ve-dropdown-operation-item" href="javascript:void(0)">Confirm</a></li>
+                          <li class="ve-dropdown-operation"><a href="javascript:void(0)" class="ve-dropdown-operation-item ve-dropdown-filter-disable">重置</a><a class="ve-dropdown-operation-item" href="javascript:void(0)">筛选</a></li>
                         </div>
                       </ul>
                     </dd>
@@ -255,7 +255,7 @@ exports[`veTable header filter > render multiple filter 1`] = `
                             <li class="ve-dropdown-items-multiple ve-dropdown-items-li ve-dropdown-items-li-a-left"><label class="ve-checkbox" style="display: inline-block;"><span class="ve-checkbox-content"><input class="ve-checkbox-input" type="checkbox" value="Geneva"><span class="ve-checkbox-inner"></span></span><span class="ve-checkbox-label">Geneva</span></label></li>
                             <li class="ve-dropdown-items-multiple ve-dropdown-items-li ve-dropdown-items-li-a-left"><label class="ve-checkbox" style="display: inline-block;"><span class="ve-checkbox-content"><input class="ve-checkbox-input" type="checkbox" value="Jami"><span class="ve-checkbox-inner"></span></span><span class="ve-checkbox-label">Jami</span></label></li>
                           </div>
-                          <li class="ve-dropdown-operation"><a href="javascript:void(0)" class="ve-dropdown-operation-item">Reset</a><a class="ve-dropdown-operation-item" href="javascript:void(0)">Confirm</a></li>
+                          <li class="ve-dropdown-operation"><a href="javascript:void(0)" class="ve-dropdown-operation-item">重置</a><a class="ve-dropdown-operation-item" href="javascript:void(0)">筛选</a></li>
                         </div>
                       </ul>
                     </dd>
@@ -484,7 +484,7 @@ exports[`veTable header filter > render single filter 1`] = `
                             <li class="ve-dropdown-items-li"><a href="javascript:void(0);" class="ve-dropdown-items-li-a ve-dropdown-items-li-a-left"><label class="ve-radio"><span class="ve-radio-container"><input class="ve-radio-input" type="radio"><span class="ve-radio-inner"></span></span><span class="ve-radio-label">2010-08-20</span></label></a></li>
                             <li class="ve-dropdown-items-li"><a href="javascript:void(0);" class="ve-dropdown-items-li-a ve-dropdown-items-li-a-left"><label class="ve-radio"><span class="ve-radio-container"><input class="ve-radio-input" type="radio"><span class="ve-radio-inner"></span></span><span class="ve-radio-label">2020-09-20</span></label></a></li>
                           </div>
-                          <li class="ve-dropdown-operation"><a href="javascript:void(0)" class="ve-dropdown-operation-item ve-dropdown-filter-disable">Reset</a><a class="ve-dropdown-operation-item" href="javascript:void(0)">Confirm</a></li>
+                          <li class="ve-dropdown-operation"><a href="javascript:void(0)" class="ve-dropdown-operation-item ve-dropdown-filter-disable">重置</a><a class="ve-dropdown-operation-item" href="javascript:void(0)">筛选</a></li>
                         </div>
                       </ul>
                     </dd>

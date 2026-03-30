@@ -1,6 +1,6 @@
 import type { LocaleMessage } from '@vue3-easytable/common/locale/types'
 import type { InjectionKey, Ref } from 'vue'
-import defaultLang from '@vue3-easytable/common/locale/lang/en-US'
+import defaultLang from '@vue3-easytable/common/locale/lang/zh-CN'
 import { withUse } from '@vue3-easytable/common/uses/with-use'
 // import Vue from 'vue'
 import { cloneDeep, merge } from 'lodash'

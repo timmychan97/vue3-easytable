@@ -6,8 +6,15 @@ export default {
     page: '',
     itemsPerPage: ' / page',
     total: total => `Total ${total}`,
-    prev5: 'Previous 5 Pages',
-    next5: 'Next 5 Pages',
+    prev5: pagingCount => `Previous ${pagingCount} Pages`,
+    next5: pagingCount => `Next ${pagingCount} Pages`,
+    prevPage: 'Previous page',
+    nextPage: 'Next page',
+    paginationLabel: 'Pagination navigation',
+    pageLabel: page => `Page ${page}`,
+    currentPageLabel: page => `Page ${page}, current page`,
+    jumpToLabel: 'Jump to page',
+    pageSizeLabel: 'Items per page',
   },
   table: {
     // filter

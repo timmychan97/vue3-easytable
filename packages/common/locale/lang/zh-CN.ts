@@ -6,8 +6,15 @@ export default {
     page: '页',
     itemsPerPage: ' 条/页',
     total: total => `共 ${total} 条`,
-    prev5: '向前 5 页',
-    next5: '向后 5 页',
+    prev5: pagingCount => `向前 ${pagingCount} 页`,
+    next5: pagingCount => `向后 ${pagingCount} 页`,
+    prevPage: '上一页',
+    nextPage: '下一页',
+    paginationLabel: '分页导航',
+    pageLabel: page => `第 ${page} 页`,
+    currentPageLabel: page => `第 ${page} 页，当前页`,
+    jumpToLabel: '跳转到指定页',
+    pageSizeLabel: '每页显示条数',
   },
   table: {
     // filter

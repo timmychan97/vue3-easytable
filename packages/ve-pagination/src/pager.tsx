@@ -36,7 +36,6 @@ export default defineComponent({
 
     showJumpNext() {
       if (this.pageCount > this.pagingCount + 2) {
-        // if (this.pageIndex < this.pageCount - this.numOffset) {
         if (this.pageIndex <= this.pageCount - this.pagingCount)
           return true
       }
@@ -100,7 +99,13 @@ export default defineComponent({
           ]}
           onClick={() => jumpPage(1)}
         >
-          <a>1</a>
+          <button
+            type="button"
+            aria-label={pageIndex === 1 ? t('currentPageLabel', 1) : t('pageLabel', 1)}
+            aria-current={pageIndex === 1 ? 'page' : undefined}
+          >
+            1
+          </button>
         </li>
 
         {showJumpPrev && (
@@ -113,24 +118,32 @@ export default defineComponent({
             title={t('prev5', pagingCount)}
             onClick={() => jumpPage(pageIndex - pagingCount)}
           >
-            <a>
+            <button
+              type="button"
+              aria-label={t('prev5', pagingCount)}
+            >
               <VeIcon name={ICON_NAMES.DOUBLE_LEFT_ARROW} />
-            </a>
+            </button>
           </li>
         )}
         {pagingCounts.map((number, index) => {
+          const isActive = number === pageIndex
           return (
             <li
               key={index}
               class={[
-                number === pageIndex
-                  ? clsName('li-active')
-                  : '',
+                isActive ? clsName('li-active') : '',
                 clsName('li'),
               ]}
               onClick={() => jumpPage(number)}
             >
-              <a>{number}</a>
+              <button
+                type="button"
+                aria-label={isActive ? t('currentPageLabel', number) : t('pageLabel', number)}
+                aria-current={isActive ? 'page' : undefined}
+              >
+                {number}
+              </button>
             </li>
           )
         })}
@@ -141,9 +154,12 @@ export default defineComponent({
             title={t('next5', pagingCount)}
             onClick={() => jumpPage(pageIndex + pagingCount)}
           >
-            <a>
+            <button
+              type="button"
+              aria-label={t('next5', pagingCount)}
+            >
               <VeIcon name={ICON_NAMES.DOUBLE_RIGHT_ARROW} />
-            </a>
+            </button>
           </li>
         )}
 
@@ -155,7 +171,13 @@ export default defineComponent({
             ]}
             onClick={() => jumpPage(pageCount)}
           >
-            <a>{pageCount}</a>
+            <button
+              type="button"
+              aria-label={pageIndex === pageCount ? t('currentPageLabel', pageCount) : t('pageLabel', pageCount)}
+              aria-current={pageIndex === pageCount ? 'page' : undefined}
+            >
+              {pageCount}
+            </button>
           </li>
         )}
       </span>
