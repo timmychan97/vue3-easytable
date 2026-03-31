@@ -1,6 +1,6 @@
 import type { EnhanceAppContext } from 'vitepress'
-import DefaultTheme from 'vitepress/theme'
 import { useData } from 'vitepress'
+import DefaultTheme from 'vitepress/theme'
 import { defineComponent, h, watch } from 'vue'
 import DemoBlock from './DemoBlock.vue'
 import './custom.css'
@@ -48,7 +48,7 @@ export default {
     if (!import.meta.env.SSR) {
       const { lang } = useData()
       // Apply locale immediately on mount and whenever the language changes
-      watch(lang, (newLang) => applyVeLocale(newLang), { immediate: true })
+      watch(lang, newLang => applyVeLocale(newLang), { immediate: true })
     }
   },
 }

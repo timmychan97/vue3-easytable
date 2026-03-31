@@ -13,8 +13,10 @@ const errorMsg = ref('')
 
 const { lang } = useData()
 const expandLabel = computed(() => {
-  if (lang.value === 'nb-NO') return showCode.value ? 'Skjul kode' : 'Vis kode'
-  if (lang.value === 'en-US') return showCode.value ? 'Hide code' : 'Show code'
+  if (lang.value === 'nb-NO')
+    return showCode.value ? 'Skjul kode' : 'Vis kode'
+  if (lang.value === 'en-US')
+    return showCode.value ? 'Hide code' : 'Show code'
   return showCode.value ? '收起代码' : '展开代码'
 })
 

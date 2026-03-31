@@ -95,7 +95,7 @@ function processFile(zhFilePath, locale) {
   // For files in docs/zh/ve-table/, includes use ../../src/docs/zh/
   newContent = newContent.replace(
     /<!--@include: *(\.\.\/)+src\/docs\/zh\//g,
-    match => match.replace('/zh/', `/${locale}/`)
+    match => match.replace('/zh/', `/${locale}/`),
   )
 
   // For index.md which has inline content, we need special handling
@@ -252,7 +252,8 @@ function walkDir(dir) {
     const fullPath = path.join(dir, entry.name)
     if (entry.isDirectory()) {
       files.push(...walkDir(fullPath))
-    } else if (entry.name.endsWith('.md')) {
+    }
+    else if (entry.name.endsWith('.md')) {
       files.push(fullPath)
     }
   }

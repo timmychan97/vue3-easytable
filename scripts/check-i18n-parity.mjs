@@ -30,13 +30,15 @@ function ok(msg) {
 }
 
 function walkDir(dir) {
-  if (!fs.existsSync(dir)) return []
+  if (!fs.existsSync(dir))
+    return []
   const files = []
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
     const fullPath = path.join(dir, entry.name)
     if (entry.isDirectory()) {
       files.push(...walkDir(fullPath))
-    } else if (entry.name.endsWith('.md') || entry.name.endsWith('.ts')) {
+    }
+    else if (entry.name.endsWith('.md') || entry.name.endsWith('.ts')) {
       files.push(fullPath)
     }
   }
@@ -111,7 +113,8 @@ const referenceLocale = 'zh-CN'
 const referenceKeys = allLocaleKeys[referenceLocale]
 if (referenceKeys) {
   for (const [name, keys] of Object.entries(allLocaleKeys)) {
-    if (name === referenceLocale) continue
+    if (name === referenceLocale)
+      continue
 
     // Check sections match
     const refSections = [...referenceKeys.keys()].sort()
@@ -156,7 +159,8 @@ for (const [locale, dir] of Object.entries(wrapperDirs)) {
 
 const refWrapperFiles = wrapperFiles.zh
 for (const [locale, files] of Object.entries(wrapperFiles)) {
-  if (locale === 'zh') continue
+  if (locale === 'zh')
+    continue
 
   const missing = refWrapperFiles.filter(f => !files.includes(f))
   const extra = files.filter(f => !refWrapperFiles.includes(f))
@@ -190,7 +194,8 @@ for (const [locale, dir] of Object.entries(srcDocDirs)) {
 
 const refSrcFiles = srcDocFiles.zh
 for (const [locale, files] of Object.entries(srcDocFiles)) {
-  if (locale === 'zh') continue
+  if (locale === 'zh')
+    continue
 
   const missing = refSrcFiles.filter(f => !files.includes(f))
   const extra = files.filter(f => !refSrcFiles.includes(f))
@@ -218,7 +223,8 @@ const configContent = fs.readFileSync(configPath, 'utf-8')
 function countSidebarLinks(sidebarVarName) {
   const regex = new RegExp(`const ${sidebarVarName}\\s*=\\s*\\[([\\s\\S]*?)^\\]`, 'm')
   const match = configContent.match(regex)
-  if (!match) return 0
+  if (!match)
+    return 0
   return (match[1].match(/link:/g) || []).length
 }
 
@@ -228,13 +234,15 @@ const nbLinks = countSidebarLinks('nbSidebar')
 
 if (zhLinks !== enLinks) {
   error(`Sidebar link count mismatch: zh=${zhLinks}, en=${enLinks}`)
-} else {
+}
+else {
   ok(`zh and en sidebar link counts match (${zhLinks} links)`)
 }
 
 if (zhLinks !== nbLinks) {
   error(`Sidebar link count mismatch: zh=${zhLinks}, nb=${nbLinks}`)
-} else {
+}
+else {
   ok(`zh and nb sidebar link counts match (${zhLinks} links)`)
 }
 
@@ -257,7 +265,8 @@ console.log(`  Warnings: ${warnings}`)
 if (errors > 0) {
   console.log('\n  FAILED: Fix the errors above and re-run.')
   process.exit(1)
-} else {
+}
+else {
   console.log('\n  PASSED: All i18n parity checks passed!')
   process.exit(0)
 }
