@@ -27,13 +27,11 @@ export function clsName(cls: string) {
  * @param {object} rowData - rowData
  * @param {string} rowKeyFieldName - row key field name
  */
-export function getRowKey<T>(rowData: T, rowKeyFieldName: keyof T) {
-  let result = null
-
+export function getRowKey(rowData: any, rowKeyFieldName: string): string | number | null {
   if (rowData && rowKeyFieldName)
-    result = rowData[rowKeyFieldName]
+    return rowData[rowKeyFieldName] ?? null
 
-  return result
+  return null
 }
 
 /**

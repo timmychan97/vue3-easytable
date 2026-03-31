@@ -72,7 +72,7 @@ function processFile(zhFilePath, locale) {
   const targetPath = path.join(DOCS_DIR, locale, relativePath)
 
   // Extract title from frontmatter
-  const titleMatch = content.match(/^---\s*\ntitle:\s*(.+)\s*\n---/)
+  const titleMatch = content.match(/^---\ntitle: (.+)\n---/)
   if (!titleMatch) {
     console.warn(`No frontmatter in ${zhFilePath}`)
     return
@@ -89,13 +89,13 @@ function processFile(zhFilePath, locale) {
 
   // Replace title and include paths
   let newContent = content
-    .replace(/^(---\s*\ntitle:\s*).+(\s*\n---)/, `$1${newTitle}$2`)
+    .replace(/^(---\ntitle: ).+(\n---)/, `$1${newTitle}$2`)
 
   // For files in docs/zh/ root (not ve-table/), includes use ../src/docs/zh/
   // For files in docs/zh/ve-table/, includes use ../../src/docs/zh/
   newContent = newContent.replace(
-    /<!--@include:\s*(\.\.\/)+src\/docs\/zh\//g,
-    (match, dots) => match.replace('/zh/', `/${locale}/`)
+    /<!--@include: *(\.\.\/)+src\/docs\/zh\//g,
+    match => match.replace('/zh/', `/${locale}/`)
   )
 
   // For index.md which has inline content, we need special handling

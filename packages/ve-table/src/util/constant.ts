@@ -171,7 +171,6 @@ export const COMPS_NAME = {
 
   VE_TABLE_BODY: 'VeTableBody',
   VE_TABLE_BODY_TR: 'VeTableBodyTr',
-  VE_TABLE_BODY_TR_SCROLLING: 'VeTableBodyTrScrolling',
   VE_TABLE_BODY_CHECKBOX_CONTENT: 'VeTableBodyCheckboxContent',
   VE_TABLE_BODY_RADIO_CONTENT: 'VeTableBodyRadioContent',
   VE_TABLE_BODY_TD: 'VeTableBodyTd',

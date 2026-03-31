@@ -1,5 +1,4 @@
 import veTable from '@/ve-table'
-import bodyTrScrolling from '@/ve-table/src/body/body-tr-scrolling.jsx'
 import { later } from '@test-utils'
 import { mount } from '@vue/test-utils'
 
@@ -702,18 +701,5 @@ describe('veTable virtual scroll', () => {
 
     const rowCount = getTableRenderedRowCountByRowHeight(minRowHeight)
     expect(wrapper.findAll('.ve-table-body-tr').length).toBe(rowCount)
-  })
-
-  /*
-    how to test?
-    */
-  it('virtual scroll palceholder', async () => {
-    const wrapper = mount(bodyTrScrolling, {
-      propsData: {
-        colgroups: [{}],
-      },
-    })
-
-    expect(wrapper.html()).toMatchSnapshot()
   })
 })

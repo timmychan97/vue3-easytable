@@ -63,20 +63,37 @@ function extractLocaleKeys(filePath) {
   const content = fs.readFileSync(filePath, 'utf-8')
   const keys = new Map()
 
-  // Match top-level sections like "pagination: {" and "table: {"
-  const sectionRegex = /(\w+):\s*\{([^}]*(?:\{[^}]*\}[^}]*)*)\}/gs
-  let match
-  while ((match = sectionRegex.exec(content)) !== null) {
-    const section = match[1]
-    const body = match[2]
-    const keyRegex = /(\w+):/g
-    let keyMatch
-    const sectionKeys = []
-    while ((keyMatch = keyRegex.exec(body)) !== null) {
-      sectionKeys.push(keyMatch[1])
+  // Simple line-by-line parser for TypeScript locale files
+  let currentSection = null
+  const lines = content.split('\n')
+  for (const line of lines) {
+    const trimmed = line.trim()
+    // Match section headers like "分页: {" or "表格: {"
+    const sectionMatch = trimmed.match(/^(\S+)\s*:\s*\{/)
+    if (sectionMatch && !trimmed.startsWith('//')) {
+      currentSection = sectionMatch[1]
+      if (!keys.has(currentSection))
+        keys.set(currentSection, [])
+      continue
     }
-    keys.set(section, sectionKeys.sort())
+    // Match closing brace (end of section)
+    if (trimmed === '},' || trimmed === '}') {
+      if (currentSection)
+        currentSection = null
+      continue
+    }
+    // Match keys inside a section like "前往: 'Go to',"
+    if (currentSection) {
+      const keyMatch = trimmed.match(/^(\S+)\s*:/)
+      if (keyMatch && !trimmed.startsWith('//')) {
+        keys.get(currentSection).push(keyMatch[1])
+      }
+    }
   }
+  // Sort keys for comparison
+  for (const [section, sectionKeys] of keys)
+    keys.set(section, sectionKeys.sort())
+
   return keys
 }
 

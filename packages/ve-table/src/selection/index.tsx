@@ -72,11 +72,6 @@ export default defineComponent({
       type: String,
       default: '',
     },
-    // is scrolling
-    showVirtualScrollingPlaceholder: {
-      type: Boolean,
-      default: false,
-    },
     isVirtualScroll: {
       type: Boolean,
       default: false,
@@ -130,48 +125,42 @@ export default defineComponent({
       let result = true
       if (this.isVirtualScroll) {
         const {
-          showVirtualScrollingPlaceholder,
           cellSelectionData,
           virtualScrollVisibleIndexs,
           currentCellSelectionType,
         } = this
 
-        if (showVirtualScrollingPlaceholder) {
-          result = false
-        }
-        else {
-          const { currentCell, normalEndCell } = cellSelectionData
+        const { currentCell, normalEndCell } = cellSelectionData
 
+        if (
+          currentCellSelectionType
+          === CURRENT_CELL_SELECTION_TYPES.SINGLE
+        ) {
           if (
-            currentCellSelectionType
-            === CURRENT_CELL_SELECTION_TYPES.SINGLE
+            currentCell.rowIndex
+            < virtualScrollVisibleIndexs.start
+            || currentCell.rowIndex
+            > virtualScrollVisibleIndexs.end
           ) {
-            if (
-              currentCell.rowIndex
-              < virtualScrollVisibleIndexs.start
-              || currentCell.rowIndex
-              > virtualScrollVisibleIndexs.end
-            ) {
-              result = false
-            }
+            result = false
           }
+        }
 
+        if (
+          currentCellSelectionType
+          === CURRENT_CELL_SELECTION_TYPES.RANGE
+        ) {
           if (
-            currentCellSelectionType
-            === CURRENT_CELL_SELECTION_TYPES.RANGE
+            (currentCell.rowIndex
+              < virtualScrollVisibleIndexs.start
+              && normalEndCell.rowIndex
+              < virtualScrollVisibleIndexs.start)
+            || (currentCell.rowIndex
+              > virtualScrollVisibleIndexs.end
+              && normalEndCell.rowIndex
+              > virtualScrollVisibleIndexs.end)
           ) {
-            if (
-              (currentCell.rowIndex
-                < virtualScrollVisibleIndexs.start
-                && normalEndCell.rowIndex
-                < virtualScrollVisibleIndexs.start)
-              || (currentCell.rowIndex
-                > virtualScrollVisibleIndexs.end
-                && normalEndCell.rowIndex
-                > virtualScrollVisibleIndexs.end)
-            ) {
-              result = false
-            }
+            result = false
           }
         }
       }

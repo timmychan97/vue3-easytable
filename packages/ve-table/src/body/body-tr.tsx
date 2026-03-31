@@ -1,4 +1,3 @@
-import VueDomResizeObserver from '@vue3-easytable/common/comps/resize-observer'
 import emitter from '@vue3-easytable/common/mixins/emitter'
 import { isEmptyValue } from '@vue3-easytable/common/utils'
 import { clsName, getEmitEventName } from '../util'
@@ -332,40 +331,16 @@ export default defineComponent({
       },
     }
 
-    if (this.isVirtualScroll) {
-      const props = {
-        class: this.trClass,
-        tagName: 'tr',
-        id: this.currentRowKey,
-        [COMPS_CUSTOM_ATTRS.BODY_ROW_KEY]: this.currentRowKey,
-        onOnDomResizeChange: ({ key, height }) => {
-          this.dispatch(
-            COMPS_NAME.VE_TABLE,
-            EMIT_EVENTS.BODY_ROW_HEIGHT_CHANGE,
-            {
-              rowKey: key,
-              height,
-            },
-          )
-        },
-        ...events,
-      }
-
-      result = (
-        <VueDomResizeObserver {...props}>
-          {getTdContent()}
-        </VueDomResizeObserver>
-      )
+    // Render a plain <tr> in all cases.
+    // For virtual scroll, TanStack measures the parent <tbody> wrapper,
+    // so VueDomResizeObserver is no longer needed on the row.
+    const props = {
+      class: this.trClass,
+      [COMPS_CUSTOM_ATTRS.BODY_ROW_KEY]: this.currentRowKey,
+      ...events,
     }
-    else {
-      const props = {
-        class: this.trClass,
-        [COMPS_CUSTOM_ATTRS.BODY_ROW_KEY]: this.currentRowKey,
-        ...events,
-      }
 
-      result = <tr {...props}>{getTdContent()}</tr>
-    }
+    result = <tr {...props}>{getTdContent()}</tr>
 
     return result
   },

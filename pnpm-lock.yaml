@@ -216,6 +216,9 @@ importers:
 
   packages/ve-table:
     dependencies:
+      '@tanstack/virtual-core':
+        specifier: ^3.13.23
+        version: 3.13.23
       '@vue3-easytable/common':
         specifier: workspace:^0.0.5
         version: link:../common
@@ -1259,6 +1262,9 @@ packages:
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
     peerDependencies:
       eslint: '>=8.40.0'
+
+  '@tanstack/virtual-core@3.13.23':
+    resolution: {integrity: sha512-zSz2Z2HNyLjCplANTDyl3BcdQJc2k1+yyFoKhNRmCr7V7dY8o8q5m8uFTI1/Pg1kL+Hgrz6u3Xo6eFUB7l66cg==}
 
   '@tootallnate/once@2.0.0':
     resolution: {integrity: sha512-XCuKFP5PS55gnMVu3dty8KPatLqUoy/ZYzDzAGCQ8JNFCkLXzmI7vNHCR+XpbZaMWQK/vQubr7PkYq8g470J/A==}
@@ -5044,6 +5050,8 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
       - typescript
+
+  '@tanstack/virtual-core@3.13.23': {}
 
   '@tootallnate/once@2.0.0': {}
 

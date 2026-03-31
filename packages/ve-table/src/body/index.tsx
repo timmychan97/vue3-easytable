@@ -1,10 +1,8 @@
-import VueDomResizeObserver from '@vue3-easytable/common/comps/resize-observer'
 import emitter from '@vue3-easytable/common/mixins/emitter'
 import { getValByUnit } from '@vue3-easytable/common/utils'
 import { defineComponent } from 'vue'
 import {
   clsName,
-  getDomResizeObserverCompKey,
   getFixedTotalWidthByColumnKey,
 } from '../util'
 import {
@@ -15,7 +13,6 @@ import {
 } from '../util/constant'
 
 import BodyTr from './body-tr'
-import BodyTrScrolling from './body-tr-scrolling'
 import ExpandTr from './expand-tr'
 
 export default defineComponent({
@@ -77,10 +74,25 @@ export default defineComponent({
       type: Boolean,
       default: false,
     },
-    // is scrolling
-    showVirtualScrollingPlaceholder: {
-      type: Boolean,
-      default: false,
+    // TanStack virtual items (VirtualItem[])
+    virtualItems: {
+      type: Array,
+      default: () => [],
+    },
+    // Top spacer height (px) for virtual scroll
+    virtualPaddingTop: {
+      type: Number,
+      default: 0,
+    },
+    // Bottom spacer height (px) for virtual scroll
+    virtualPaddingBottom: {
+      type: Number,
+      default: 0,
+    },
+    // TanStack measureElement callback for dynamic row heights
+    virtualMeasureElement: {
+      type: Function,
+      default: null,
     },
     rowKeyFieldName: {
       type: String,
@@ -149,8 +161,6 @@ export default defineComponent({
   },
   data() {
     return {
-      // columns widths map
-      colsWidths: new Map(),
       /*
             internal expand row keys
             1、当没有设置 expandedRowKeys 时生效
@@ -164,10 +174,6 @@ export default defineComponent({
             1、存储当前单选功能的rowkey 信息
             */
       internalRadioSelectedRowKey: null,
-      // virtual scroll preview rendered rowKey
-      virtualScrollPreviewRenderedRowKeys: [],
-      // virtual scroll repeat rendered rowKey
-      virtualScrollRepeatRenderedRowKeys: [],
     }
   },
   computed: {
@@ -562,18 +568,6 @@ export default defineComponent({
       return result
     },
 
-    /*
-         * @tdSizeChange
-         * @desc  td size change
-         * @param {any} key - column key
-         * @param {number|string} width - column real width
-         */
-    tdSizeChange({ key, width }) {
-      const { colsWidths } = this
-      colsWidths.set(key, width)
-      this.$emit(EMIT_EVENTS.BODY_CELL_WIDTH_CHANGE, colsWidths)
-    },
-
     // init internal expand row keys
     initInternalExpandRowKeys() {
       const { expandOption, isControlledExpand, allRowKeys } = this
@@ -799,23 +793,6 @@ export default defineComponent({
       return result
     },
 
-    /*
-        rendering row keys
-        virtual scrolling will invoke
-        */
-    renderingRowKeys(rowKeys) {
-      const {
-        virtualScrollPreviewRenderedRowKeys: previewRenderedRowKeys,
-      } = this
-
-      this.virtualScrollRepeatRenderedRowKeys = rowKeys.filter(
-        (rowKey) => {
-          return previewRenderedRowKeys.includes(rowKey)
-        },
-      )
-
-      this.virtualScrollPreviewRenderedRowKeys = rowKeys
-    },
   },
   render() {
     const {
@@ -829,95 +806,105 @@ export default defineComponent({
       checkboxOption,
       radioOption,
       rowKeyFieldName,
-      tdSizeChange,
       internalCheckboxSelectedRowKeys,
       internalRadioSelectedRowKey,
       isVirtualScroll,
       cellStyleOption,
-      showVirtualScrollingPlaceholder,
+      virtualItems,
+      virtualPaddingTop,
+      virtualPaddingBottom,
+      virtualMeasureElement,
     } = this
 
-    const { virtualScrollRepeatRenderedRowKeys } = this
+    // Build common trProps for a given rowData/rowIndex
+    const buildTrProps = (rowData: any, rowIndex: number) => ({
+      key: this.getTrKey({ rowData, rowIndex }),
+      rowIndex,
+      rowData,
+      colgroups,
+      expandOption,
+      expandedRowkeys,
+      checkboxOption,
+      radioOption,
+      rowKeyFieldName,
+      allRowKeys: this.allRowKeys,
+      expandRowChange,
+      internalCheckboxSelectedRowKeys,
+      internalRadioSelectedRowKey,
+      isVirtualScroll,
+      isExpandRow: isExpandRow({ rowData, rowIndex }),
+      cellStyleOption,
+      cellSpanOption: this.cellSpanOption,
+      highlightRowKey: this.highlightRowKey,
+      eventCustomOption: this.eventCustomOption,
+      cellSelectionData: this.cellSelectionData,
+      editOption: this.editOption,
+      columnCollection: this.columnCollection,
+      cellSelectionRangeData: this.cellSelectionRangeData,
+      bodyIndicatorRowKeys: this.bodyIndicatorRowKeys,
+    })
 
+    // ── Virtual scroll path: use TanStack padding-spacer approach ──
+    if (isVirtualScroll && virtualItems.length > 0) {
+      const colCount = colgroups.length
+      const spacerCellStyle = { padding: 0, border: 0 }
+
+      return (
+        <>
+          {/* Top spacer — pushes visible rows to correct scroll position */}
+          {virtualPaddingTop > 0 && (
+            <tbody aria-hidden="true">
+              <tr>
+                <td colspan={colCount} style={{ ...spacerCellStyle, height: `${virtualPaddingTop}px` }} />
+              </tr>
+            </tbody>
+          )}
+
+          {/* Virtual items — each wrapped in its own <tbody> for measurement.
+              Multiple <tbody> elements in a <table> is valid HTML and lets
+              TanStack's measureElement capture the full height of a row +
+              its optional expand row together. */}
+          {virtualItems.map((vItem: any, i: number) => {
+            const rowData = actualRenderTableData[i]
+            if (!rowData)
+              return null
+
+            const rowIndex = vItem.index
+            const trProps = buildTrProps(rowData, rowIndex)
+
+            return (
+              <tbody
+                key={trProps.key}
+                data-index={vItem.index}
+                ref={virtualMeasureElement as any}
+              >
+                <BodyTr {...trProps} />
+                {getExpandRowComp({ rowData, rowIndex })}
+              </tbody>
+            )
+          })}
+
+          {/* Bottom spacer — fills remaining scroll height */}
+          {virtualPaddingBottom > 0 && (
+            <tbody aria-hidden="true">
+              <tr>
+                <td colspan={colCount} style={{ ...spacerCellStyle, height: `${virtualPaddingBottom}px` }} />
+              </tr>
+            </tbody>
+          )}
+        </>
+      )
+    }
+
+    // ── Non-virtual path: render all rows in a single <tbody> ──
     return (
       <tbody>
-        {/* Measure each column width with additional hidden col */}
-        <tr style="height:0;">
-          {colgroups.map((column) => {
-            const measureTdProps = {
-              key: getDomResizeObserverCompKey(
-                column.key,
-                this.columnsOptionResetTime,
-              ),
-              tagName: 'td',
-              id: column.key,
-              onOnDomResizeChange: tdSizeChange,
-              style: {
-                padding: 0,
-                border: 0,
-                height: 0,
-              },
-            }
-            return <VueDomResizeObserver {...measureTdProps} />
-          })}
-        </tr>
         {actualRenderTableData.map((rowData, rowIndex) => {
-          const trProps = {
-            key: this.getTrKey({ rowData, rowIndex }),
-            rowIndex,
-            rowData,
-            colgroups,
-            expandOption,
-            expandedRowkeys,
-            checkboxOption,
-            radioOption,
-            rowKeyFieldName,
-            allRowKeys: this.allRowKeys,
-            expandRowChange,
-            internalCheckboxSelectedRowKeys,
-            internalRadioSelectedRowKey,
-            isVirtualScroll,
-            isExpandRow: isExpandRow({
-              rowData,
-              rowIndex,
-            }),
-            cellStyleOption,
-            cellSpanOption: this.cellSpanOption,
-            highlightRowKey: this.highlightRowKey,
-            eventCustomOption: this.eventCustomOption,
-            cellSelectionData: this.cellSelectionData,
-            editOption: this.editOption,
-            columnCollection: this.columnCollection,
-            cellSelectionRangeData: this.cellSelectionRangeData,
-            bodyIndicatorRowKeys: this.bodyIndicatorRowKeys,
-          }
-
-          if (showVirtualScrollingPlaceholder) {
-            const trPropsScrolling = {
-              key: this.getTrKey({ rowData, rowIndex }),
-              colgroups,
-            }
-
-            if (
-              virtualScrollRepeatRenderedRowKeys.includes(rowData[this.rowKeyFieldName])
-            ) {
-              return [
-                // body tr
-                <BodyTr {...trProps} />,
-              ]
-            }
-            else {
-              return <BodyTrScrolling {...trPropsScrolling} />
-            }
-          }
-          else {
-            return [
-              // body tr
-              <BodyTr {...trProps} />,
-              // expand row
-              getExpandRowComp({ rowData, rowIndex }),
-            ]
-          }
+          const trProps = buildTrProps(rowData, rowIndex)
+          return [
+            <BodyTr {...trProps} />,
+            getExpandRowComp({ rowData, rowIndex }),
+          ]
         })}
       </tbody>
     )
