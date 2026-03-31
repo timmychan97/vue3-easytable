@@ -1328,7 +1328,7 @@ export default defineComponent({
          * @param {object} rowData - row data
          * @param {object} column - column data
          */
-    bodyCellContextmenu({ event, rowData, column }) {
+    bodyCellContextmenu({ event: _event, rowData, column }) {
       const { editOption, rowKeyFieldName } = this
 
       if (editOption) {
@@ -1349,7 +1349,7 @@ export default defineComponent({
          * @param {object} rowData - row data
          * @param {object} column - column data
          */
-    bodyCellDoubleClick({ event, rowData, column }) {
+    bodyCellDoubleClick({ event: _event, rowData, column }) {
       const { editOption, rowKeyFieldName, colgroups } = this
 
       if (isOperationColumn(column.key, colgroups)) {
@@ -1378,7 +1378,7 @@ export default defineComponent({
          * @param {object} rowData - row data
          * @param {object} column - column data
          */
-    bodyCellClick({ event, rowData, column }) {
+    bodyCellClick({ event: _event, rowData: _rowData, column: _column }) {
       // feature...
     },
 
@@ -1507,7 +1507,7 @@ export default defineComponent({
          * @param {object} rowData - row data
          * @param {object} column - column data
          */
-    bodyCellMouseover({ event, rowData, column }) {
+    bodyCellMouseover({ event: _event, rowData, column }) {
       const {
         rowKeyFieldName,
         isBodyCellMousedown,
@@ -1563,7 +1563,7 @@ export default defineComponent({
          * @param {object} rowData - row data
          * @param {object} column - column data
          */
-    bodyCellMousemove({ event, rowData, column }) {
+    bodyCellMousemove({ event, rowData: _rowData, column }) {
       this.hooks.triggerHook(HOOKS_NAME.BODY_CELL_MOUSEMOVE, {
         event,
         column,
@@ -1576,17 +1576,17 @@ export default defineComponent({
          * @param {object} rowData - row data
          * @param {object} column - column data
          */
-    bodyCellMouseup({ event, rowData, column }) {
+    bodyCellMouseup({ event: _event, rowData: _rowData, column: _column }) {
       // feature...
     },
 
     // header cell click
-    headerCellClick({ event, column }) {
+    headerCellClick({ event: _event, column: _column }) {
       // feature...
     },
 
     // header cell contextmenu
-    headerCellContextmenu({ event, column }) {
+    headerCellContextmenu({ event: _event, column }) {
       this.setContextmenuOptions(column)
     },
 
@@ -1715,7 +1715,7 @@ export default defineComponent({
     },
 
     // header cell mouseover
-    headerCellMouseover({ event, column }) {
+    headerCellMouseover({ event: _event, column }) {
       const {
         colgroups,
         isGroupHeader,
@@ -1767,12 +1767,12 @@ export default defineComponent({
     },
 
     // header cell mouseleave
-    headerCellMouseleave({ event, column }) {
+    headerCellMouseleave({ event: _event, column: _column }) {
       // todo
     },
 
     // header mouseleave
-    headerMouseleave(event) {
+    headerMouseleave(_event) {
       this.setIsColumnResizerHover(false)
     },
 
@@ -2290,7 +2290,7 @@ export default defineComponent({
         // 事件的先后顺序 containerMouseup > bodyCellMousedown > bodyCellMouseup > bodyCellClick
         this.tableContainerMouseup()
       },
-      onMousemove: (event) => {
+      onMousemove: (_event) => {
         // todo
       },
     }

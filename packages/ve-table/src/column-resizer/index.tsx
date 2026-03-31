@@ -161,7 +161,7 @@ export default defineComponent({
     },
 
     // column resizer handler mousedown
-    columnResizerHandlerMousedown({ event }) {
+    columnResizerHandlerMousedown({ event: _event }) {
       if (this.isColumnResizerHover) {
         this.setIsColumnResizing(true)
 

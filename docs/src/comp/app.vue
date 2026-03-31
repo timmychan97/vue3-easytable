@@ -108,14 +108,14 @@ export default {
     },
     // version change
     versionChange(item) {
-      const { protocol, host, pathname, hash } = window.location
+      const { protocol, host, pathname: _pathname, hash } = window.location
       // version 1.0
       if (item.isVersion1) {
         const newUrl = `${protocol}//${host}${item.value}`
         window.open(newUrl, '_blank')
       }
       else {
-        const newUrl = `${protocol}//${host}${item.value}${hash}`
+        const _newUrl = `${protocol}//${host}${item.value}${hash}`
         window.open(item.value, '_self')
       }
     },
@@ -153,6 +153,7 @@ export default {
       if (window.env !== 'dev')
         this.switchThemeMix(this.currentDocTheme)
 
+      // eslint-disable-next-line no-console
       console.log('current doc theme ::', this.currentDocTheme)
     },
   },

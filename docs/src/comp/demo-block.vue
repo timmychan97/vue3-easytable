@@ -29,7 +29,7 @@ const data = reactive({
   isDemoRendered: true,
 })
 
-const { onlineExample, hovering, isDemoRendered, isExpanded, scrollParent, fixedControl } = toRefs(data)
+const { onlineExample, hovering, isDemoRendered, isExpanded, scrollParent: _scrollParent, fixedControl } = toRefs(data)
 
 data.onlineExample.version = version
 const highlight = slots.highlight as any

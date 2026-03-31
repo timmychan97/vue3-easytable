@@ -1,4 +1,6 @@
 #!/usr/bin/env node
+/* eslint-disable no-console */
+/* eslint-disable node/prefer-global/process */
 /**
  * i18n Parity Test Script
  *

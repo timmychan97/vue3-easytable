@@ -33,10 +33,12 @@ export default function useThemeSwitch() {
       // In development, theme switching is not supported
       // since themes are bundled from local Less files
       if (isDev) {
+        // eslint-disable-next-line no-console
         console.log('[Dev] Theme switching disabled - using local Less files. Theme requested:', themeName)
         return Promise.resolve()
       }
 
+      // eslint-disable-next-line no-console
       console.log('themeName', themeName)
 
       return new Promise((resolve, reject) => {

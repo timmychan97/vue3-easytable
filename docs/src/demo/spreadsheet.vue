@@ -55,18 +55,18 @@ const state = reactive({
     directionX: true,
     directionY: true,
     beforeAutofill: ({
-      direction,
-      sourceSelectionRangeIndexes,
-      targetSelectionRangeIndexes,
-      sourceSelectionData,
-      targetSelectionData,
+      _direction,
+      _sourceSelectionRangeIndexes,
+      _targetSelectionRangeIndexes,
+      _sourceSelectionData,
+      _targetSelectionData,
     }) => {},
     afterAutofill: ({
-      direction,
-      sourceSelectionRangeIndexes,
-      targetSelectionRangeIndexes,
-      sourceSelectionData,
-      targetSelectionData,
+      _direction,
+      _sourceSelectionRangeIndexes,
+      _targetSelectionRangeIndexes,
+      _sourceSelectionData,
+      _targetSelectionData,
     }) => {},
   },
   // sort option for column sorting
@@ -78,8 +78,8 @@ const state = reactive({
   },
   // edit option 可控单元格编辑
   editOption: {
-    beforeCellValueChange: ({ row, column, changeValue }) => {},
-    afterCellValueChange: ({ row, column, changeValue }) => {},
+    beforeCellValueChange: ({ _row, _column, _changeValue }) => {},
+    afterCellValueChange: ({ _row, _column, _changeValue }) => {},
   },
   // contextmenu header option
   contextmenuHeaderOption: {
@@ -88,17 +88,17 @@ const state = reactive({
                     In this function,You can change the `contextmenu` options
                     */
     beforeShow: ({
-      isWholeColSelection,
-      selectionRangeKeys,
-      selectionRangeIndexes,
+      _isWholeColSelection,
+      _selectionRangeKeys,
+      _selectionRangeIndexes,
     }) => {
       //
     },
     // after menu click
     afterMenuClick: ({
-      type,
-      selectionRangeKeys,
-      selectionRangeIndexes,
+      _type,
+      _selectionRangeKeys,
+      _selectionRangeIndexes,
     }) => {
       //
     },
@@ -146,9 +146,13 @@ const state = reactive({
       selectionRangeKeys,
       selectionRangeIndexes,
     }) => {
+      // eslint-disable-next-line no-console
       console.log('---contextmenu body beforeShow--')
+      // eslint-disable-next-line no-console
       console.log('isWholeRowSelection::', isWholeRowSelection)
+      // eslint-disable-next-line no-console
       console.log('selectionRangeKeys::', selectionRangeKeys)
+      // eslint-disable-next-line no-console
       console.log(
         'selectionRangeIndexes::',
         selectionRangeIndexes,
@@ -160,9 +164,13 @@ const state = reactive({
       selectionRangeKeys,
       selectionRangeIndexes,
     }) => {
+      // eslint-disable-next-line no-console
       console.log('---contextmenu body afterMenuClick--')
+      // eslint-disable-next-line no-console
       console.log('type::', type)
+      // eslint-disable-next-line no-console
       console.log('selectionRangeKeys::', selectionRangeKeys)
+      // eslint-disable-next-line no-console
       console.log(
         'selectionRangeIndexes::',
         selectionRangeIndexes,
@@ -208,10 +216,12 @@ const state = reactive({
   rowInsertOption: {
     enable: true,
     beforeInsertRow: ({ insertRowIndex }) => {
+      // eslint-disable-next-line no-console
       console.log('Before insert row at index:', insertRowIndex)
       return true // Return false to cancel the insert
     },
     afterInsertRow: ({ insertRowIndex }) => {
+      // eslint-disable-next-line no-console
       console.log('After insert row at index:', insertRowIndex)
     },
   },
@@ -225,7 +235,7 @@ const currentLocal = computed(() => {
 
 // Create filter render function for a column
 function createFilterRender(keyValue: string) {
-  return ({ closeFn }: { showFn: () => void, closeFn: () => void }, h: any) => {
+  return ({ closeFn }: { showFn: () => void, closeFn: () => void }, _h: any) => {
     return (
       <div class="custom-filter" style="padding: 10px; width: 200px;">
         <div style="margin-bottom: 10px;">
@@ -304,15 +314,15 @@ const columns = computed(() => {
 })
 initTableData()
 // render row index
-function renderRowIndex({ row, column, rowIndex }) {
+function renderRowIndex({ _row, _column, rowIndex }) {
   return <span>{rowIndex + state.startRowIndex + 1}</span>
 }
 function scrolling({
   startRowIndex,
-  visibleStartIndex,
-  visibleEndIndex,
-  visibleAboveCount,
-  visibleBelowCount,
+  _visibleStartIndex,
+  _visibleEndIndex,
+  _visibleAboveCount,
+  _visibleBelowCount,
 }) {
   state.startRowIndex = startRowIndex
 }
@@ -393,6 +403,7 @@ function initTableData() {
 
 // Handle row insert
 function handleRowInsert({ insertRowIndex }: { insertRowIndex: number }) {
+  // eslint-disable-next-line no-console
   console.log('Row insert at index:', insertRowIndex)
 
   // Create a new empty row

@@ -7,7 +7,7 @@ const columnsType1 = [
     width: '10%',
     align: 'left',
     type: 'expand',
-    renderBodyCell: ({ row, column, rowIndex }, h) => {
+    renderBodyCell: ({ row, column: _column, rowIndex: _rowIndex }, _h) => {
       return <span innerHTML={row.param}></span>
     },
   },
@@ -17,7 +17,7 @@ const columnsType1 = [
     title: '说明',
     width: '60%',
     align: 'left',
-    renderBodyCell: ({ row, column, rowIndex }, h) => {
+    renderBodyCell: ({ row, column: _column, rowIndex: _rowIndex }, _h) => {
       return <span innerHTML={row.desc}></span>
     },
   },
@@ -27,7 +27,7 @@ const columnsType1 = [
     title: '类型',
     width: '10%',
     align: 'left',
-    renderBodyCell: ({ row, column, rowIndex }, h) => {
+    renderBodyCell: ({ row, column: _column, rowIndex: _rowIndex }, _h) => {
       return <span innerHTML={row.type}></span>
     },
   },
@@ -37,7 +37,7 @@ const columnsType1 = [
     title: '可选值',
     width: '10%',
     align: 'left',
-    renderBodyCell: ({ row, column, rowIndex }, h) => {
+    renderBodyCell: ({ row, column: _column, rowIndex: _rowIndex }, _h) => {
       return <span innerHTML={row.optionalVal}></span>
     },
   },
@@ -47,7 +47,7 @@ const columnsType1 = [
     title: '默认值',
     width: '10%',
     align: 'left',
-    renderBodyCell: ({ row, column, rowIndex }, h) => {
+    renderBodyCell: ({ row, column: _column, rowIndex: _rowIndex }, _h) => {
       return <span innerHTML={row.default}></span>
     },
   },
@@ -72,7 +72,7 @@ const columnsType2 = [
     title: '方法名',
     width: '15%',
     align: 'left',
-    renderBodyCell: ({ row, column, rowIndex }, h) => {
+    renderBodyCell: ({ row, column: _column, rowIndex: _rowIndex }, _h) => {
       return <span innerHTML={row.name}></span>
     },
   },
@@ -82,7 +82,7 @@ const columnsType2 = [
     title: '说明',
     width: '65%',
     align: 'left',
-    renderBodyCell: ({ row, column, rowIndex }, h) => {
+    renderBodyCell: ({ row, column: _column, rowIndex: _rowIndex }, _h) => {
       return <span innerHTML={row.desc}></span>
     },
   },
@@ -92,7 +92,7 @@ const columnsType2 = [
     title: '参数',
     width: '20%',
     align: 'left',
-    renderBodyCell: ({ row, column, rowIndex }, h) => {
+    renderBodyCell: ({ row, column: _column, rowIndex: _rowIndex }, _h) => {
       return <span innerHTML={row.param}></span>
     },
   },

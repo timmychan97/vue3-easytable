@@ -191,7 +191,7 @@ export function getMousePosition(event: MouseEvent) {
  *
  * @author https://stackoverflow.com/questions/263743/how-to-get-caret-position-in-textarea
  * @param {HTMLElement} el An element to check.
- * @returns {number}
+ * @returns {number} The caret position index in the element.
  */
 export function getCaretPosition(el: HTMLInputElement) {
   const rootDocument = document
@@ -242,7 +242,7 @@ export function setCaretPosition(element: HTMLInputElement, pos: number, endPos:
     try {
       element.setSelectionRange(pos, endPos)
     }
-    catch (err) {
+    catch {
       const elementParent = element.parentNode as HTMLElement
       const parentDisplayValue = elementParent.style.display
 

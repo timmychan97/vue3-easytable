@@ -40,6 +40,7 @@ function goAnchor() {
 function eidt() {
   if (props.isEdit) {
     const fileName = props.fileName
+    // eslint-disable-next-line no-console
     console.log(fileName)
 
     let result = ''

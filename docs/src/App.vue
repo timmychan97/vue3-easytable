@@ -141,6 +141,7 @@ function initDocTheme() {
   if (window.env !== 'dev')
     switchThemeMix(currentDocTheme.value)
 
+  // eslint-disable-next-line no-console
   console.log('current doc theme ::', currentDocTheme.value)
 }
 getVersions().then((data: any) => {

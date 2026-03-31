@@ -25,7 +25,9 @@ export default defineComponent({
       editOption: {
         // cell value change
         cellValueChange: ({ row, column }) => {
+          // eslint-disable-next-line no-console
           console.log('cellValueChange row::', row)
+          // eslint-disable-next-line no-console
           console.log('cellValueChange column::', column)
         },
       },
@@ -46,7 +48,7 @@ export default defineComponent({
       // filter condition
       filterConditions: [],
       cellStyleOption: {
-        bodyCellClass: ({ row, column, rowIndex }) => {
+        bodyCellClass: ({ _row, column, _rowIndex }) => {
           if (column.field === 'proficiency')
             return 'table-body-cell-proficiency'
         },
@@ -67,22 +69,22 @@ export default defineComponent({
         },
       },
       radioOption: {
-        selectedRowChange: ({ row }) => {
+        selectedRowChange: ({ _row }) => {
           // console.log(row);
         },
       },
       checkboxOption: {
         // row select change event
-        selectedRowChange: ({ row, isSelected, selectedRowKeys }) => {
+        selectedRowChange: ({ _row, _isSelected, _selectedRowKeys }) => {
           // console.log(row, isSelected, selectedRowKeys);
         },
         // selected all change event
-        selectedAllChange: ({ isSelected, selectedRowKeys }) => {
+        selectedAllChange: ({ _isSelected, _selectedRowKeys }) => {
           // console.log(isSelected, selectedRowKeys);
         },
       },
       expandOption: {
-        render: ({ row, column, rowIndex }, h) => {
+        render: ({ row, _column, _rowIndex }, _h) => {
           return (
             <p>
               Hello everyone, My name is
@@ -199,7 +201,7 @@ export default defineComponent({
               align: 'center',
               sortBy: '',
               edit: true,
-              renderBodyCell: ({ row, column, rowIndex }, h) => {
+              renderBodyCell: ({ row, column, _rowIndex }, _h) => {
                 const cellData = row[column.field]
 
                 const iconName
@@ -240,8 +242,8 @@ export default defineComponent({
                   sortBy: '',
                   edit: true,
                   renderBodyCell: (
-                    { row, column, rowIndex },
-                    h,
+                    { row, column, _rowIndex },
+                    _h,
                   ) => {
                     const cellData = row[column.field]
 
@@ -280,8 +282,8 @@ export default defineComponent({
                   align: 'left',
                   edit: true,
                   renderBodyCell: (
-                    { row, column, rowIndex },
-                    h,
+                    { row, column, _rowIndex },
+                    _h,
                   ) => {
                     const cellData = row[column.field]
 
@@ -349,13 +351,13 @@ export default defineComponent({
               this.searchByNameField(values)
             },
             // filter reset hook
-            filterReset: (filterList) => {
+            filterReset: (_filterList) => {
               this.searchByNameField([])
             },
             // max height
             // maxHeight: 120
           },
-          renderBodyCell: ({ row, column, rowIndex }, h) => {
+          renderBodyCell: ({ row, column, _rowIndex }, _h) => {
             const cellData = row[column.field]
 
             const STATUS = [
@@ -405,15 +407,15 @@ export default defineComponent({
     // virtual scrolling
     scrolling({
       startRowIndex,
-            visibleStartIndex,
-            visibleEndIndex,
-            visibleAboveCount,
-            visibleBelowCount,
+            _visibleStartIndex,
+            _visibleEndIndex,
+            _visibleAboveCount,
+            _visibleBelowCount,
     }) {
       this.startRowIndex = startRowIndex
     },
 
-    renderRowIndex({ row, column, rowIndex }) {
+    renderRowIndex({ _row, _column, rowIndex }) {
       return <span>{rowIndex + this.startRowIndex + 1}</span>
     },
 

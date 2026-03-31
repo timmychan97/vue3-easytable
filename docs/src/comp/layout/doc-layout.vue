@@ -79,7 +79,7 @@ function enableHideComp(to: RouteLocationNormalizedLoaded) {
 // },
 
 const route = useRoute()
-watch(route, (to, from) => {
+watch(route, (to, _from) => {
   anchorLink(to)
   // 显示内置组件
   enableHideComp(to)

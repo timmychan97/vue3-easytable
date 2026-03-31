@@ -1,6 +1,6 @@
 import type { RouteRecordRaw } from 'vue-router'
 
-const emptyLayout = () => import('@/comp/layout/empty-layout.vue')
+const _emptyLayout = () => import('@/comp/layout/empty-layout.vue')
 
 const config: RouteRecordRaw[] = [
   {

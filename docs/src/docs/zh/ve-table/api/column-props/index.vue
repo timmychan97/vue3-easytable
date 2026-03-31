@@ -21,12 +21,12 @@ export default {
     return {
       db,
       expandOption: {
-        expandable: ({ row, column, rowIndex }) => {
+        expandable: ({ row, column: _column, rowIndex: _rowIndex }) => {
           if (![49, 50, 55].includes(row.expandId))
             return false
         },
         defaultExpandedRowKeys: [],
-        render: ({ row, column, rowIndex }) => {
+        render: ({ row, column: _column, rowIndex: _rowIndex }) => {
           if (row.expandId === 49)
             return <EllipsisProps />
           else if (row.expandId === 50)

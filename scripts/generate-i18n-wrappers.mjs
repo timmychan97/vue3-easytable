@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+/* eslint-disable no-console */
 /**
  * Generates VitePress wrapper pages for en/ and nb/ locales
  * by mirroring the zh/ structure with translated titles and

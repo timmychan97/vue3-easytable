@@ -121,9 +121,6 @@ export function recursiveRemoveColumnByKey(columns, key: string) {
 /**
  * @getFixedTotalWidthByColumnKey
  * @desc  get fixed total width by column key
- * @param {object} colgroups - columns info
- * @param {any} colKey - column key
- * @param {string} fixed - left|right
  */
 export function getFixedTotalWidthByColumnKey({ colgroups, colKey, fixed }) {
   const currentIndex = colgroups.findIndex(x => x.key === colKey)
@@ -155,9 +152,6 @@ export function getFixedTotalWidthByColumnKey({ colgroups, colKey, fixed }) {
 /**
  * @getNotFixedTotalWidthByColumnKey
  * @desc  get not fixed total width by column key
- * @param {object} colgroups - 列信息
- * @param {any} colKey - column key
- * @param {string} direction - left|right
  */
 export function getNotFixedTotalWidthByColumnKey({ colgroups, colKey, fixed }) {
   const currentIndex = colgroups.findIndex(x => x.key === colKey)
@@ -187,12 +181,10 @@ export function getNotFixedTotalWidthByColumnKey({ colgroups, colKey, fixed }) {
 /**
  * @getTotalWidthByColKeys
  * @desc get total width by collumn keys
- * @param {Array<T>} colKeys
- * @param {Array<object>} colgroups
  * @return {number} width
  */
 export function getTotalWidthByColKeys({ colKeys, colgroups }) {
-  const result = colgroups.reduce((total, currentVal, index) => {
+  const result = colgroups.reduce((total, currentVal, _index) => {
     return colKeys.includes(currentVal.key)
       ? currentVal._realTimeWidth + total
       : total
@@ -705,8 +697,6 @@ export function isContextmenuPanelClicked(event) {
 /**
  * @getColKeysByHeaderColumn
  * @desc
- * @param {object} headerColumnItem
- * @param {any} colKey2
  * @return Array<colKeys>
  */
 export function getColKeysByHeaderColumn({ headerColumnItem }) {
@@ -724,8 +714,6 @@ export function getColKeysByHeaderColumn({ headerColumnItem }) {
 /**
  * @getColKeysByRangeColKeys
  * @desc  get col keys by range col keys
- * @param {any} colKey1
- * @param {any} colKey2
  * @return Array<colKeys>
  */
 export function getColKeysByRangeColKeys({ colKey1, colKey2, colgroups }) {
@@ -746,9 +734,6 @@ export function getColKeysByRangeColKeys({ colKey1, colKey2, colgroups }) {
 /**
  * @getColKeysByFixedTypeWithinColKeys
  * @desc  get col keys by fixed type
- * @param {Array<T>} colKeys
- * @param {string} fixedType - fixed type
- * @param {Array<object>} colgroups
  * @return {Array} colKeys
  */
 export function getColKeysByFixedTypeWithinColKeys({
@@ -770,9 +755,6 @@ export function getColKeysByFixedTypeWithinColKeys({
 /**
  * @getColKeysByFixedType
  * @desc get col keys by fixed type
- * @param {string} fixedType - fixed type
- * @param {Array<object>} colgroups
- * @param {boolean} isExcludeOperationColumn
  * @return colKey
  */
 export function getColKeysByFixedType({
@@ -799,8 +781,6 @@ export function getColKeysByFixedType({
 /**
  * @getRowKeysByRangeRowKeys
  * @desc get row keys by range row keys
- * @param {any} topRowKey - top row key
- * @param {any} bottomRowKey - bottom row key
  * @return Array<colKeys>
  */
 export function getRowKeysByRangeRowKeys({
@@ -822,10 +802,6 @@ export function getRowKeysByRangeRowKeys({
 /**
  * @isCellInSelectionRange
  * @desc is cell in selection range
- * @param {object} cellData - cell data
- * @param {object} cellSelectionRangeData
- * @param {Array<object>} colgroups
- * @param {Array<object>} allRowKeys
  * @return {Array<colKeys>}
  */
 export function isCellInSelectionRange({
@@ -861,11 +837,6 @@ export function isCellInSelectionRange({
 /**
  * @isClearSelectionByBodyCellRightClick
  * @desc is clear selection by body cell click
- * @param {number} mouseEventClickType
- * @param {object} cellData - cell data
- * @param {object} cellSelectionRangeData
- * @param {Array<object>} colgroups
- * @param {Array<object>} allRowKeys
  * @return {bool}
  */
 export function isClearSelectionByBodyCellRightClick({
@@ -894,7 +865,6 @@ export function isClearSelectionByBodyCellRightClick({
 /**
  * @getSelectionRangeKeys
  * @desc get selection range keys
- * @param {object} cellSelectionRangeData
  * @return Array<colKeys>
  */
 export function getSelectionRangeKeys({ cellSelectionRangeData }) {
@@ -911,9 +881,6 @@ export function getSelectionRangeKeys({ cellSelectionRangeData }) {
 /**
  * @getSelectionRangeIndexes
  * @desc get selection range indexes
- * @param {object} cellSelectionRangeData
- * @param {Array<object>} colgroups
- * @param {Array<object>} allRowKeys
  * @return Array<colKeys>
  */
 export function getSelectionRangeIndexes({
@@ -934,11 +901,6 @@ export function getSelectionRangeIndexes({
 /**
  * @getSelectionRangeData
  * @desc get selection range data
- * @param {object} cellSelectionRangeData
- * @param {string} resultType "normal": contains key/value ; "flat":only contains value
- * @param {Array<object>} tableData
- * @param {Array<object>} colgroups
- * @param {Array<object>} allRowKeys
  * @return Array<colKeys>
  */
 export function getSelectionRangeData({
@@ -995,9 +957,6 @@ export function getSelectionRangeData({
 /**
  * @isExistFixedColKey
  * @desc is exist given fixed col key
- * @param {string} fixedType - fixed type
- * @param {Array<T>} colKeys
- * @param {Array<object>} colgroups
  * @return bool
  */
 export function isExistGivenFixedColKey({ fixedType, colKeys, colgroups }) {
@@ -1013,8 +972,6 @@ export function isExistGivenFixedColKey({ fixedType, colKeys, colgroups }) {
 /**
  * @isExistNotFixedColKey
  * @desc is exist not fixed col key
- * @param {Array<T>} colKeys
- * @param {Array<object>} colgroups
  * @return bool
  */
 export function isExistNotFixedColKey({ colKeys, colgroups }) {
@@ -1030,9 +987,6 @@ export function isExistNotFixedColKey({ colKeys, colgroups }) {
 /**
  * @getLeftmostOrRightmostColKey
  * @desc get leftmost or rightmost column key
- * @param {string} type
- * @param {Array<object>} colgroups
- * @param {Array<any>} colKeys
  * @return colKey
  */
 function getLeftmostOrRightmostColKey({ type, colgroups, colKeys }) {
@@ -1088,8 +1042,6 @@ function getLeftmostOrRightmostColKey({ type, colgroups, colKeys }) {
 /**
  * @getLeftmostColKey
  * @desc get leftmost column key
- * @param {Array<object>} colgroups
- * @param {Array<any>} colKeys
  * @return colKey
  */
 export function getLeftmostColKey({ colgroups, colKeys }) {
@@ -1103,8 +1055,6 @@ export function getLeftmostColKey({ colgroups, colKeys }) {
 /**
  * @getRightmostColKey
  * @desc get rightmost column key
- * @param {Array<object>} colgroups
- * @param {Array<any>} colKeys
  * @return colKey
  */
 export function getRightmostColKey({ colgroups, colKeys }) {
@@ -1118,8 +1068,6 @@ export function getRightmostColKey({ colgroups, colKeys }) {
 /**
  * @getPreviewColKey
  * @desc get preview column key
- * @param {Array<object>} colgroups
- * @param {any} currentColKey
  * @return colKey
  */
 export function getPreviewColKey({ colgroups, currentColKey }) {
@@ -1139,8 +1087,6 @@ export function getPreviewColKey({ colgroups, currentColKey }) {
 /**
  * @getNextColKey
  * @desc get next column key
- * @param {Array<object>} colgroups
- * @param {any} currentColKey
  * @return colKey
  */
 export function getNextColKey({ colgroups, currentColKey }) {
