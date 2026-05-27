@@ -1,8 +1,9 @@
+import { defineComponent } from 'vue'
 import { clsName } from '../util'
 import { COMPS_NAME } from '../util/constant'
 import FooterTr from './footer-tr'
 
-export default {
+export default defineComponent({
   name: COMPS_NAME.VE_TABLE_FOOTER,
   props: {
     colgroups: {
@@ -79,7 +80,7 @@ export default {
       return result
     },
   },
-  render() {
+  render(): JSX.Element {
     const { colgroups, rowKeyFieldName, cellStyleOption } = this
 
     return (
@@ -103,4 +104,4 @@ export default {
       </tfoot>
     )
   },
-}
+})

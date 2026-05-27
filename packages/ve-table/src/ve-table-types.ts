@@ -96,3 +96,26 @@ export interface ContextmenuOption {
   children?: ContextmenuOption[]
   [key: string]: any
 }
+
+// ── Ve-table component internal interfaces ──
+
+export interface SelectionRef {
+  clearCurrentCellRect: () => void
+  clearNormalEndCellRect: () => void
+}
+
+export interface CellEventPayload {
+  event: MouseEvent
+  rowData: Record<string, any>
+  column: ColgroupData
+}
+
+export interface HeaderCellEventPayload {
+  event: MouseEvent
+  column: ColgroupData
+}
+
+export interface DomResizePayload {
+  width: number
+  height: number
+}

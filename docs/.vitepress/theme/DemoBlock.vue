@@ -100,6 +100,7 @@ onMounted(async () => {
     const { compile } = await import('@vue/compiler-dom')
     const { code: renderCode } = compile(template, {
       mode: 'function',
+      prefixIdentifiers: true,
     })
     // eslint-disable-next-line no-new-func
     const renderFn = new Function('Vue', renderCode)({ ...await import('vue') })

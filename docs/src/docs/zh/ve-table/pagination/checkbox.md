@@ -38,24 +38,13 @@
     export default {
         data() {
             return {
-                // page index
                 pageIndex: 1,
-                // page size
                 pageSize: 10,
-                // selected row keys collection
                 selectedRowKeysCollection: [],
-                // checkbox option
                 checkboxOption: {
-                    // 可控属性
                     selectedRowKeys: [],
-                    // 行选择改变事件
-                    selectedRowChange: ({ row, isSelected, selectedRowKeys }) => {
-                        this.changeSelectedRowKeys(row, isSelected);
-                    },
-                    // 全选改变事件
-                    selectedAllChange: ({ isSelected, selectedRowKeys }) => {
-                        this.changeSelectAll(isSelected, selectedRowKeys);
-                    },
+                    selectedRowChange: null,
+                    selectedAllChange: null,
                 },
                 columns: [
                     {
@@ -63,14 +52,11 @@
                         key: "a",
                         title: "#",
                         align: "center",
-                        renderBodyCell: ({ row, column, rowIndex }, h) => {
-                            return (this.pageIndex - 1) * this.pageSize + rowIndex + 1;
-                        },
+                        renderBodyCell: null,
                     },
                     {
                         field: "",
                         key: "checkbox",
-                        // type=checkbox
                         type: "checkbox",
                         title: "",
                         width: 50,
@@ -80,81 +66,87 @@
                     { field: "name", key: "b", title: "Name", align: "center" },
                     { field: "date", key: "c", title: "Date", align: "left" },
                     { field: "hobby", key: "d", title: "Hobby", align: "left" },
-                    { field: "address", key: "e", title: "Address", width: "" },
+                    { field: "address", key: "e", title: "Address" },
                 ],
             };
         },
         computed: {
-            // table data
             currentPageData() {
                 const { pageIndex, pageSize } = this;
                 return DB_DATA.slice((pageIndex - 1) * pageSize, pageIndex * pageSize);
             },
-            // total count
             totalCount() {
                 return DB_DATA.length;
             },
         },
         methods: {
-            // selected rowKeys change
             changeSelectedRowKeys(row, isSelected) {
                 const rowKey = row.rowKey;
 
                 if (isSelected) {
-                    this.checkboxOption.selectedRowKeys.push(rowKey);
-                    this.selectedRowKeysCollection.push(rowKey);
+                    if (this.checkboxOption.selectedRowKeys.indexOf(rowKey) === -1) {
+                        this.checkboxOption.selectedRowKeys.push(rowKey);
+                    }
+                    if (this.selectedRowKeysCollection.indexOf(rowKey) === -1) {
+                        this.selectedRowKeysCollection.push(rowKey);
+                    }
                 } else {
-                    const index = this.checkboxOption.selectedRowKeys.indexOf(rowKey);
-                    this.checkboxOption.selectedRowKeys.splice(index, 1);
-                    this.selectedRowKeysCollection.splice(index, 1);
+                    const cbIndex = this.checkboxOption.selectedRowKeys.indexOf(rowKey);
+                    if (cbIndex > -1) {
+                        this.checkboxOption.selectedRowKeys.splice(cbIndex, 1);
+                    }
+                    const collIndex = this.selectedRowKeysCollection.indexOf(rowKey);
+                    if (collIndex > -1) {
+                        this.selectedRowKeysCollection.splice(collIndex, 1);
+                    }
                 }
             },
 
-            // select all change
             changeSelectAll(isSelected, selectedRowKeys) {
                 this.checkboxOption.selectedRowKeys = selectedRowKeys;
 
                 if (isSelected) {
-                    this.selectedRowKeysCollection =
-                        this.selectedRowKeysCollection.concat(selectedRowKeys);
-                } else {
-                    this.currentPageData.forEach((item) => {
-                        if (selectedRowKeysCollection.indexOf(item.rowKey) > -1) {
-                            this.selectedRowKeysCollection.splice(index, 1);
+                    var existing = new Set(this.selectedRowKeysCollection);
+                    selectedRowKeys.forEach(function (key) {
+                        if (!existing.has(key)) {
+                            this.selectedRowKeysCollection.push(key);
                         }
-                    });
+                    }, this);
+                } else {
+                    var currentPageKeys = new Set(
+                        this.currentPageData.map(function (item) { return item.rowKey; })
+                    );
+                    this.selectedRowKeysCollection = this.selectedRowKeysCollection.filter(
+                        function (key) { return !currentPageKeys.has(key); }
+                    );
                 }
             },
 
-            // reset selectedRowKeys
             resetSelectedRowKeys() {
                 this.checkboxOption.selectedRowKeys = [];
 
-                const selectedRowKeysCollection = this.selectedRowKeysCollection;
+                var selectedRowKeysCollection = this.selectedRowKeysCollection;
 
                 if (selectedRowKeysCollection.length) {
-                    this.currentPageData.forEach((item) => {
+                    this.currentPageData.forEach(function (item) {
                         if (selectedRowKeysCollection.indexOf(item.rowKey) > -1) {
                             this.checkboxOption.selectedRowKeys.push(item.rowKey);
                         }
-                    });
+                    }, this);
                 }
             },
 
-            // page number change
             pageNumberChange(pageIndex) {
                 this.pageIndex = pageIndex;
                 this.resetSelectedRowKeys();
             },
 
-            // page size change
             pageSizeChange(pageSize) {
                 this.pageIndex = 1;
                 this.pageSize = pageSize;
                 this.resetSelectedRowKeys();
             },
 
-            // Simulation table data
             initDatabase() {
                 DB_DATA = [];
                 for (let i = 0; i < 1000; i++) {
@@ -170,6 +162,20 @@
         },
         created() {
             this.initDatabase();
+
+            // Assign callbacks here where `this` is guaranteed to be the
+            // component instance (avoids arrow-function capture issues when
+            // the demo is compiled at runtime via new Function).
+            var self = this;
+            this.checkboxOption.selectedRowChange = function (params) {
+                self.changeSelectedRowKeys(params.row, params.isSelected);
+            };
+            this.checkboxOption.selectedAllChange = function (params) {
+                self.changeSelectAll(params.isSelected, params.selectedRowKeys);
+            };
+            this.columns[0].renderBodyCell = function (params) {
+                return (self.pageIndex - 1) * self.pageSize + params.rowIndex + 1;
+            };
         },
     };
 </script>
