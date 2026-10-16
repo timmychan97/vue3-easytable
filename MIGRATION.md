@@ -1,3 +1,30 @@
+# Migration Guide
+
+- **Library users:** [Locale message keys renamed](#locale-message-keys-renamed-breaking-change-deprecated-aliases)
+- **Contributors:** [Development setup improvements](#migration-guide-development-setup-improvements)
+
+## Locale message keys renamed (breaking change, deprecated aliases)
+
+**What changed:** the keys of every language pack were renamed from English to Chinese. For example, `pagination.goto` became `分页.前往` and `table.cut` became `表格.剪切`. Some English texts changed at the same time, for example `confirmFilter` "Confirm" → `确认筛选` "Filter", and "Remove $1 row" → "Delete $1 row(s)".
+
+**Impact:** custom language packs and `VeLocale.update(...)` calls written with the English keys no longer match the keys the components read.
+
+**Deprecation:** `VeLocale.use(...)`, `VeLocale.update(...)` and `useVeTable({ locale })` still accept the English keys. They map each one to its new key and log a `console.warn` the first time each old key is used, naming the old and the new key. If an object has both the old and the new key for the same message, the new key wins. The English keys will be removed in a future version.
+
+**What to do:** rename your keys. The full old → new table is in the docs under *Internationalization → Migrating from the English Keys* (`docs/src/docs/en/locale.md`).
+
+```javascript
+// Before (deprecated, still works with a warning)
+VeLocale.update({ pagination: { goto: 'Go to' } })
+
+// After
+VeLocale.update({ 分页: { 前往: 'Go to' } })
+```
+
+**Types:** `LocaleMessage` now describes the exact shape (`分页` and `表格` with their keys), and every built-in language pack is checked against it with `satisfies`. A missing or unknown key is a type error. User input is typed as `LocaleMessageInput`: any subset of the new keys, plus the deprecated English keys, which are marked `@deprecated`.
+
+---
+
 # Migration Guide: Development Setup Improvements
 
 This guide helps existing contributors migrate to the improved cross-platform development setup.

@@ -1,4 +1,4 @@
-import type { LocaleMessage } from '@vue3-easytable/common/locale/types'
+import type { LocaleMessageInput } from '@vue3-easytable/common/locale/types'
 
 import type { Plugin } from 'vue'
 import VeCheckbox from '@vue3-easytable/ve-checkbox'
@@ -28,7 +28,7 @@ const components = [
   VeTable,
 ]
 
-const useVeTable = function (options?: { locale?: LocaleMessage }): Plugin {
+const useVeTable = function (options?: { locale?: LocaleMessageInput }): Plugin {
   return {
     install(app) {
       components.forEach((Component) => {

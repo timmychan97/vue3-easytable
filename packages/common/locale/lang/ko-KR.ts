@@ -36,4 +36,4 @@ export default {
     右列冻结: '오른쪽 열 고정',
     取消右列冻结: '오른쪽 열 고정 취소',
   },
-} as LocaleMessage
+} satisfies LocaleMessage

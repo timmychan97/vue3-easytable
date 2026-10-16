@@ -46,10 +46,10 @@ import { keyboardMethods } from './methods/keyboard'
 import { scrollingMethods } from './methods/scrolling'
 import RowInsertIndicator from './row-insert-indicator'
 import Selection from './selection'
+import { queryBodyRow } from './util/cell-dom'
 // Clipboard utils moved to methods/clipboard.ts
 import {
   COLUMN_FIXED_TYPE,
-  COMPS_CUSTOM_ATTRS,
   COMPS_NAME,
   CONTEXTMENU_TYPES,
   EMIT_EVENTS,
@@ -376,7 +376,6 @@ export default defineComponent({
       // Non-reactive instance properties (typed here for TypeScript)
       _vs: null as VirtualScrollInstance | null,
       measureColsWidths: new Map<string, number>(),
-      debouncedBodyCellWidthChange: null as ((...args: any[]) => void) | null,
       debouncedMeasureCellWidthChange: null as ((...args: any[]) => void) | null,
     }
   },
@@ -854,12 +853,7 @@ export default defineComponent({
     },
   },
   created() {
-    // bug fixed #467
-    this.debouncedBodyCellWidthChange = debounce(
-      this.bodyCellWidthChange,
-      0,
-    )
-    // Debounced handler for the column-width measurement table
+    // Debounced handler for the column-width measurement row (bug fixed #467)
     this.measureColsWidths = new Map()
     this.debouncedMeasureCellWidthChange = debounce(
       this.measureCellWidthChange,
@@ -999,7 +993,6 @@ export default defineComponent({
   },
   unmounted() {
     // 取消未执行的防抖调用，避免卸载后仍更新 colgroups / 触发 hooks
-    ;(this.debouncedBodyCellWidthChange as ReturnType<typeof debounce> | null)?.cancel()
     ;(this.debouncedMeasureCellWidthChange as ReturnType<typeof debounce> | null)?.cancel()
     // remove key down event listener
     document.removeEventListener('keydown', this.dealKeydownEvent)
@@ -1040,24 +1033,14 @@ export default defineComponent({
       this.footerRows.splice(rowIndex, 1, { rowHeight: height })
     },
 
-    // Called by the hidden measurement table's ResizeObserver cells
+    // Called by the ResizeObserver cells of the measurement row inside the real table
     measureCellSizeChange({ key, width }) {
       this.measureColsWidths.set(key, width)
       this.debouncedMeasureCellWidthChange?.(this.measureColsWidths)
     },
 
-    // Applies measured column widths (replaces the old body measurement row)
+    // Applies measured column widths
     measureCellWidthChange(colWidths) {
-      this.colgroups = this.colgroups.map((item) => {
-        item._realTimeWidth = colWidths.get(item.key)
-        return item
-      })
-
-      this.hooks.triggerHook(HOOKS_NAME.TABLE_CELL_WIDTH_CHANGE)
-    },
-
-    // body cell width change (kept for backwards compatibility)
-    bodyCellWidthChange(colWidths) {
       this.colgroups = this.colgroups.map((item) => {
         item._realTimeWidth = colWidths.get(item.key)
         return item
@@ -1989,9 +1972,8 @@ export default defineComponent({
         }
       }
       else {
-        const rowEl = this.$el.querySelector(
-          `tbody tr[${COMPS_CUSTOM_ATTRS.BODY_ROW_KEY}="${rowKey}"]`,
-        )
+        // key 会被转义；未渲染的行返回 null
+        const rowEl = queryBodyRow(this.$el, rowKey)
 
         const scrollTop = rowEl ? rowEl.offsetTop - headerTotalHeight : 0
 
@@ -2190,7 +2172,9 @@ export default defineComponent({
     // body props
     const bodyProps = {
       ref: this.tableBodyRef,
-      class: [clsName('body'), this.tableBodyClass],
+      // 虚拟滚动时 Body 渲染多个 <tbody>（片段根节点），class 无法 fall-through，因此作为 prop 显式传入
+      bodyClass: [clsName('body'), this.tableBodyClass],
+      stripe: this.tableBodyClass[clsName('stripe')],
       tableViewportWidth,
       columnsOptionResetTime: this.columnsOptionResetTime,
       colgroups,
@@ -2422,33 +2406,11 @@ export default defineComponent({
                 />
                 {/* table header */}
                 {showHeader && <Header {...headerProps} />}
-                {/* table body */}
-                <Body {...bodyProps} />
-                {/* table footer */}
-                <Footer {...footerProps} />
-              </table>
-              {/* Hidden table for measuring actual column widths.
-                  Placed outside <table> so it is never included in clipboard
-                  copies. Mirrors the main table's colgroup so the browser
-                  layout algorithm assigns matching column widths. */}
-              <table
-                aria-hidden="true"
-                style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  width: tableStyle.width || '100%',
-                  visibility: 'hidden',
-                  pointerEvents: 'none',
-                  zIndex: -1,
-                }}
-              >
-                <Colgroup
-                  colgroups={colgroups}
-                  enableColumnResize={enableColumnResize}
-                />
-                <tbody>
-                  <tr>
+                {/* 列宽测量行（COL-07）：必须放在真实表格中，单元格宽度才与真实列宽一致
+                    （未设置 scrollWidth 时表格宽度为 auto，浏览器按内容自动布局，独立的隐藏表格无法复现）。
+                    使用独立的 <tbody>，不属于 tbody.ve-table-body，因此不影响斑马纹、虚拟滚动行与单元格查找 */}
+                <tbody aria-hidden="true">
+                  <tr style={{ height: 0 }}>
                     {colgroups.map((column) => {
                       const measureTdProps = {
                         key: getDomResizeObserverCompKey(
@@ -2468,6 +2430,10 @@ export default defineComponent({
                     })}
                   </tr>
                 </tbody>
+                {/* table body */}
+                <Body {...bodyProps} />
+                {/* table footer */}
+                <Footer {...footerProps} />
               </table>
               {/* cell selection */}
               {enableCellSelection && (

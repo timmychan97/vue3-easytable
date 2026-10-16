@@ -36,4 +36,4 @@ export default {
     右列冻结: 'Freeze column to right',
     取消右列冻结: 'Unfreeze right column',
   },
-} as LocaleMessage
+} satisfies LocaleMessage

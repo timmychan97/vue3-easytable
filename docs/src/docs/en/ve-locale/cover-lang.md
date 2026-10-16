@@ -21,8 +21,8 @@ You can modify and extend text content using the `VeLocale.update` method
         methods: {
             coverLang() {
                 const lang = {
-                    pagination: {
-                        goto: "Go to",
+                    分页: {
+                        前往: "Jump to",
                     },
                 };
                 this.$veLocale.update(lang);

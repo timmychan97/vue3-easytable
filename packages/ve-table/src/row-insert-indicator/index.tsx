@@ -1,6 +1,7 @@
 import emitter from '@vue3-easytable/common/mixins/emitter'
 import { computed, defineComponent, nextTick, onUnmounted, ref, watch } from 'vue'
 import { clsName } from '../util'
+import { queryBodyRows } from '../util/cell-dom'
 import { COMPS_NAME, EMIT_EVENTS, HOOKS_NAME } from '../util/constant'
 
 // Row insert indicator component
@@ -181,12 +182,8 @@ export default defineComponent({
         return { index: 0, top: headerHeight + containerOffsetTop }
       }
 
-      const tbody = props.tableEl.querySelector('tbody')
-      if (!tbody)
-        return { index: -1, top: 0 }
-
-      // Get all body rows (excluding measure row)
-      const rows = Array.from(tbody.querySelectorAll('tr.ve-table-body-tr'))
+      // 本表格所有已渲染的 body 行（虚拟滚动时分布在多个 <tbody> 中，不含占位行与展开行）
+      const rows = queryBodyRows(props.tableEl)
       if (rows.length === 0)
         return { index: -1, top: 0 }
 

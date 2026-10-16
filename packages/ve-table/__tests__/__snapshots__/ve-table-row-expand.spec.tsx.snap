@@ -42,7 +42,7 @@ exports[`veTable row expand > expandOption expandedRowKeys(controllable attr) 1`
                 </th>
               </tr>
             </thead>
-            <tbody class="ve-table-body ve-table-row-hover ve-table-row-highlight">
+            <tbody aria-hidden="true">
               <tr style="height: 0px;">
                 <td style="padding: 0px; height: 0px; border: 0px;">
                   <!---->
@@ -57,6 +57,8 @@ exports[`veTable row expand > expandOption expandedRowKeys(controllable attr) 1`
                   <!---->
                 </td>
               </tr>
+            </tbody>
+            <tbody class="ve-table-body ve-table-row-hover ve-table-row-highlight">
               <tr class="ve-table-body-tr" row-key="1001">
                 <td class="ve-table-body-td" style="text-align: center;" rowspan="1" colspan="1" col-key="a"><span class="ve-table-row-expand-icon ve-table-expand-icon-collapsed"><i class="ve-icon iconfont-vet icon-vet-right-arrow"></i></span>
                   <!---->
@@ -259,7 +261,7 @@ exports[`veTable row expand > render 1`] = `
               </th>
             </tr>
           </thead>
-          <tbody class="ve-table-body ve-table-row-hover ve-table-row-highlight">
+          <tbody aria-hidden="true">
             <tr style="height: 0px;">
               <td style="padding: 0px; border: 0px; height: 0px;">
                 <!---->
@@ -274,6 +276,8 @@ exports[`veTable row expand > render 1`] = `
                 <!---->
               </td>
             </tr>
+          </tbody>
+          <tbody class="ve-table-body ve-table-row-hover ve-table-row-highlight">
             <tr class="ve-table-body-tr" row-key="1001">
               <td class="ve-table-body-td" style="text-align: center;" rowspan="1" colspan="1" col-key="a"><span class="ve-table-row-expand-icon ve-table-expand-icon-collapsed"><i class="ve-icon iconfont-vet icon-vet-right-arrow"></i></span>
                 <!---->

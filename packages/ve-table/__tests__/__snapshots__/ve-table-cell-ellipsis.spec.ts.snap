@@ -41,7 +41,7 @@ exports[`veTable cell ellipsis > render single line ellipsis 1`] = `
               </th>
             </tr>
           </thead>
-          <tbody class="ve-table-body ve-table-row-hover ve-table-row-highlight">
+          <tbody aria-hidden="true">
             <tr style="height: 0px;">
               <td style="padding: 0px; border: 0px; height: 0px;">
                 <!---->
@@ -56,6 +56,8 @@ exports[`veTable cell ellipsis > render single line ellipsis 1`] = `
                 <!---->
               </td>
             </tr>
+          </tbody>
+          <tbody class="ve-table-body ve-table-row-hover ve-table-row-highlight">
             <tr class="ve-table-body-tr">
               <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="a">
                 <!---->

@@ -14,19 +14,66 @@ VeLocale.use(enUS)
 
 :::anchor Endre sprakpakke
 
-Du kan endre og utvide tekstinnhold ved hjelp av `VeLocale.update`-metoden.
+Du kan endre og utvide tekstinnhold ved hjelp av `VeLocale.update`-metoden. Bare tekstene du sender inn blir endret.
 
 ```javascript
 import { VeLocale } from '@vue3-easytable/vue'
 
 const lang = {
-  pagination: {
-    goto: 'Ga til',
+  分页: {
+    前往: 'Ga til',
   },
 }
 
 VeLocale.update(lang)
 ```
+
+:::anchor Tekstnokler
+
+Sprakpakkene er gruppert per komponent. Noklene er de samme i alle sprakpakker (se `zh-CN` for den fullstendige listen):
+
+| Gruppe | Nokler |
+| ------ | ------ |
+| `分页` (paginering) | `前往`, `页`, `每页条数`, `合计`, `向前N页`, `向后N页`, `上一页`, `下一页`, `分页导航`, `第N页`, `当前页`, `跳转到`, `每页显示条数` |
+| `表格` (tabell) | `确认筛选`, `重置筛选`, `剪切`, `复制`, `上方插入行`, `下方插入行`, `删除行`, `清空行`, `清空列`, `清空单元格`, `左列冻结`, `取消左列冻结`, `右列冻结`, `取消右列冻结` |
+
+`合计`, `向前N页`, `向后N页`, `第N页` og `当前页` er funksjoner som far et tall og returnerer teksten, f.eks. ``合计: total => `Totalt ${total}` ``.
+
+:::anchor Overgang fra de engelske noklene
+
+:::tip
+Tidligere versjoner brukte engelske nokler (`pagination.goto`, `table.cut`, ...). Disse er **foreldet**. `VeLocale.use` og `VeLocale.update` godtar dem fortsatt og oversetter hver av dem til den nye nokkelen, og skriver en `console.warn` forste gang hver gamle nokkel brukes. Bytt til de nye noklene. De engelske noklene blir fjernet i en fremtidig versjon.
+:::
+
+| Gammel nokkel | Ny nokkel |
+| ------------- | --------- |
+| `pagination.goto` | `分页.前往` |
+| `pagination.page` | `分页.页` |
+| `pagination.itemsPerPage` | `分页.每页条数` |
+| `pagination.total` | `分页.合计` |
+| `pagination.prev5` | `分页.向前N页` |
+| `pagination.next5` | `分页.向后N页` |
+| `pagination.prevPage` | `分页.上一页` |
+| `pagination.nextPage` | `分页.下一页` |
+| `pagination.paginationLabel` | `分页.分页导航` |
+| `pagination.pageLabel` | `分页.第N页` |
+| `pagination.currentPageLabel` | `分页.当前页` |
+| `pagination.jumpToLabel` | `分页.跳转到` |
+| `pagination.pageSizeLabel` | `分页.每页显示条数` |
+| `table.confirmFilter` | `表格.确认筛选` |
+| `table.resetFilter` | `表格.重置筛选` |
+| `table.cut` | `表格.剪切` |
+| `table.copy` | `表格.复制` |
+| `table.insertRowAbove` | `表格.上方插入行` |
+| `table.insertRowBelow` | `表格.下方插入行` |
+| `table.removeRow` | `表格.删除行` |
+| `table.emptyRow` | `表格.清空行` |
+| `table.emptyColumn` | `表格.清空列` |
+| `table.emptyCell` | `表格.清空单元格` |
+| `table.leftFixedColumnTo` | `表格.左列冻结` |
+| `table.cancelLeftFixedColumnTo` | `表格.取消左列冻结` |
+| `table.rightFixedColumnTo` | `表格.右列冻结` |
+| `table.cancelRightFixedColumnTo` | `表格.取消右列冻结` |
 
 :::anchor Laste sprakfiler via CDN
 

@@ -48,7 +48,7 @@ exports[`veTable operation column > render 1`] = `
               </th>
             </tr>
           </thead>
-          <tbody class="ve-table-body ve-table-row-hover ve-table-row-highlight">
+          <tbody aria-hidden="true">
             <tr style="height: 0px;">
               <td style="padding: 0px; border: 0px; height: 0px;">
                 <!---->
@@ -66,6 +66,8 @@ exports[`veTable operation column > render 1`] = `
                 <!---->
               </td>
             </tr>
+          </tbody>
+          <tbody class="ve-table-body ve-table-row-hover ve-table-row-highlight">
             <tr class="ve-table-body-tr" row-key="1">
               <td class="ve-table-body-td ve-table-fixed-left ve-table-operation-col ve-table-last-left-fixed-column" style="text-align: center; left: 0px;" rowspan="1" colspan="1" col-key="index">
                 <!---->

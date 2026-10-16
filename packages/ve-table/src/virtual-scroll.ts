@@ -151,6 +151,9 @@ export function createVirtualScroll(config: VirtualScrollConfig): VirtualScrollI
   // _didMount sets up scroll listeners & ResizeObserver on the scroll container.
   // It returns a cleanup function.
   const cleanup = virtualizer._didMount()
+  // _willUpdate 才会真正挂载滚动容器：读取容器尺寸（observeElementRect）并监听 scroll（observeElementOffset）。
+  // 缺少这一步时 scrollRect 一直是 initialRect（0x0），TanStack 不产出任何行，滚动也不会更新可视区。
+  virtualizer._willUpdate()
 
   // Track the current estimateSize so we can update it
   let currentEstimateSize = estimateSize

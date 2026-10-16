@@ -36,4 +36,4 @@ export default {
     右列冻结: 'Frys kolonne til høyre',
     取消右列冻结: 'Opphev frysing til høyre',
   },
-} as LocaleMessage
+} satisfies LocaleMessage

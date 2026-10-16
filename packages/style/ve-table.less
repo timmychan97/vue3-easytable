@@ -199,9 +199,9 @@
                         display: table-row;
                     }
 
-                    // 斑马纹
+                    // 斑马纹（按数据行下标加的 class；虚拟滚动时每行在各自的 <tbody> 中，nth-child 不可用）
                     &.ve-table-stripe {
-                        tr.ve-table-body-tr:nth-child(2n + 1) td {
+                        tr.ve-table-body-tr.ve-table-body-tr-stripe td {
                             background-color: @ve-table-body-row-stripe-background-color;
                         }
                     }
@@ -479,7 +479,10 @@
         .ve-table-container {
             table.ve-table-content {
                 &.ve-table-border-x {
-                    tr:last-child > td {
+                    // 只去掉最后一个 tbody / tfoot 的末行下边框。
+                    // 虚拟滚动时每行都是自己 <tbody> 的 last-child，不能用 tr:last-child
+                    > tbody:last-of-type > tr:last-child > td,
+                    > tfoot > tr:last-child > td {
                         border-bottom: 0px;
                     }
                     tr:first-child > th {

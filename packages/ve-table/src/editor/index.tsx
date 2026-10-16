@@ -5,6 +5,7 @@ import { getCaretPosition, setCaretPosition } from '@vue3-easytable/common/utils
 import { isEmptyValue } from '@vue3-easytable/common/utils/index.js'
 import { debounce } from 'lodash'
 import { clsName, getFixedTotalWidthByColumnKey } from '../util'
+import { queryCell } from '../util/cell-dom'
 import { COMPS_NAME, EMIT_EVENTS, HOOKS_NAME } from '../util/constant'
 import { INSTANCE_METHODS } from './constant'
 
@@ -293,9 +294,8 @@ export default defineComponent({
       const { rowKey, colKey } = cellSelectionData.currentCell
 
       if (tableEl) {
-        const cellEl = tableEl.querySelector(
-          `tbody.ve-table-body tr[row-key="${rowKey}"] td[col-key="${colKey}"]`,
-        )
+        // 普通模式与虚拟滚动模式通用，key 会被转义，找不到返回 null
+        const cellEl = queryCell(tableEl, rowKey, colKey)
 
         if (cellEl) {
           this.cellEl = cellEl

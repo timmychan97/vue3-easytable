@@ -18,7 +18,20 @@ import ExpandTr from './expand-tr'
 export default defineComponent({
   name: COMPS_NAME.VE_TABLE_BODY,
   mixins: [emitter()],
+  // 虚拟滚动时根节点是片段，未声明的监听器无法 fall-through（会告警），因此显式声明
+  emits: [EMIT_EVENTS.HIGHLIGHT_ROW_CHANGE],
   props: {
+    // body 的 class（ve-table-body、斑马纹、悬浮、高亮）。
+    // 普通模式加在唯一的 <tbody> 上，虚拟滚动模式加在每一行的 <tbody> 上
+    bodyClass: {
+      type: [String, Array, Object],
+      default: null,
+    },
+    // 是否开启斑马纹（按数据行下标给行加 class，而不是依赖 nth-child）
+    stripe: {
+      type: Boolean,
+      default: false,
+    },
     tableViewportWidth: {
       type: Number,
       default: 0,
@@ -814,12 +827,15 @@ export default defineComponent({
       virtualPaddingTop,
       virtualPaddingBottom,
       virtualMeasureElement,
+      bodyClass,
+      stripe,
     } = this
 
     // Build common trProps for a given rowData/rowIndex
     const buildTrProps = (rowData: any, rowIndex: number) => ({
       key: this.getTrKey({ rowData, rowIndex }),
       rowIndex,
+      stripe,
       rowData,
       colgroups,
       expandOption,
@@ -875,6 +891,7 @@ export default defineComponent({
             return (
               <tbody
                 key={trProps.key}
+                class={bodyClass}
                 data-index={vItem.index}
                 ref={virtualMeasureElement as any}
               >
@@ -898,7 +915,7 @@ export default defineComponent({
 
     // ── Non-virtual path: render all rows in a single <tbody> ──
     return (
-      <tbody>
+      <tbody class={bodyClass}>
         {actualRenderTableData.map((rowData, rowIndex) => {
           const trProps = buildTrProps(rowData, rowIndex)
           return [

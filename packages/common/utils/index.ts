@@ -1,10 +1,11 @@
 import type { VNodeNormalizedChildren } from 'vue'
+import type { LocaleMessage } from '../locale/types'
 import { createI18N } from '../locale'
 
 /**
  * @desc create locale namespace by component name
  */
-export function createLocale(compName: string) {
+export function createLocale(compName: keyof LocaleMessage) {
   return createI18N(compName)
 }
 

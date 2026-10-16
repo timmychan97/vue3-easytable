@@ -1,6 +1,7 @@
-import type { LocaleMessage } from '@vue3-easytable/common/locale/types'
+import type { LocaleMessage, LocaleMessageInput } from '@vue3-easytable/common/locale/types'
 import type { InjectionKey, Ref } from 'vue'
 import defaultLang from '@vue3-easytable/common/locale/lang/zh-CN'
+import { normalizeLocaleMessage } from '@vue3-easytable/common/locale/legacy-keys'
 import { withUse } from '@vue3-easytable/common/uses/with-use'
 // import Vue from 'vue'
 import { cloneDeep, merge } from 'lodash'
@@ -26,11 +27,12 @@ const VeLocale = {
     return currentLang.value
     // return proto.$veTableMessages.lang
   },
-  use(lang: typeof defaultLang) {
+  use(lang: LocaleMessageInput) {
     this.update(lang)
   },
-  update(lang = {}) {
-    merge(currentLang.value, lang)
+  update(lang: LocaleMessageInput = {}) {
+    // 兼容 81a1ebb 之前的英文键（映射为中文键并给出一次弃用警告）
+    merge(currentLang.value, normalizeLocaleMessage(lang))
     // merge(proto.$veTableMessages.lang, lang)
   },
 }
@@ -54,8 +56,8 @@ export function useLocale() {
     getMessage() {
       return lang.value
     },
-    update(newLang = {}) {
-      merge(lang.value, newLang)
+    update(newLang: LocaleMessageInput = {}) {
+      merge(lang.value, normalizeLocaleMessage(newLang))
     },
   }
 }

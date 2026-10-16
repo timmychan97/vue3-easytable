@@ -36,4 +36,4 @@ export default {
     右列冻结: 'Figer la colonne à droite',
     取消右列冻结: 'Libérer la colonne droite',
   },
-} as LocaleMessage
+} satisfies LocaleMessage
