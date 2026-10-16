@@ -36,4 +36,4 @@ export default {
     右列冻结: 'Fixar coluna à direita',
     取消右列冻结: 'Desafixar coluna direita',
   },
-} as LocaleMessage
+} satisfies LocaleMessage

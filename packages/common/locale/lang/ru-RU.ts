@@ -36,4 +36,4 @@ export default {
     右列冻结: 'Зафиксировать колонки справа',
     取消右列冻结: 'Отменить фиксацию справа',
   },
-} as LocaleMessage
+} satisfies LocaleMessage

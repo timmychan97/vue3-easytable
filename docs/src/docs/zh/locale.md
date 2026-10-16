@@ -14,19 +14,66 @@ VeLocale.use(enUS)
 
 :::anchor 修改语言包
 
-通过 `VeLocale.update` 方法可以实现文案的修改和扩展。
+通过 `VeLocale.update` 方法可以实现文案的修改和扩展，只会修改传入的文案。
 
 ```javascript
 import { VeLocale } from 'vue-easytable'
 
 const lang = {
-  pagination: {
-    goto: '跳转到',
+  分页: {
+    前往: '跳转到',
   },
 }
 
 VeLocale.update(lang)
 ```
+
+:::anchor 文案键名
+
+语言包按组件分组，所有语言包的键名相同（完整列表见 `zh-CN`）：
+
+| 分组 | 键名 |
+| ---- | ---- |
+| `分页` | `前往`、`页`、`每页条数`、`合计`、`向前N页`、`向后N页`、`上一页`、`下一页`、`分页导航`、`第N页`、`当前页`、`跳转到`、`每页显示条数` |
+| `表格` | `确认筛选`、`重置筛选`、`剪切`、`复制`、`上方插入行`、`下方插入行`、`删除行`、`清空行`、`清空列`、`清空单元格`、`左列冻结`、`取消左列冻结`、`右列冻结`、`取消右列冻结` |
+
+`合计`、`向前N页`、`向后N页`、`第N页`、`当前页` 是函数，接收一个数字并返回文案，例如 ``合计: total => `共 ${total} 条` ``。
+
+:::anchor 从英文键名迁移
+
+:::tip
+旧版本使用英文键名（`pagination.goto`、`table.cut` 等），现已**废弃**。`VeLocale.use` 和 `VeLocale.update` 仍然接受旧键名，会自动映射到新键名，并在每个旧键名第一次使用时输出一次 `console.warn`。请尽快改用新键名，英文键名将在后续版本中移除。
+:::
+
+| 旧键名 | 新键名 |
+| ------ | ------ |
+| `pagination.goto` | `分页.前往` |
+| `pagination.page` | `分页.页` |
+| `pagination.itemsPerPage` | `分页.每页条数` |
+| `pagination.total` | `分页.合计` |
+| `pagination.prev5` | `分页.向前N页` |
+| `pagination.next5` | `分页.向后N页` |
+| `pagination.prevPage` | `分页.上一页` |
+| `pagination.nextPage` | `分页.下一页` |
+| `pagination.paginationLabel` | `分页.分页导航` |
+| `pagination.pageLabel` | `分页.第N页` |
+| `pagination.currentPageLabel` | `分页.当前页` |
+| `pagination.jumpToLabel` | `分页.跳转到` |
+| `pagination.pageSizeLabel` | `分页.每页显示条数` |
+| `table.confirmFilter` | `表格.确认筛选` |
+| `table.resetFilter` | `表格.重置筛选` |
+| `table.cut` | `表格.剪切` |
+| `table.copy` | `表格.复制` |
+| `table.insertRowAbove` | `表格.上方插入行` |
+| `table.insertRowBelow` | `表格.下方插入行` |
+| `table.removeRow` | `表格.删除行` |
+| `table.emptyRow` | `表格.清空行` |
+| `table.emptyColumn` | `表格.清空列` |
+| `table.emptyCell` | `表格.清空单元格` |
+| `table.leftFixedColumnTo` | `表格.左列冻结` |
+| `table.cancelLeftFixedColumnTo` | `表格.取消左列冻结` |
+| `table.rightFixedColumnTo` | `表格.右列冻结` |
+| `table.cancelRightFixedColumnTo` | `表格.取消右列冻结` |
 
 :::anchor CDN 方式加载语言文件
 

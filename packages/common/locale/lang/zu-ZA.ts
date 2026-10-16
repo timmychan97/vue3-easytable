@@ -36,4 +36,4 @@ export default {
     右列冻结: 'Gina ikholomu kwesokudla',
     取消右列冻结: 'Khulula ikholomu yesokudla',
   },
-} as LocaleMessage
+} satisfies LocaleMessage

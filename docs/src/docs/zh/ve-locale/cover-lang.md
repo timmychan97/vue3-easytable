@@ -21,8 +21,8 @@
         methods: {
             coverLang() {
                 const lang = {
-                    pagination: {
-                        goto: "跳转到",
+                    分页: {
+                        前往: "跳转到",
                     },
                 };
                 this.$veLocale.update(lang);

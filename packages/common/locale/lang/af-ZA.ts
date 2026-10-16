@@ -36,4 +36,4 @@ export default {
     右列冻结: 'Vries kolom regs',
     取消右列冻结: 'Ontvrys regterkolom',
   },
-} as LocaleMessage
+} satisfies LocaleMessage

@@ -36,4 +36,4 @@ export default {
     右列冻结: '右列凍結',
     取消右列冻结: '取消右列凍結',
   },
-} as LocaleMessage
+} satisfies LocaleMessage
