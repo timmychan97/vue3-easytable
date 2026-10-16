@@ -88,14 +88,7 @@ export const EMIT_EVENTS = {
   BODY_CELL_CONTEXTMENU: 'on-body-cell-contextmenu',
   // expand row change
   EXPAND_ROW_CHANGE: 'on-expand-row-change',
-  // checkbox selected row change
-  CHECKBOX_SELECTED_ROW_CHANGE: 'on-checkbox-selected-row-change',
-  // checkbox selected all change
-  CHECKBOX_SELECTED_ALL_CHANGE: 'on-checkbox-selected-all-change',
-  // checkbox selected all ino
-  CHECKBOX_SELECTED_ALL_INFO: 'on-checkbox-selected-all-info',
-  // radio selected row change
-  RADIO_SELECTED_ROW_CHANGE: 'on-radio-selected-row-change',
+  // 行勾选 / 单选不再走事件总线，改为 inject 表格级行状态（MOD-08）
   // sort change
   SORT_CHANGE: 'on-sort-change',
   // on-cell-selection-key-change

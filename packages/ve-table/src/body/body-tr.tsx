@@ -75,12 +75,6 @@ export default defineComponent({
         return null
       },
     },
-    internalCheckboxSelectedRowKeys: {
-      type: Array,
-      default() {
-        return null
-      },
-    },
 
     /*
         radio
@@ -90,10 +84,6 @@ export default defineComponent({
       default() {
         return null
       },
-    },
-    internalRadioSelectedRowKey: {
-      type: [String, Number],
-      default: null,
     },
     // is virtual scroll
     isVirtualScroll: {
@@ -245,8 +235,6 @@ export default defineComponent({
       rowKeyFieldName,
       rowIndex,
       rowData,
-      internalCheckboxSelectedRowKeys,
-      internalRadioSelectedRowKey,
       radioOption,
       cellStyleOption,
       eventCustomOption,
@@ -268,8 +256,6 @@ export default defineComponent({
           rowKeyFieldName,
           allRowKeys: this.allRowKeys,
           isExpandRow,
-          internalCheckboxSelectedRowKeys,
-          internalRadioSelectedRowKey,
           radioOption,
           cellStyleOption,
           cellSpanOption: this.cellSpanOption,
