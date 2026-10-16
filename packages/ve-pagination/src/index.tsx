@@ -1,27 +1,32 @@
+import { useI18N } from '@vue3-easytable/common/locale'
 import { ICON_NAMES } from '@vue3-easytable/common/utils/constant'
-import { createLocale } from '@vue3-easytable/common/utils/index'
 import VeIcon from '@vue3-easytable/ve-icon'
 import VeSelect from '@vue3-easytable/ve-select'
 import Pager from './pager'
 import { clsName } from './util'
 import { COMPS_NAME, EMIT_EVENTS, LOCALE_COMP_NAME } from './util/constant'
 
-const t = createLocale(LOCALE_COMP_NAME)
+// 每个组件在 setup 中解析语言包（最近的 ConfigProvider，否则为全局语言包）
+function setupLocale() {
+  return { t: useI18N(LOCALE_COMP_NAME) }
+}
 
 export default defineComponent({
   name: COMPS_NAME.VE_PAGINATION,
   components: {
     Total: {
+      setup: setupLocale,
       render() {
         return (
           <span class={clsName('total')} aria-live="polite">
-            {t('合计', this.$parent.total)}
+            {this.t('合计', this.$parent.total)}
           </span>
         )
       },
     },
 
     Prev: {
+      setup: setupLocale,
       render() {
         const isDisabled = this.$parent.newPageIndex === 1
         return (
@@ -35,7 +40,7 @@ export default defineComponent({
           >
             <button
               type="button"
-              aria-label={t('上一页')}
+              aria-label={this.t('上一页')}
               aria-disabled={isDisabled}
               disabled={isDisabled}
               tabindex={isDisabled ? -1 : 0}
@@ -50,6 +55,7 @@ export default defineComponent({
     Pager,
 
     Next: {
+      setup: setupLocale,
       render() {
         const isDisabled = this.$parent.newPageIndex === this.$parent.pageCount
         return (
@@ -63,7 +69,7 @@ export default defineComponent({
           >
             <button
               type="button"
-              aria-label={t('下一页')}
+              aria-label={this.t('下一页')}
               aria-disabled={isDisabled}
               disabled={isDisabled}
               tabindex={isDisabled ? -1 : 0}
@@ -76,11 +82,12 @@ export default defineComponent({
     },
 
     Sizer: {
+      setup: setupLocale,
       render() {
         return (
           <div class={clsName('select-wrapper')}>
             <span class={clsName('select-label')} id="ve-pagination-size-label">
-              {t('每页显示条数')}
+              {this.t('每页显示条数')}
             </span>
             <VeSelect
               class={clsName('select')}
@@ -107,6 +114,7 @@ export default defineComponent({
     },
 
     Jumper: {
+      setup: setupLocale,
       methods: {
         jumperEnter(event: KeyboardEvent) {
           if (event.key !== 'Enter')
@@ -121,7 +129,7 @@ export default defineComponent({
         return (
           <span class={clsName('goto')}>
             <label class={clsName('goto-label')} for="ve-pagination-jumper">
-              {t('前往')}
+              {this.t('前往')}
             </label>
             <input
               id="ve-pagination-jumper"
@@ -131,10 +139,10 @@ export default defineComponent({
               type="text"
               inputmode="numeric"
               pattern="[0-9]*"
-              aria-label={t('跳转到')}
+              aria-label={this.t('跳转到')}
             />
             <span class={clsName('goto-suffix')} aria-hidden="true">
-              {t('页')}
+              {this.t('页')}
             </span>
           </span>
         )
@@ -188,6 +196,7 @@ export default defineComponent({
       },
     },
   },
+  setup: setupLocale,
   data() {
     return {
       newPageIndex:
@@ -212,7 +221,7 @@ export default defineComponent({
         }
 
         temp.value = x
-        temp.label = x + t('每页条数')
+        temp.label = x + this.t('每页条数')
         if (this.newPageSize === x)
           temp.selected = true
 
@@ -317,7 +326,7 @@ export default defineComponent({
     }
 
     return (
-      <nav class={clsName('nav')} aria-label={t('分页导航')}>
+      <nav class={clsName('nav')} aria-label={this.t('分页导航')}>
         <ul class="ve-pagination" role="list">
           {
             this.layout.map((item) => {

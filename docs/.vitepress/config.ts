@@ -20,6 +20,7 @@ const zhSidebar = [
     items: [
       { text: 'Loading 加载', link: '/zh/ve-loading' },
       { text: 'Locale 国际化', link: '/zh/ve-locale' },
+      { text: 'ConfigProvider 全局配置', link: '/zh/ve-config-provider' },
       { text: 'Icon 图标', link: '/zh/ve-icon' },
       { text: 'Pagination 分页', link: '/zh/ve-pagination' },
       { text: 'Contextmenu 右键菜单', link: '/zh/ve-contextmenu' },
@@ -96,6 +97,7 @@ const enSidebar = [
     items: [
       { text: 'Loading', link: '/en/ve-loading' },
       { text: 'Locale', link: '/en/ve-locale' },
+      { text: 'ConfigProvider', link: '/en/ve-config-provider' },
       { text: 'Icon', link: '/en/ve-icon' },
       { text: 'Pagination', link: '/en/ve-pagination' },
       { text: 'Contextmenu', link: '/en/ve-contextmenu' },
@@ -172,6 +174,7 @@ const nbSidebar = [
     items: [
       { text: 'Loading', link: '/nb/ve-loading' },
       { text: 'Locale', link: '/nb/ve-locale' },
+      { text: 'ConfigProvider', link: '/nb/ve-config-provider' },
       { text: 'Icon', link: '/nb/ve-icon' },
       { text: 'Pagination', link: '/nb/ve-pagination' },
       { text: 'Contextmenu', link: '/nb/ve-contextmenu' },

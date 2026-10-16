@@ -1,12 +1,11 @@
-import { createLocale, isFunction } from '@vue3-easytable/common/utils'
+import { useI18N } from '@vue3-easytable/common/locale'
+import { isFunction } from '@vue3-easytable/common/utils'
 import { ICON_NAMES } from '@vue3-easytable/common/utils/constant'
 import VeDropdown from '@vue3-easytable/ve-dropdown'
 import VeIcon from '@vue3-easytable/ve-icon'
 import { defineComponent } from 'vue'
 import { clsName, getEmitEventName } from '../util'
 import { COMPS_NAME, EMIT_EVENTS, LOCALE_COMP_NAME } from '../util/constant'
-
-const t = createLocale(LOCALE_COMP_NAME)
 
 export default defineComponent({
   name: COMPS_NAME.VE_TABLE_HEADER_FILTER_CONTENT,
@@ -15,6 +14,10 @@ export default defineComponent({
       type: Object,
       required: true,
     },
+  },
+  setup() {
+    // 解析语言包（最近的 ConfigProvider，否则为全局语言包）
+    return { t: useI18N(LOCALE_COMP_NAME) }
   },
   data() {
     return {
@@ -68,8 +71,8 @@ export default defineComponent({
       'showOperation': true,
       isMultiple,
       'showRadio': true, // when single selection
-      'confirmFilterText': t('确认筛选'),
-      'resetFilterText': t('重置筛选'),
+      'confirmFilterText': this.t('确认筛选'),
+      'resetFilterText': this.t('重置筛选'),
       beforeVisibleChange,
       [getEmitEventName(EMIT_EVENTS.HEADER_FILTER_CONFIRM)]: this.filterConfirm,
       [getEmitEventName(EMIT_EVENTS.HEADER_FILTER_RESET)]: this.filterReset,

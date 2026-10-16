@@ -38,10 +38,10 @@ Rules:
 | Severity | Total | Open | Done | Won't fix |
 |---|---:|---:|---:|---:|
 | 🔴 High | 17 | 8 | 9 | 0 |
-| 🟠 Medium | 35 | 24 | 9 | 2 |
+| 🟠 Medium | 35 | 23 | 10 | 2 |
 | 🟢 Low | 30 | 27 | 3 | 0 |
-| **Findings** | **82** | **59** | **21** | **2** |
-| Modularity (MOD) | 11 | 11 | 0 | 0 |
+| **Findings** | **82** | **58** | **22** | **2** |
+| Modularity (MOD) | 11 | 10 | 1 | 0 |
 
 ### Baseline health (update after each batch)
 
@@ -58,7 +58,7 @@ Rules:
 Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
 
 0. ✅ **Regressions from the merge.** Get the test suite green again (refresh the stale snapshots, make the virtual-scroll specs work under jsdom), then VS-05. Settle the I18N-04 decision before anything else touches locale keys. Check COL-07 at runtime.
-1. ✅ (except I18N-01, sequenced after I18N-04) **Crash one-liners.** Small diffs with high value: COL-01, EDIT-01, DD-05, I18N-01, SEL-04, LOAD-01
+1. ✅ **Crash one-liners.** Small diffs with high value: COL-01, EDIT-01, DD-05, I18N-01, SEL-04, LOAD-01
 2. ✅ **Lifecycle and leaks.** INFRA-01, INFRA-02, INFRA-03, EDIT-02, DD-01, DD-02, MENU-03, MENU-04, FORM-01
 3. **State reconciliation and keyboard.** SEL-01, CLIP-01, SEL-02 + SEL-08 (together), EDIT-04, INFRA-07
 4. **Row selection and expand.** MOD-08 first (derived state, D2), then ROW-01 … ROW-05 on top of it
@@ -592,7 +592,7 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
 
 ## I18N — locale and ConfigProvider
 
-- [ ] **I18N-01** 🟠 🔍 ConfigProvider renders nothing, and the locale plumbing is disconnected
+- [x] ✅ 2026-10-16 · fix/audit-i18n01-config-provider **I18N-01** 🟠 🔍 ConfigProvider renders nothing, and the locale plumbing is disconnected
   - **Where:** [common/comps/config-provider/index.ts:16](../packages/common/comps/config-provider/index.ts#L16) (`slots.defaults?.()`, a typo for `default`). Also `ve-locale/index.ts:49-58`: `useLocale` assigns to an injected read-only computed, and `update()` merges into the user's locale object. Neither is wired to `createI18N`, which reads only the global singleton.
   - **Decision D3: fix it and export it.**
     - Fix the slot typo.
@@ -600,10 +600,18 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
     - `useLocale` must not write to the injected computed or mutate user objects.
     - Wire `createI18N` / every component's locale lookup through the injected context (MOD-11).
     - Export it from `packages/vue/src/index.ts`, add a docs page and tests (nested providers, switching locale at runtime).
+  - **Done:**
+    - `common/comps/config-provider/index.ts`: renders `slots.default`, and always provides a computed through `provideLocale(() => props.locale)`, so a change to `locale` (including back to `undefined`) re-renders the children. `locale` is typed `LocaleMessageInput`, runs through `normalizeLocaleMessage` (old English keys work and warn once per key), and is merged on top of the outer locale (the nearest outer provider, else the global `VeLocale` singleton) into a fresh object. A partial locale is therefore enough, and the innermost provider wins.
+    - `ve-locale/index.ts`: the injection key holds a read-only `Ref<LocaleMessage>`. New `injectLocale()` returns the nearest provided locale, or the global one (also outside an injection context). `useLocale()` never writes to the injected ref, and its `update()` keeps a normalized local override for that caller only. Nothing mutates user objects. Before, `useLocale` without a provider fell back to a private zh-CN clone, not the global locale.
+    - `common/locale/index.ts`: `createI18N(compName, getMessages?)` resolves through `injectLocale()` by default. New `useI18N(compName)` binds `t` to the locale injected at setup. Every lookup now goes through it: `ve-pagination` (root, Total/Prev/Next/Sizer/Jumper and the pager, via `setup`), `header-filter-content` (`setup`), and the ve-table contextmenu (an `inject` option, `veLocale`). ve-table uses `inject` instead of `setup` to keep its instance shape until MOD-02: with a `setup()`, VTU's `wrapper.vm` stops exposing `_`-prefixed data such as `_vs`, which broke a virtual-scroll spec.
+    - Exported as `VeConfigProvider` from `packages/vue/src/index.ts` and registered by `useVeTable()` (`<ve-config-provider>`), like the other components (`withUse`). Renamed from the never-exported `EtConfigProvider`.
+    - Docs: `docs/{en,nb,zh}/ve-config-provider.md` (usage, nested providers, switching at runtime, API) plus sidebar entries.
+  - **Verified:** `common/__tests__/config-provider.spec.tsx` (11 tests, written first; 10 failed before the fix): `is exported and registered by useVeTable`, `renders its default slot`, `a component inside the provider uses the provider locale`, `nested providers: the innermost provider wins`, `switching the locale prop at runtime updates the rendered text`, `without a provider, components fall back to the global locale`, `a provider without a locale passes the global locale through, including later updates`, `accepts an old English key through the provider and warns once`, `does not mutate the user locale object or the global locale`, and `inside ve-table` › `the header filter uses the provider locale` / `the contextmenu uses the provider locale`. The three docs demos were also checked in headless Chromium against a `vitepress build` (en, nb, zh: every button, no console errors). `vue-tsc` stays at 461 with the same error set.
 
 - [ ] **I18N-02** 🟢 The locale singleton is deep-merged in place and shared across apps
   - **Where:** `ve-locale/index.ts:22-35`. A second app's `use({ locale })` switches the first app's language.
   - **Fix:** `merge({}, defaultLang, lang)` into a fresh object, and a per-app provide (MOD-11).
+  - **Progress (I18N-01):** an app can now get its own language by wrapping its root in `VeConfigProvider`. The global singleton is still merged in place and shared across apps, so this item stays open.
 
 - [x] ✅ 2026-10-16 · `81a1ebb` **I18N-03** 🟢 Missing pagination aria keys in seven languages
   - **Where (at `a0bfb50`):** `common/locale/lang/{fr-FR,ru-RU,ko-KR,pt-BR,zh-TW,af-ZA,zu-ZA}.ts`. They lacked `prevPage`, `nextPage`, `paginationLabel`, `pageLabel`, `currentPageLabel`, `jumpToLabel` and `pageSizeLabel`, so those users got **Chinese** aria-labels.
@@ -623,7 +631,7 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
     - Docs: `docs/src/docs/{en,nb,zh}/locale.md` use the new keys and have a key list plus an old → new migration table. The `ve-locale/cover-lang.md` demos use `分页.前往` and change the text visibly ("Jump to" / "Hopp til" / "跳转到").
     - Changelog: a "breaking change + deprecation" section at the top of `MIGRATION.md`. `docs/src/docs/*/update-log.md` are empty and not included by any page, so they were left alone.
   - **Verified:** `ve-locale.spec.tsx`. `render by update method` now overrides `分页.前往` and asserts the label, and its old snapshot (`跳转到`) is valid again. Also: `overrides a message with the new key`, `accepts a deprecated English key and warns once per key`, `use() accepts a language pack written with the old keys`, `normalizeLocaleMessage` › maps / prefers new key / keeps unknown keys. The type check is guarded by `locale message types reject missing and unknown keys`, which has two `@ts-expect-error` lines that would fail `vue-tsc` if the type became loose again. `vue-tsc` stayed at 462.
-  - **Not covered:** `provideLocale(lang)` and the ConfigProvider `locale` prop pass user objects through without normalizing them. They are not wired to `createI18N` yet (I18N-01), so nothing reads them today. Normalize there when I18N-01 connects them.
+  - **Not covered:** `provideLocale(lang)` and the ConfigProvider `locale` prop pass user objects through without normalizing them. They are not wired to `createI18N` yet (I18N-01), so nothing reads them today. Normalize there when I18N-01 connects them. *(Done with I18N-01 in `fix/audit-i18n01-config-provider`: `provideLocale` runs `normalizeLocaleMessage` on the ConfigProvider `locale` prop, and the result reaches every component. Verified by `accepts an old English key through the provider and warns once`.)*
 
 - [ ] **I18N-05** 🟢 The new Norwegian locale file is named `no-NB`
   - **Where:** `common/locale/lang/no-NB.ts` (added in `81a1ebb`). The BCP 47 tag for Norwegian Bokmål is `nb-NO`, which is what the docs use (`docs/.vitepress/theme/index.ts:24-25` maps `nb-NO` → `no-NB`).
@@ -670,7 +678,8 @@ These are structural changes. Several of them remove whole bug classes above (no
 - [ ] **MOD-08** `useRowSelection` / `useRowExpand` composables that return derived state as props, and remove the local `isSelected` mirrors in the checkbox and radio content components. [ROW-03, ROW-04, ROW-05]
 - [ ] **MOD-09** A `usePopper(triggerRef, { appendTo, placement })` built on `<Teleport>`, shared by dropdown and contextmenu, so neither moves Vue-owned DOM by hand any more. [DD-01, DD-02, MENU-03, MENU-04, MENU-05]
 - [ ] **MOD-10** Pagination subcomponents (Total, Prev, Next, Sizer, Jumper): use props or an injected context instead of reaching into `this.$parent`.
-- [ ] **MOD-11** A single `useLocale()` that falls back to the global singleton, merges without mutating, and is used by `createI18N`. [I18N-01, I18N-02]
+- [x] ✅ 2026-10-16 · fix/audit-i18n01-config-provider **MOD-11** A single `useLocale()` that falls back to the global singleton, merges without mutating, and is used by `createI18N`. [I18N-01, I18N-02]
+  - **Done with I18N-01:** `injectLocale()` (`ve-locale/index.ts`) is the one lookup path: nearest `VeConfigProvider`, else the global singleton. `useLocale()`, `createI18N` and the new `useI18N` all go through it, and `provideLocale` / `useLocale().update` merge into fresh objects. Verified by the I18N-01 tests. I18N-02 is only partly covered: the global singleton itself is still merged in place.
 
 ---
 
@@ -713,6 +722,7 @@ Record new decisions here with the next free `D` number and the date. Reference 
 
 Newest first. One line per change: date · IDs · what happened · commit/PR.
 
+- **2026-10-16** · I18N-01, MOD-11 ✅ · I18N-02 progress · I18N-04 remark closed · ConfigProvider fixed and exported (D3). It renders its slot, always provides a computed merged on top of the outer locale (nearest provider, else the global `VeLocale`), normalizes old English keys, and never mutates user objects. `useLocale` no longer writes to the injected ref. `createI18N`/`useI18N` resolve through `injectLocale()`, used by pagination, the header filter and the ve-table contextmenu. Exported as `VeConfigProvider` and registered by `useVeTable()`. Docs page in en/nb/zh. 11 new tests (written first); the docs demos were checked in headless Chromium. Suite 43 files · 344 tests all pass, eslint clean, tsc 461 (unchanged). · `fix/audit-i18n01-config-provider`
 - **2026-10-16** · Progress, Baseline · Merged batches 0, 1 and 2 into `refactor/all`. Only AUDIT.md conflicted; the stale `debouncedBodyCellWidthChange.cancel()` from INFRA-03 was dropped because COL-07 removed that debounce. Recounted Progress: 82 findings (+VS-07, +MENU-06), 21 done, 2 won't fix. Merged tree: 42 files · 333 tests all pass, eslint clean, tsc 461 (new ceiling).
 - **2026-10-16** · VS-05, INFRA-04, I18N-04, COL-07 ✅ · D5 · VS-07 added and ✅ · EDIT-03, INS-01 progress · Batch 0 (regressions from the merge): the suite is green again. COL-07 was confirmed in headless Chromium: without `scrollWidth` the real table uses auto layout, so the empty hidden table mis-measured both auto and fixed-width columns. The measurement row is back in the real table, in its own hidden `<tbody>`, and the dead `bodyCellWidthChange` was removed. I18N-04 (D5): the Chinese keys stay, the old English keys are accepted through an alias map with a one-time deprecation warning, `LocaleMessage` is typed precisely and checked with `satisfies`, and the docs and `MIGRATION.md` are updated. 29 stale snapshots were refreshed after checking each diff. The virtual-scroll specs were rewritten for the spacer DOM with a test-only layout stub. New **VS-07** 🔴: the TanStack adapter never called `_willUpdate()`, so virtual tables rendered no rows in real browsers (reproduced in headless Chromium, then fixed). VS-05: body classes are now a prop on every row `<tbody>`, stripe uses a data-index class, and the border-around last-row rule was fixed; verified in tests and Chromium. INFRA-04: a shared, escaped `util/cell-dom.ts` is used at every lookup site. · `fix/audit-batch0-regressions`
 - **2026-10-16** · INFRA-01, INFRA-02, INFRA-03, EDIT-02, DD-01, DD-02, MENU-03, MENU-04, FORM-01 ✅ · MENU-06 added · Batch 2 (lifecycle and leaks). `Hooks.addHook` returns a disposer and `triggerHook` isolates errors. The emitter mixin `bus.off`s on unmount. Debounces, timers and document listeners are cancelled in ve-table, selection, editor (`destroyed` → `beforeUnmount`), column-resizer and contextmenu. The dropdown hides synchronously (no 150ms timer) and removes its body container. Contextmenu containers are tracked in a Set. Checkbox-group callbacks unregister. New finding: **MENU-06** 🔴, the ve-table menu is removed right after it opens (jsdom only, needs a browser check). 18 new tests; no new failures (still 40, same set), tsc 461, eslint clean. · `fix/audit-batch2-lifecycle-leaks`

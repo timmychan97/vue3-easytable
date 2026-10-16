@@ -1,10 +1,8 @@
+import { useI18N } from '@vue3-easytable/common/locale'
 import { ICON_NAMES } from '@vue3-easytable/common/utils/constant'
-import { createLocale } from '@vue3-easytable/common/utils/index'
 import VeIcon from '@vue3-easytable/ve-icon'
 import { clsName } from './util'
 import { LOCALE_COMP_NAME } from './util/constant'
-
-const t = createLocale(LOCALE_COMP_NAME)
 
 export default defineComponent({
   props: {
@@ -20,6 +18,10 @@ export default defineComponent({
       type: Number,
       required: true,
     },
+  },
+  setup() {
+    // 解析语言包（最近的 ConfigProvider，否则为全局语言包）
+    return { t: useI18N(LOCALE_COMP_NAME) }
   },
   computed: {
     numOffset() {
@@ -88,6 +90,7 @@ export default defineComponent({
       pagingCounts,
       showJumpNext,
       pageCount,
+      t,
     } = this
 
     return (
