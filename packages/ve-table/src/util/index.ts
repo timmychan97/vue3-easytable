@@ -449,6 +449,12 @@ export function setHeaderContextmenuOptions({
       isExcludeOperationColumn: true,
     })
 
+    // 与 setColumnFixed 一致：左固定以选区右边界列为准，右固定以选区左边界列为准
+    // 该列已向另一方向固定时，不允许改变固定方向
+    const { leftColKey, rightColKey } = cellSelectionRangeData
+    const leftFixedToColFixed = colgroups.find(x => x.key === rightColKey)?.fixed
+    const rightFixedToColFixed = colgroups.find(x => x.key === leftColKey)?.fixed
+
     if (isFunction(beforeShow)) {
       beforeShow({
         isWholeColSelection,
@@ -489,8 +495,12 @@ export function setHeaderContextmenuOptions({
           === CONTEXTMENU_NODE_TYPES.LEFT_FIXED_COLUMN_TO
         ) {
           //
-          if (isOperationCol)
+          if (
+            isOperationCol
+            || leftFixedToColFixed === COLUMN_FIXED_TYPE.RIGHT
+          ) {
             contentmenuCollectionItem.disabled = true
+          }
         }
         // calcel left fixed column to
         else if (
@@ -506,8 +516,12 @@ export function setHeaderContextmenuOptions({
           === CONTEXTMENU_NODE_TYPES.RIGHT_FIXED_COLUMN_TO
         ) {
           //
-          if (isOperationCol)
+          if (
+            isOperationCol
+            || rightFixedToColFixed === COLUMN_FIXED_TYPE.LEFT
+          ) {
             contentmenuCollectionItem.disabled = true
+          }
         }
         // calcel right fixed column to
         else if (
@@ -722,7 +736,7 @@ export function getColKeysByRangeColKeys({ colKey1, colKey2, colgroups }) {
   const index1 = colgroups.findIndex(x => x.key === colKey1)
   const index2 = colgroups.findIndex(x => x.key === colKey2)
 
-  if (index1 !== -1 && index1 !== -1) {
+  if (index1 !== -1 && index2 !== -1) {
     const beginIndex = index1 < index2 ? index1 : index2
     const endIndex = index1 < index2 ? index2 : index1
     result = colgroups.slice(beginIndex, endIndex + 1).map(x => x.key)
@@ -1444,10 +1458,10 @@ export function setColumnFixed({
   })
 
   if (fixedColIndex > -1) {
-    // 不允许改变原有固定列方向
+    // 不允许改变原有固定列方向。原样返回列配置（调用方会把返回值赋给 cloneColumns）
     const oldFixedType = cloneColumns[fixedColIndex].fixed
     if (!isEmptyValue(oldFixedType) && oldFixedType !== fixedType)
-      return false
+      return cloneColumns
 
     result = cloneColumns.map((colItem, index) => {
       // 清除所有固定

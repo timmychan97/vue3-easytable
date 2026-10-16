@@ -1773,6 +1773,75 @@ describe('veTable cell edit', () => {
     )
   })
 
+  // `Alt + Enter` 换行：列的 key 与 field 不同时，应读取 field 对应的值
+  it('key code alt+enter event when column key differs from field', async () => {
+    const mockFn = vi.fn()
+
+    const columns = COLUMNS.map(column => ({
+      ...column,
+      key: `col-${column.field}`,
+    }))
+
+    const wrapper = mount(veTable, {
+      propsData: {
+        columns,
+        tableData: cloneDeep(TABLE_DATA),
+        editOption: {
+          // cell value change
+          afterCellValueChange: ({ row, column }) => {
+            mockFn(row, column)
+          },
+        },
+        rowKeyFieldName: 'rowKey',
+      },
+    })
+
+    // td
+    const firstCell = wrapper
+      .findAll('.ve-table-body-tr')[1]
+      .findAll('.ve-table-body-td')[1]
+
+    firstCell.trigger('dblclick')
+
+    await later()
+
+    const textInput = wrapper.find(
+      '.ve-table-edit-input-container-show .ve-table-edit-input',
+    )
+    textInput.setValue('AAA')
+
+    await later()
+
+    document.dispatchEvent(
+      new KeyboardEvent('keydown', {
+        keyCode: KEY_CODES.ENTER,
+        altKey: true,
+      }),
+    )
+
+    await later()
+
+    expect(
+      (textInput.element as HTMLTextAreaElement).value,
+    ).toBe('AAA\n')
+
+    wrapper
+      .findAll('.ve-table-body-tr')[1]
+      .findAll('.ve-table-body-td')[2]
+      .trigger('mousedown')
+
+    expect(mockFn).toHaveBeenCalledWith(
+      {
+        address: 'No.1 Century Avenue, Beijing',
+        date: 'AAA\n',
+        hobby: 'coding and coding repeat',
+        name: 'Dickerson',
+        rowKey: 1,
+      },
+      expect.objectContaining({ key: 'col-date', field: 'date' }),
+    )
+  })
+
   // table clickoutside
   it('table clickoutside width cell editing', async () => {
     const mockFn = vi.fn()

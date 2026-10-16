@@ -133,10 +133,12 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
 
 ## COL — columns (fixed, hide/show, resize)
 
-- [ ] **COL-01** 🔴 🔍 "Left/Right fixed column to" on a column fixed the other way crashes the table
+- [x] ✅ 2026-10-16 · fix/audit-batch1-crash-oneliners **COL-01** 🔴 🔍 "Left/Right fixed column to" on a column fixed the other way crashes the table
   - **Where:** [util/index.ts:1447-1450](../packages/ve-table/src/util/index.ts#L1447-L1450). `setColumnFixed` returns `false`, and the callers `methods/contextmenu.ts:135, 158` assign it to `this.cloneColumns`. The `cloneColumns` watcher (`ve-table.tsx:771`) then runs `initGroupColumns(false)`, which throws `false.forEach is not a function`.
   - **Trigger:** a column with `fixed: 'left'`, right-click its header, choose "Right fixed column to".
   - **Fix:** `return cloneColumns` (or have the callers ignore a falsy result). Also disable the menu item when the direction conflicts (`setHeaderContextmenuOptions`, util ~404-470).
+  - **Done:** `setColumnFixed` now returns the unchanged `cloneColumns` (same reference, so the watcher doesn't fire). `setHeaderContextmenuOptions` disables "Left fixed column to" when the range's right edge column is right-fixed, and "Right fixed column to" when the left edge column is left-fixed (the same edges `setColumnFixed` checks).
+  - **Verified:** `ve-table-contextmenu.spec.tsx` › "header contextmenu right fixed column to on a left fixed column" (the menu node is `ve-contextmenu-node-disabled`; calling `contextmenuItemClick('RIGHT_FIXED_COLUMN_TO')` directly no longer reaches the app `errorHandler` with `cloneColumns.forEach is not a function`, and the columns and header stay intact). `ve-table-util.spec.ts` › `setColumnFixed` (both directions return the same array unchanged) and `setHeaderContextmenuOptions` (disabled per direction, both enabled on an unfixed column, multi-column range uses the same edges).
 
 - [ ] **COL-02** 🟢 🔍 The "don't left-fix the last column" guard is a no-op
   - **Where:** [util/index.ts:1471](../packages/ve-table/src/util/index.ts#L1471). `index < cloneColumns.length` is always true. The RIGHT branch (`index > 0`) is correct.
@@ -194,8 +196,9 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
   - **Note:** the test at `__tests__/ve-table-cell-selection.spec.ts:599-604` **locks in the bug** (`leftColKey: 'b'`). Update it with the fix.
   - **Fix:** use the first column where `!x.operationColumn`.
 
-- [ ] **SEL-04** 🟢 🔍 Typo in a range check: `index1 !== -1 && index1 !== -1`
+- [x] ✅ 2026-10-16 · fix/audit-batch1-crash-oneliners **SEL-04** 🟢 🔍 Typo in a range check: `index1 !== -1 && index1 !== -1`
   - **Where:** [util/index.ts:725](../packages/ve-table/src/util/index.ts#L725). It should test `index2`. An unknown `colKey2` returns `slice(-1, …)` garbage instead of `null`.
+  - **Verified:** `ve-table-util.spec.ts` › `getColKeysByRangeColKeys` › "returns null when colKey2 is unknown" (failed with `[]` before the fix).
 
 - [ ] **SEL-05** 🟢 🔍 `getNextColKey` with an unknown key returns the first column
   - **Where:** [util/index.ts:1092-1102](../packages/ve-table/src/util/index.ts#L1092-L1102). `-1 < length - 1` is true.
@@ -281,9 +284,10 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
 
 ## EDIT — cell editing
 
-- [ ] **EDIT-01** 🔴 🔍 Alt+Enter while editing replaces the text with `"undefined\n"` when `key !== field`
+- [x] ✅ 2026-10-16 · fix/audit-batch1-crash-oneliners **EDIT-01** 🔴 🔍 Alt+Enter while editing replaces the text with `"undefined\n"` when `key !== field`
   - **Where:** [editor/index.tsx:429](../packages/ve-table/src/editor/index.tsx#L429). It reads `editingCell.row[editingCell.colKey]`. The rest of the table uses `row[column.field]` (`methods/editing.ts:43`). The repo's own fixtures use `key: 'a', field: 'name'`.
   - **Fix:** `editingCell.row[editingCell.column.field]`.
+  - **Verified:** `ve-table-cell-edit.spec.ts` › "key code alt+enter event when column key differs from field" (columns keyed `col-<field>`; the textarea read `'und\nefined'` before the fix, now `'AAA\n'` and `afterCellValueChange` gets `date: 'AAA\n'`).
 
 - [ ] **EDIT-02** 🟠 🔍 Editor lifecycle: the Vue 2 `destroyed()` hook never runs
   - **Where:** [editor/index.tsx:465](../packages/ve-table/src/editor/index.tsx#L465) (`destroyed`, the only Vue 2 lifecycle hook left in the repo), `:450-460` (uncancelled lodash debounces), `:224` (uncancelled `setTimeout`).
@@ -480,9 +484,10 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
   - **Trigger:** tick a filter item, then click outside without confirming. The user's column config is changed permanently.
   - **Fix:** `this.internalOptions = (this.modelValue ?? []).map(x => ({ ...x }))`.
 
-- [ ] **DD-05** 🟠 🔍 VeSelect's open/closed arrow never toggles
+- [x] ✅ 2026-10-16 · fix/audit-batch1-crash-oneliners **DD-05** 🟠 🔍 VeSelect's open/closed arrow never toggles
   - **Where:** [ve-select/src/index.tsx:152](../packages/ve-select/src/index.tsx#L152). It listens with `onDropdownVisibleChange`, but the dropdown emits `'on-dropdown-visible-change'`, whose handler key is `onOnDropdownVisibleChange`.
   - **Fix:** rename the listener.
+  - **Verified:** `ve-select.spec.tsx` › "toggles the arrow icon class with the dropdown visibility" (`ve-select-show` is added on open and removed on close; it was never added before the fix).
 
 - [ ] **DD-06** 🟢 A `popperAppendTo` selector that matches nothing throws
   - **Where:** `ve-dropdown/src/index.tsx:532` (`this.popperAppendToEl!.tagName`)
@@ -511,10 +516,12 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
 
 ## LOAD — loading service
 
-- [ ] **LOAD-01** 🔴 🔍 The `lock` option never works, and `destroy()` leaves classes on the parent
+- [x] ✅ 2026-10-16 · fix/audit-batch1-crash-oneliners **LOAD-01** 🔴 🔍 The `lock` option never works, and `destroy()` leaves classes on the parent
   - **Where:** [ve-loading/src/index.ts:93-100](../packages/ve-loading/src/index.ts#L93-L100). `options.parent__` is set **after** `createInstance(options)` has mounted, and root props are not reactive, so `instance.parent__` stays `null`.
   - **Effect:** `show()`/`close()` never toggle `ve-loading-parent-lock`, and `destroy()` never removes `ve-loading-parent-relative`, so the target (or `body`) keeps `position: relative !important`. `show(); destroy()` in the same tick would also re-add the class after destroy. The existing "lock" test only checks `.ve-loading-fixed`, which is why this isn't caught.
   - **Fix:** compute `parent` before `createInstance` and pass it in. Check that the instance is still alive inside the `nextTick` callbacks. Count references on the parent class when several loaders share one target.
+  - **Done:** `parent__` is computed before `createInstance`, which reads `parent`/`lock` from the options in a closure. Both parent classes go through a per-element reference count (`WeakMap`). Each instance holds at most one lock reference, the `nextTick` callbacks return early once destroyed, and `destroy()` is idempotent. (The no-op `setVisible(false)` after `app.unmount()` was dropped.)
+  - **Verified:** `ve-loading.spec.tsx` › "lock prop" (now also asserts relative on create, lock on `show()`, lock removed on `close()`, both removed on `destroy()`), "does not lock the parent without the lock prop", "show then destroy in the same tick leaves no parent classes", "keeps the parent classes while another loading shares the target" (includes a double `destroy()`).
 
 ---
 
@@ -629,7 +636,7 @@ Record new decisions here with the next free `D` number and the date. Reference 
 
 ## Test gaps noticed during the audit
 
-- The VeLoading "lock" test asserts only `.ve-loading-fixed` (LOAD-01).
+- ~~The VeLoading "lock" test asserts only `.ve-loading-fixed` (LOAD-01).~~ Closed 2026-10-16 by the LOAD-01 tests (parent classes on show/close/destroy, same-tick destroy, shared target).
 - `ve-table-cell-selection.spec.ts:599-604` asserts buggy behaviour (SEL-03).
 - No tests for remount or toggle scenarios (toggle `cellSelectionOption.enable`, `showHeader`, `rowInsertOption.enable`), which would catch INFRA-01 and INFRA-02.
 - No clipboard codec round-trip tests (CLIP-03 … CLIP-05).
@@ -637,6 +644,7 @@ Record new decisions here with the next free `D` number and the date. Reference 
 - **The suite has been red since `442962c` (40 failures).** 29 snapshots were never refreshed after the measurement row moved out of `<tbody>`, plus the en-US pagination text changes. The 11 virtual-scroll specs fail because jsdom has no layout: the scroll container measures 0 px, so TanStack yields no items and nothing renders. One (`dynamically turns virtual scrolling on`, :158) also still asserts the removed `.ve-table-virtual-phantom`. Fix: pass TanStack's `initialRect` (or mock `getBoundingClientRect` / `offsetHeight` in the spec), then rewrite the assertions for the spacer-based DOM.
 - No test checks that virtual-scroll rows carry the body classes, or that selection and editor cell lookups work in virtual mode (VS-05).
 - `ve-locale.spec.tsx:51` still overrides the old `pagination.goto` key, so it passes without testing anything (I18N-04).
+- `ve-loading.spec.tsx`: "render normal", "fullscreen prop" and the fullscreen part of "lock prop" never `destroy()` their loaders. Since LOAD-01, "fullscreen prop" (`lock: true` + `show()`) leaves `ve-loading-parent-lock` on `body` for the rest of the file. Harmless under jsdom, but the new parent-class tests use their own target element for this reason.
 - Still open from `REFACTOR_PLAN.md`: `ve-table-row-insert.spec.ts`, `ve-table-clipboard.spec.ts`, `ve-table-autofill.spec.ts`.
 
 ---
@@ -645,6 +653,7 @@ Record new decisions here with the next free `D` number and the date. Reference 
 
 Newest first. One line per change: date · IDs · what happened · commit/PR.
 
+- **2026-10-16** · COL-01, EDIT-01, DD-05, SEL-04, LOAD-01 ✅ · Batch 1 (crash one-liners), each fixed test-first: conflicting fixed-direction menu action no longer crashes and its menu item is disabled; Alt+Enter reads `column.field`; VeSelect arrow toggles; `getColKeysByRangeColKeys` checks `index2`; VeLoading sets the parent before mounting, guards `nextTick` after destroy and ref-counts parent classes (closes the LOAD-01 test gap). New `ve-table-util.spec.ts`. **I18N-01 deferred** until the I18N-04 locale-key work from batch 0 has merged. Suite: same 40 baseline failures, +15 passing tests; eslint clean; tsc 462 (unchanged). Progress and Baseline tables left for the post-merge recount. · `fix/audit-batch1-crash-oneliners`
 - **2026-10-16** · VS-01, VS-02 ⛔ · VS-04, I18N-03 ✅ · VS-05, VS-06, COL-07, I18N-04, I18N-05 added · SEL-01, MOD-02 progress · Re-checked the audit after merging `81a1ebb`, `442962c`, `1645d44` and `0c5b732` from remote. VS-01/VS-02: code removed by the TanStack switch. VS-04: rewritten without the timer, with a null check. I18N-03: all langs complete as of `81a1ebb`. New: **VS-05** 🔴 virtual-mode body loses its class (styling, selection, editor, row insert), **COL-07** hidden measurement table may mis-measure widths (unconfirmed), **I18N-04** locale keys renamed to Chinese (breaking, decision pending), plus VS-06 and I18N-05 (🟢). SEL-01: stop-editing on a hidden column is now guarded. MOD-02: step 1 (method modules) done. SEL-03: corrected the function name (`setRangeCellSelectionByBodyIndicator`; the line numbers were right). Re-anchored line numbers for every item in changed files. Baseline: tests now red (40 failures), tsc 615 → 462, eslint clean.
 
 - **2026-10-16** · D1–D4, ROW-03, I18N-01, SEL-02, SEL-08, MOD · Decisions recorded (Composition API, derived row state, fix ConfigProvider, Tab trapped with Esc to leave). Added **SEL-08** (Esc / keyboard-trap behaviour). Moved the doc to `docs-developer/`, which is now tracked in git.
