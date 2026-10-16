@@ -78,12 +78,6 @@ export default defineComponent({
         return null
       },
     },
-    internalCheckboxSelectedRowKeys: {
-      type: Array,
-      default() {
-        return null
-      },
-    },
 
     /*
         radio
@@ -93,10 +87,6 @@ export default defineComponent({
       default() {
         return null
       },
-    },
-    internalRadioSelectedRowKey: {
-      type: [String, Number],
-      default: null,
     },
     // cell style option
     cellStyleOption: {
@@ -366,10 +356,7 @@ export default defineComponent({
         // checkbox content props
         const checkboxProps = {
           column: this.column,
-          checkboxOption: this.checkboxOption,
           rowKey: this.rowData[this.rowKeyFieldName],
-          internalCheckboxSelectedRowKeys:
-                            this.internalCheckboxSelectedRowKeys,
         }
 
         return <BodyCheckboxContent {...checkboxProps} />
@@ -383,10 +370,7 @@ export default defineComponent({
         // radio props
         const radioProps = {
           column: this.column,
-          radioOption: this.radioOption,
           rowKey: this.rowData[this.rowKeyFieldName],
-          internalRadioSelectedRowKey:
-                            this.internalRadioSelectedRowKey,
         }
 
         return <BodyRadioContent {...radioProps} />

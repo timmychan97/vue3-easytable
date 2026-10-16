@@ -58,20 +58,9 @@ export default defineComponent({
       return this.rowData[this.rowKeyFieldName]
     },
     // is row expanded
+    // defaultExpandAllRows 只用于初始化展开状态（见 useRowExpand），这里只看已展开的 key（ROW-02）
     isRowExpanded() {
-      let result = false
-
-      const { expandOption, expandedRowkeys, currentRowKey } = this
-
-      // defalut expand all rows
-      if (expandOption.defaultExpandAllRows)
-        result = true
-
-      // defaultExpandedRowKeys includes currentRowKey
-      else if (expandedRowkeys.includes(currentRowKey))
-        result = true
-
-      return result
+      return this.expandedRowkeys.includes(this.currentRowKey)
     },
     // expand row class
     expanRowClass() {

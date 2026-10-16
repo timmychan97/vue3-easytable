@@ -510,7 +510,8 @@ describe('veTable row expand', () => {
     await later()
 
     expect(mockFn).toHaveBeenCalled()
-    expect(mockFn).toHaveBeenCalledWith([1001, 1002])
+    // 按钮原地 push 的 1003 也要保留（ROW-03：以前内部副本没有同步，这里得到的是 [1001, 1002]）
+    expect(mockFn).toHaveBeenCalledWith([1001, 1003, 1002])
     expect(wrapper.html()).toMatchSnapshot()
   })
 })

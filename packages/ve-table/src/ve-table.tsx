@@ -37,6 +37,7 @@ import Body from './body'
 import Colgroup from './colgroup'
 import ColumnResizer from './column-resizer'
 import EditInput from './editor'
+import { createRowState, ROW_STATE_KEY } from './features/row-state'
 import Footer from './footer'
 import Header from './header'
 import { cellSelectionMethods } from './methods/cell-selection'
@@ -85,6 +86,20 @@ export default defineComponent({
     // 语言包：最近的 ConfigProvider，否则为全局语言包（右键菜单文案使用）。
     // ve-table 仍是 Options API（MOD-02），这里用 inject 选项而不是 setup，保持实例结构不变
     veLocale: { from: LocaleInjectionKey, default: () => globalLocale },
+  },
+  provide() {
+    // 行勾选 / 单选 / 展开状态（MOD-08）：表头和表体通过 inject 共享同一份派生状态。
+    // provide() 执行时组件实例的 effect scope 已激活，其中的 computed / watch 随组件卸载自动停止
+    return {
+      [ROW_STATE_KEY as symbol]: createRowState({
+        checkboxOption: () => this.checkboxOption,
+        radioOption: () => this.radioOption,
+        expandOption: () => this.expandOption,
+        tableData: () => this.tableData,
+        rowKeyFieldName: () => this.rowKeyFieldName,
+        allRowKeys: () => this.allRowKeys,
+      }),
+    }
   },
   props: {
     tableData: {
@@ -883,16 +898,6 @@ export default defineComponent({
       this.updateColgroupsBySortChange(params)
     })
 
-    // receive row selected change
-    this.on(EMIT_EVENTS.CHECKBOX_SELECTED_ALL_CHANGE, (params) => {
-      this.selectedAllChange(params)
-    })
-
-    // receive selected all info
-    this.on(EMIT_EVENTS.CHECKBOX_SELECTED_ALL_INFO, (params) => {
-      this.setSelectedAllInfo(params)
-    })
-
     // receive multiple header row height change
     this.on(EMIT_EVENTS.HEADER_ROW_HEIGHT_CHANGE, ({ rowIndex, height }: any) => {
       this.headerRowHeightChange({ rowIndex, height })
@@ -1171,38 +1176,6 @@ export default defineComponent({
       }
 
       return result
-    },
-
-    /*
-         * @selectedAllChange
-         * @desc  selected all change
-         * @param {bool} isSelected - is selected
-         */
-    selectedAllChange({ isSelected }: { isSelected: boolean }) {
-      this.dispatch(
-        COMPS_NAME.VE_TABLE_BODY,
-        EMIT_EVENTS.CHECKBOX_SELECTED_ALL_CHANGE,
-        {
-          isSelected,
-        },
-      )
-    },
-
-    /*
-         * @setSelectedAllInfo
-         * @desc  set selected all info
-         * @param {bool} isSelected - is selected
-         * @param {bool} isIndeterminate - is indeterminate
-         */
-    setSelectedAllInfo({ isSelected, isIndeterminate }: { isSelected: boolean, isIndeterminate: boolean }) {
-      this.dispatch(
-        COMPS_NAME.VE_TABLE_HEADER_CHECKBOX_CONTENT,
-        EMIT_EVENTS.CHECKBOX_SELECTED_ALL_INFO,
-        {
-          isSelected,
-          isIndeterminate,
-        },
-      )
     },
 
     // ── TanStack Virtual scroll management ──

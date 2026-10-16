@@ -1,121 +1,38 @@
-import emitter from '@vue3-easytable/common/mixins/emitter'
 import VeCheckbox from '@vue3-easytable/ve-checkbox'
+import { computed, defineComponent } from 'vue'
+import { injectRowState } from '../features/row-state'
 import { clsName } from '../util'
-import { COMPS_NAME, EMIT_EVENTS } from '../util/constant'
+import { COMPS_NAME } from '../util/constant'
 
 export default defineComponent({
   name: COMPS_NAME.VE_TABLE_BODY_CHECKBOX_CONTENT,
-  mixins: [emitter()],
   props: {
-    // checkbox option
-    checkboxOption: {
-      type: Object,
-      default() {
-        return null
-      },
-    },
     rowKey: {
       type: [String, Number],
       required: true,
     },
-    internalCheckboxSelectedRowKeys: {
-      type: Array,
-      default() {
-        return null
-      },
-    },
   },
-  data() {
-    return {
-      isSelected: false,
-    }
-  },
-  computed: {
-    // disabled
-    disabled() {
-      let result = false
+  setup(props) {
+    // 选中 / 禁用状态都从表格级的行勾选状态派生（MOD-08），不再保存本地副本
+    const { selection } = injectRowState()
 
-      const { checkboxOption, rowKey } = this
+    const isSelected = computed(() => selection.isRowSelected(props.rowKey))
+    const disabled = computed(() => selection.isRowDisabled(props.rowKey))
 
-      if (!checkboxOption)
-        return
-
-      const { disableSelectedRowKeys } = checkboxOption
-
-      if (
-        Array.isArray(disableSelectedRowKeys)
-        && disableSelectedRowKeys.includes(rowKey)
-      ) {
-        result = true
-      }
-
-      return result
-    },
-
-    // 是否是受控属性（取决于selectedRowKeys）
-    isControlledProp() {
-      const { checkboxOption } = this
-
-      return (
-        checkboxOption && Array.isArray(checkboxOption.selectedRowKeys)
-      )
-    },
-  },
-  watch: {
-    // watch internalCheckboxSelectedRowKeys
-    internalCheckboxSelectedRowKeys: {
-      handler() {
-        this.initSelected()
-      },
-      immediate: true,
-    },
-  },
-  methods: {
-    // init selected
-    initSelected() {
-      let result = false
-
-      const { rowKey, internalCheckboxSelectedRowKeys } = this
-
-      if (
-        Array.isArray(internalCheckboxSelectedRowKeys)
-        && internalCheckboxSelectedRowKeys.includes(rowKey)
-      ) {
-        result = true
-      }
-
-      this.isSelected = result
-    },
-
-    // selected change
-    selectedChange(isSelected: boolean) {
-      const { isControlledProp } = this
-
-      // 非受控
-      if (!isControlledProp)
-        this.isSelected = isSelected
-
-      this.dispatch(
-        COMPS_NAME.VE_TABLE_BODY,
-        EMIT_EVENTS.CHECKBOX_SELECTED_ROW_CHANGE,
-        {
-          rowKey: this.rowKey,
-          isSelected,
-        },
-      )
-    },
-  },
-  render() {
-    const { isSelected, selectedChange, disabled } = this
-
-    const checkboxProps = {
-      class: clsName('checkbox-wrapper'),
-      isControlled: true,
-      isSelected,
-      disabled,
-      onOnCheckedChange: (isSelected: boolean) => selectedChange(isSelected),
+    // 受控时只通知用户，选中状态由 selectedRowKeys 决定
+    function selectedChange(value: boolean) {
+      selection.selectRow(props.rowKey, value)
     }
 
-    return <VeCheckbox {...checkboxProps} />
+    return () => {
+      const checkboxProps = {
+        class: clsName('checkbox-wrapper'),
+        isControlled: true,
+        isSelected: isSelected.value,
+        disabled: disabled.value,
+        onOnCheckedChange: selectedChange,
+      }
+      return <VeCheckbox {...checkboxProps} />
+    }
   },
 })

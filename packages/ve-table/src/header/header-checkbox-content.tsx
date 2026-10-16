@@ -1,66 +1,29 @@
-import emitter from '@vue3-easytable/common/mixins/emitter'
 import VeCheckbox from '@vue3-easytable/ve-checkbox'
+import { defineComponent } from 'vue'
+import { injectRowState } from '../features/row-state'
 import { clsName } from '../util'
-import { COMPS_NAME, EMIT_EVENTS } from '../util/constant'
+import { COMPS_NAME } from '../util/constant'
 
 export default defineComponent({
   name: COMPS_NAME.VE_TABLE_HEADER_CHECKBOX_CONTENT,
-  mixins: [emitter()],
-  props: {
-    // checkbox option
-    checkboxOption: {
-      type: Object,
-      default() {
-        return null
-      },
-    },
-  },
-  data() {
-    return {
-      // is selected
-      isSelected: false,
-      isIndeterminate: false,
-    }
-  },
+  setup() {
+    // 全选 / 半选状态从表格级的行勾选状态派生（ROW-04）：
+    // 数据或列变化、组件重新挂载后都会立即得到正确的状态
+    const { selection } = injectRowState()
 
-  methods: {
-    // selected change
-    selectedChange(isSelected: boolean) {
-      this.isSelected = isSelected
-
-      this.dispatch(
-        COMPS_NAME.VE_TABLE,
-        EMIT_EVENTS.CHECKBOX_SELECTED_ALL_CHANGE,
-        {
-          isSelected,
-        },
-      )
-    },
-
-    // set selected all info
-    setSelectedAllInfo({ isSelected, isIndeterminate }) {
-      this.isSelected = isSelected
-      this.isIndeterminate = isIndeterminate
-    },
-  },
-  mounted() {
-    // receive selected all info
-    this.on(EMIT_EVENTS.CHECKBOX_SELECTED_ALL_INFO, (params) => {
-      this.setSelectedAllInfo(params)
-    })
-  },
-  render() {
-    const { isSelected, isIndeterminate, selectedChange } = this
-
-    const checkboxProps = {
-      class: clsName('checkbox-wrapper'),
-      isControlled: true,
-      isSelected,
-      indeterminate: isIndeterminate,
-      onOnCheckedChange: isSelectedParam =>
-        selectedChange(isSelectedParam),
+    function selectedChange(isSelected: boolean) {
+      selection.selectAll(isSelected)
     }
 
-    return <VeCheckbox {...checkboxProps} />
+    return () => {
+      const checkboxProps = {
+        class: clsName('checkbox-wrapper'),
+        isControlled: true,
+        isSelected: selection.isSelectedAll.value,
+        indeterminate: selection.isIndeterminate.value,
+        onOnCheckedChange: selectedChange,
+      }
+      return <VeCheckbox {...checkboxProps} />
+    }
   },
 })

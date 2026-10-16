@@ -1,6 +1,7 @@
 import emitter from '@vue3-easytable/common/mixins/emitter'
 import { getValByUnit } from '@vue3-easytable/common/utils'
 import { defineComponent } from 'vue'
+import { injectRowState } from '../features/row-state'
 import {
   clsName,
   getFixedTotalWidthByColumnKey,
@@ -172,21 +173,12 @@ export default defineComponent({
       },
     },
   },
-  data() {
+  setup() {
+    // 行展开状态由 ve-table 提供（MOD-08），这里不再保存副本；
+    // 行勾选 / 单选由各自的单元格组件直接读取
+    const { expand } = injectRowState()
     return {
-      /*
-            internal expand row keys
-            1、当没有设置 expandedRowKeys 时生效
-            */
-      internalExpandRowkeys: [],
-      /*
-            1、存储当前多选功能的rowkey 信息
-            */
-      internalCheckboxSelectedRowKeys: [],
-      /*
-            1、存储当前单选功能的rowkey 信息
-            */
-      internalRadioSelectedRowKey: null,
+      rowExpand: expand,
     }
   },
   computed: {
@@ -252,184 +244,16 @@ export default defineComponent({
     expandColumn() {
       return this.colgroups.find(x => x.type === COLUMN_TYPES.EXPAND)
     },
-    /*
-        是否是可控行展开
-        1、当设置了 expandedRowKeys 属性时则为可控行展开
-        */
-    isControlledExpand() {
-      return (
-        this.expandOption
-        && Array.isArray(this.expandOption.expandedRowKeys)
-      )
-    },
-
-    // expanded row keys
+    // expanded row keys（受控时为用户的数组，非受控时为内部状态）
     expandedRowkeys() {
-      return this.isControlledExpand
-        ? this.expandOption.expandedRowKeys
-        : this.internalExpandRowkeys
-    },
-
-    // disable row selected row keys
-    disableCheckboxSelectedRowKeys() {
-      const result = []
-
-      const { checkboxOption, internalCheckboxSelectedRowKeys } = this
-
-      if (!checkboxOption)
-        return result
-
-      const { disableSelectedRowKeys } = checkboxOption
-
-      if (
-        internalCheckboxSelectedRowKeys.length > 0
-        && Array.isArray(disableSelectedRowKeys)
-        && disableSelectedRowKeys.length > 0
-      ) {
-        disableSelectedRowKeys.forEach((rowkey) => {
-          if (internalCheckboxSelectedRowKeys.includes(rowkey))
-            result.push(rowkey)
-        })
-      }
-
-      return result
-    },
-
-    // disable row unselected row keys
-    disableCheckboxUnselectedRowKeys() {
-      const result = []
-
-      const { checkboxOption, internalCheckboxSelectedRowKeys } = this
-
-      if (!checkboxOption)
-        return result
-
-      const { disableSelectedRowKeys } = checkboxOption
-
-      if (
-        Array.isArray(disableSelectedRowKeys)
-        && disableSelectedRowKeys.length > 0
-      ) {
-        disableSelectedRowKeys.forEach((rowkey) => {
-          if (!internalCheckboxSelectedRowKeys.includes(rowkey))
-            result.push(rowkey)
-        })
-      }
-
-      return result
-    },
-
-    /*
-        is row keys selected all
-        为 true 的条件：选中数量 + 禁用选中数量 === 总量
-        */
-    isCheckboxSelectedAll() {
-      if (this.allRowKeys.length > 0) {
-        if (
-          this.internalCheckboxSelectedRowKeys.length
-          + this.disableCheckboxUnselectedRowKeys.length
-          === this.allRowKeys.length
-        ) {
-          return true
-        }
-      }
-
-      return false
-    },
-    // is checkbox indeterminate
-    isCheckboxIndeterminate() {
-      const { internalCheckboxSelectedRowKeys, allRowKeys } = this
-
-      return (
-        internalCheckboxSelectedRowKeys.length > 0
-        && internalCheckboxSelectedRowKeys.length < allRowKeys.length
-      )
-    },
-    // 是否是受控属性（取决于selectedRowKey）
-    isControlledRadio() {
-      const { radioOption } = this
-
-      return (
-        radioOption
-        && Object.keys(radioOption).includes('selectedRowKey')
-      )
-    },
-  },
-  watch: {
-    // watch expand Option
-    'expandOption': {
-      handler() {
-        this.initInternalExpandRowKeys()
-      },
-      immediate: true,
-    },
-    // watch expandOption expandedRowKeys
-    'expandOption.expandedRowKeys': {
-      handler() {
-        this.initInternalExpandRowKeys()
-      },
-    },
-    // watch checkbox option
-    'checkboxOption': {
-      handler() {
-        this.initInternalCheckboxSelectedRowKeys()
-      },
-      immediate: true,
-    },
-    // watch selectedRowKeys
-    'checkboxOption.selectedRowKeys': {
-      handler() {
-        this.resetInternalCheckboxSelectedRowKeys()
-      },
-    },
-    // watch internalCheckboxSelectedRowKeys
-    'internalCheckboxSelectedRowKeys': {
-      handler() {
-        // send to checkbox all(in header)
-        this.sendToCheckboxAll()
-      },
-    },
-    // watch checkbox option
-    'radioOption': {
-      handler() {
-        this.initInternalRadioSelectedRowKey()
-      },
-      immediate: true,
-    },
-    // watch selectedRowKeys
-    'radioOption.selectedRowKey': {
-      handler() {
-        this.initInternalRadioSelectedRowKey()
-      },
+      return this.rowExpand.expandedRowKeys.value
     },
   },
   mounted() {
-    // receive checkbox row selected change from VE_TABLE_BODY_CHECKBOX_CONTENT
-    this.on(EMIT_EVENTS.CHECKBOX_SELECTED_ROW_CHANGE, (params) => {
-      this.checkboxSelectedRowChange(params)
-    })
-
-    // receive checkbox row selected change from VE_TABLE_BODY_CHECKBOX_CONTENT
-    this.on(EMIT_EVENTS.CHECKBOX_SELECTED_ALL_CHANGE, (params) => {
-      this.checkboxSelectedAllChange(params)
-    })
-
-    // receive radio row selected change from VE_TABLE_BODY_RADIO_CONTENT
-    this.on(EMIT_EVENTS.RADIO_SELECTED_ROW_CHANGE, (params) => {
-      this.radioSelectedRowChange(params)
-    })
-
     // recieve tr click
     this.on(EMIT_EVENTS.BODY_ROW_CLICK, (params) => {
       this.rowClick(params)
     })
-
-    if (this.checkboxOption) {
-      // 这里 nextTick 解决由于子组件先初始化，导致父组件无法接收消息的问题
-      this.$nextTick(() => {
-        this.sendToCheckboxAll()
-      })
-    }
   },
   methods: {
     // is last left fixed column
@@ -482,43 +306,11 @@ export default defineComponent({
          * @param {number} rowIndex - row index
          */
     expandRowChange(rowData, rowIndex) {
-      const {
-        expandOption,
-        internalExpandRowkeys,
-        expandedRowkeys,
-        rowKeyFieldName,
-      } = this
-
-      // deal before expand row method
-      if (typeof expandOption.beforeExpandRowChange === 'function') {
-        const beforeExpandRowResult
-                    = expandOption.beforeExpandRowChange({
-                      beforeExpandedRowKeys: expandedRowkeys,
-                      row: rowData,
-                      rowIndex,
-                    })
-        // interrupt execute
-        if (beforeExpandRowResult === false)
-          return false
-      }
-
-      const rowKey = rowData[rowKeyFieldName]
-
-      const rowKeyIndex = internalExpandRowkeys.indexOf(rowKey)
-      if (rowKeyIndex > -1)
-        internalExpandRowkeys.splice(rowKeyIndex, 1)
-
-      else
-        internalExpandRowkeys.push(rowKey)
-
-      // deal after expand row method
-      if (typeof expandOption.afterExpandRowChange === 'function') {
-        expandOption.afterExpandRowChange({
-          afterExpandedRowKeys: internalExpandRowkeys,
-          row: rowData,
-          rowIndex,
-        })
-      }
+      return this.rowExpand.toggleRowExpand({
+        row: rowData,
+        rowKey: rowData[this.rowKeyFieldName],
+        rowIndex,
+      })
     },
 
     /*
@@ -581,25 +373,6 @@ export default defineComponent({
       return result
     },
 
-    // init internal expand row keys
-    initInternalExpandRowKeys() {
-      const { expandOption, isControlledExpand, allRowKeys } = this
-
-      if (!expandOption)
-        return false
-
-      if (isControlledExpand) {
-        this.internalExpandRowkeys
-                    = expandOption.expandedRowKeys.slice(0)
-      }
-      else if (expandOption.defaultExpandAllRows) {
-        this.internalExpandRowkeys = allRowKeys
-      }
-      else if (expandOption.defaultExpandedRowKeys) {
-        this.internalExpandRowkeys
-                    = expandOption.defaultExpandedRowKeys.slice(0)
-      }
-    },
     // get expand row
     getExpandRowComp({ rowData, rowIndex }) {
       if (this.isExpandRow({ rowData, rowIndex })) {
@@ -620,181 +393,6 @@ export default defineComponent({
       return null
     },
 
-    // send to checkbox all
-    sendToCheckboxAll() {
-      const { isCheckboxSelectedAll, isCheckboxIndeterminate } = this
-
-      this.dispatch(
-        COMPS_NAME.VE_TABLE,
-        EMIT_EVENTS.CHECKBOX_SELECTED_ALL_INFO,
-        {
-          isIndeterminate: isCheckboxIndeterminate,
-          isSelected: isCheckboxSelectedAll,
-        },
-      )
-    },
-
-    // init internal Radio SelectedRowKey
-    initInternalRadioSelectedRowKey() {
-      const { radioOption, isControlledRadio } = this
-
-      if (!radioOption)
-        return false
-
-      const { selectedRowKey, defaultSelectedRowKey } = radioOption
-
-      this.internalRadioSelectedRowKey = isControlledRadio
-        ? selectedRowKey
-        : defaultSelectedRowKey
-    },
-
-    // init internal Checkbox SelectedRowKeys
-    initInternalCheckboxSelectedRowKeys() {
-      let result = []
-      const { checkboxOption, allRowKeys } = this
-
-      if (!checkboxOption)
-        return false
-
-      const {
-        selectedRowKeys,
-        defaultSelectedAllRows,
-        defaultSelectedRowKeys,
-      } = checkboxOption
-
-      if (Array.isArray(selectedRowKeys))
-        result = selectedRowKeys
-
-      else if (defaultSelectedAllRows)
-        result = allRowKeys
-
-      else if (Array.isArray(defaultSelectedRowKeys))
-        result = defaultSelectedRowKeys
-
-      this.internalCheckboxSelectedRowKeys = result
-    },
-    // reset internalCheckboxSelectedRowKeys by selectedRowKeys
-    resetInternalCheckboxSelectedRowKeys() {
-      this.internalCheckboxSelectedRowKeys
-                = this.checkboxOption.selectedRowKeys.slice(0)
-    },
-
-    /*
-         * @checkboxSelectedRowChange
-         * @desc  selected row change
-         * @param {number|string} rowKey - rowKey
-         * @param {bool} isSelected
-         */
-    checkboxSelectedRowChange({ rowKey, isSelected }) {
-      const {
-        checkboxOption,
-        internalCheckboxSelectedRowKeys,
-        rowKeyFieldName,
-      } = this
-      const { selectedRowChange, selectedRowKeys } = checkboxOption
-
-      const internalCheckboxSelectedRowKeysTemp
-                = internalCheckboxSelectedRowKeys.slice(0)
-
-      // will selected
-      const rowKeyIndex
-                = internalCheckboxSelectedRowKeysTemp.indexOf(rowKey)
-      if (isSelected) {
-        // bug fixed:通过行点击触发，导致key重复的问题
-        if (rowKeyIndex === -1)
-          internalCheckboxSelectedRowKeysTemp.push(rowKey)
-      }
-      else {
-        if (rowKeyIndex > -1)
-          internalCheckboxSelectedRowKeysTemp.splice(rowKeyIndex, 1)
-      }
-
-      // 非可控才改变 internalCheckboxSelectedRowKeys
-      if (!Array.isArray(selectedRowKeys)) {
-        this.internalCheckboxSelectedRowKeys
-                    = internalCheckboxSelectedRowKeysTemp
-      }
-
-      selectedRowChange({
-        row: this.actualRenderTableData.find(
-          x => x[rowKeyFieldName] === rowKey,
-        ),
-        isSelected,
-        selectedRowKeys: internalCheckboxSelectedRowKeysTemp,
-      })
-    },
-
-    /*
-         * @checkboxSelectedAllChange
-         * @desc  selected all change
-         * @param {bool} isSelected - is selected
-         */
-    checkboxSelectedAllChange({ isSelected }) {
-      const {
-        checkboxOption,
-        internalCheckboxSelectedRowKeys,
-        allRowKeys,
-        disableCheckboxSelectedRowKeys,
-        disableCheckboxUnselectedRowKeys,
-      } = this
-      const { selectedAllChange, selectedRowKeys } = checkboxOption
-
-      let internalCheckboxSelectedRowKeysTemp
-                = internalCheckboxSelectedRowKeys.slice(0)
-      // selected all
-      if (isSelected) {
-        // except disable Row Unselected keys
-        const allSelectedKeys = allRowKeys.slice(0)
-        if (disableCheckboxUnselectedRowKeys.length > 0) {
-          disableCheckboxUnselectedRowKeys.forEach((rowkey) => {
-            const index = allSelectedKeys.indexOf(rowkey)
-            if (index > -1)
-              allSelectedKeys.splice(index, 1)
-          })
-        }
-
-        internalCheckboxSelectedRowKeysTemp = allSelectedKeys
-      }
-      else {
-        // except disable Row Selected keys
-        internalCheckboxSelectedRowKeysTemp
-                    = disableCheckboxSelectedRowKeys
-      }
-
-      // 非可控才改变 internalCheckboxSelectedRowKeys
-      if (!Array.isArray(selectedRowKeys)) {
-        this.internalCheckboxSelectedRowKeys
-                    = internalCheckboxSelectedRowKeysTemp
-      }
-
-      selectedAllChange
-      && selectedAllChange({
-        isSelected,
-        selectedRowKeys: internalCheckboxSelectedRowKeysTemp,
-        // changeRowKeys:
-      })
-    },
-
-    /*
-         * @radioSelectedRowChange
-         * @desc  selected all change
-         * @param {number|string} rowKey - rowKey
-         */
-    radioSelectedRowChange({ rowKey }) {
-      const { radioOption, rowKeyFieldName, isControlledRadio } = this
-
-      const { selectedRowChange } = radioOption
-
-      // 非受控
-      if (!isControlledRadio)
-        this.internalRadioSelectedRowKey = rowKey
-
-      selectedRowChange({
-        row: this.actualRenderTableData.find(
-          x => x[rowKeyFieldName] === rowKey,
-        ),
-      })
-    },
     // get tr key
     getTrKey({ rowData, rowIndex }) {
       let result = rowIndex
@@ -819,8 +417,6 @@ export default defineComponent({
       checkboxOption,
       radioOption,
       rowKeyFieldName,
-      internalCheckboxSelectedRowKeys,
-      internalRadioSelectedRowKey,
       isVirtualScroll,
       cellStyleOption,
       virtualItems,
@@ -845,8 +441,6 @@ export default defineComponent({
       rowKeyFieldName,
       allRowKeys: this.allRowKeys,
       expandRowChange,
-      internalCheckboxSelectedRowKeys,
-      internalRadioSelectedRowKey,
       isVirtualScroll,
       isExpandRow: isExpandRow({ rowData, rowIndex }),
       cellStyleOption,

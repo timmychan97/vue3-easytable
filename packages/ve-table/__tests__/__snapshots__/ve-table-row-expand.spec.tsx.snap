@@ -118,7 +118,7 @@ exports[`veTable row expand > expandOption expandedRowKeys(controllable attr) 1`
                 </td>
               </tr>
               <tr class="ve-table-body-tr" row-key="1003">
-                <td class="ve-table-body-td" style="text-align: center;" rowspan="1" colspan="1" col-key="a"><span class="ve-table-row-expand-icon"><i class="ve-icon iconfont-vet icon-vet-right-arrow"></i></span>
+                <td class="ve-table-body-td" style="text-align: center;" rowspan="1" colspan="1" col-key="a"><span class="ve-table-row-expand-icon ve-table-expand-icon-collapsed"><i class="ve-icon iconfont-vet icon-vet-right-arrow"></i></span>
                   <!---->
                   <!---->
                   <!---->
@@ -139,7 +139,13 @@ exports[`veTable row expand > expandOption expandedRowKeys(controllable attr) 1`
                   <!---->No.1 Century Avenue, Chongqing
                 </td>
               </tr>
-              <!---->
+              <tr class="ve-table-expand-tr">
+                <td class="ve-table-expand-td" colspan="4">
+                  <div class="ve-table-expand-td-content">
+                    <p>My name is<span style="color: rgb(24, 144, 255);">Larsen</span>,I'm living in No.1 Century Avenue, Chongqing</p>
+                  </div>
+                </td>
+              </tr>
               <tr class="ve-table-body-tr" row-key="1004">
                 <td class="ve-table-body-td" style="text-align: center;" rowspan="1" colspan="1" col-key="a"><span class="ve-table-row-expand-icon"><i class="ve-icon iconfont-vet icon-vet-right-arrow"></i></span>
                   <!---->

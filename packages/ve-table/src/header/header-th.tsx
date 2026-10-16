@@ -345,7 +345,6 @@ export default defineComponent({
           // checkbox content props
           const checkboxProps = {
             column: this.groupColumnItem,
-            checkboxOption: this.checkboxOption,
           }
 
           result = <HeaderCheckboxContent {...checkboxProps} />
