@@ -516,10 +516,12 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
 
 ## LOAD — loading service
 
-- [ ] **LOAD-01** 🔴 🔍 The `lock` option never works, and `destroy()` leaves classes on the parent
+- [x] ✅ 2026-10-16 · fix/audit-batch1-crash-oneliners **LOAD-01** 🔴 🔍 The `lock` option never works, and `destroy()` leaves classes on the parent
   - **Where:** [ve-loading/src/index.ts:93-100](../packages/ve-loading/src/index.ts#L93-L100). `options.parent__` is set **after** `createInstance(options)` has mounted, and root props are not reactive, so `instance.parent__` stays `null`.
   - **Effect:** `show()`/`close()` never toggle `ve-loading-parent-lock`, and `destroy()` never removes `ve-loading-parent-relative`, so the target (or `body`) keeps `position: relative !important`. `show(); destroy()` in the same tick would also re-add the class after destroy. The existing "lock" test only checks `.ve-loading-fixed`, which is why this isn't caught.
   - **Fix:** compute `parent` before `createInstance` and pass it in. Check that the instance is still alive inside the `nextTick` callbacks. Count references on the parent class when several loaders share one target.
+  - **Done:** `parent__` is computed before `createInstance`, which reads `parent`/`lock` from the options in a closure. Both parent classes go through a per-element reference count (`WeakMap`). Each instance holds at most one lock reference, the `nextTick` callbacks return early once destroyed, and `destroy()` is idempotent. (The no-op `setVisible(false)` after `app.unmount()` was dropped.)
+  - **Verified:** `ve-loading.spec.tsx` › "lock prop" (now also asserts relative on create, lock on `show()`, lock removed on `close()`, both removed on `destroy()`), "does not lock the parent without the lock prop", "show then destroy in the same tick leaves no parent classes", "keeps the parent classes while another loading shares the target" (includes a double `destroy()`).
 
 ---
 
@@ -634,7 +636,7 @@ Record new decisions here with the next free `D` number and the date. Reference 
 
 ## Test gaps noticed during the audit
 
-- The VeLoading "lock" test asserts only `.ve-loading-fixed` (LOAD-01).
+- ~~The VeLoading "lock" test asserts only `.ve-loading-fixed` (LOAD-01).~~ Closed 2026-10-16 by the LOAD-01 tests (parent classes on show/close/destroy, same-tick destroy, shared target).
 - `ve-table-cell-selection.spec.ts:599-604` asserts buggy behaviour (SEL-03).
 - No tests for remount or toggle scenarios (toggle `cellSelectionOption.enable`, `showHeader`, `rowInsertOption.enable`), which would catch INFRA-01 and INFRA-02.
 - No clipboard codec round-trip tests (CLIP-03 … CLIP-05).

@@ -25,14 +25,59 @@ const defaultOptions: VeLoadingProps = {
 const PARENT_RELATIVE_CLASS = clsName('parent-relative')
 const PARENT_LOCK_CLASS = clsName('parent-lock')
 
+// 多个 loading 共用同一个父元素时，按引用计数增删父元素上的 class
+const parentClassRefCounts = new WeakMap<HTMLElement, Record<string, number>>()
+
+function addParentClass(parent: HTMLElement, cls: string) {
+  const counts = parentClassRefCounts.get(parent) ?? {}
+  counts[cls] = (counts[cls] ?? 0) + 1
+  parentClassRefCounts.set(parent, counts)
+
+  addClass(parent, cls)
+}
+
+function removeParentClass(parent: HTMLElement, cls: string) {
+  const counts = parentClassRefCounts.get(parent)
+  if (!counts || !counts[cls])
+    return
+
+  counts[cls]--
+  // 最后一个引用移除后才真正移除 class
+  if (counts[cls] === 0)
+    removeClass(parent, cls)
+}
+
 function createInstance(options: VeLoadingProps = {}) {
+  // parent__ 需在挂载前确定（根组件 props 挂载后不会再更新）
+  const { parent__: parent, lock } = options
+
   const app = createApp(VeLoading, options)
   const instance = app.mount(document.createElement('div')) as InstanceType<typeof VeLoading>
 
+  // 实例是否已销毁（nextTick 回调中需判断）
+  let isDestroyed = false
+  // 当前实例是否持有父元素的 lock class 引用
+  let isLocked = false
+
+  const unlockParent = function () {
+    if (isLocked && parent) {
+      removeParentClass(parent, PARENT_LOCK_CLASS)
+      isLocked = false
+    }
+  }
+
+  if (parent)
+    addParentClass(parent, PARENT_RELATIVE_CLASS)
+
   const show = function () {
     nextTick(() => {
-      if (instance.lock && instance.parent__)
-        addClass(instance.parent__, PARENT_LOCK_CLASS)
+      if (isDestroyed)
+        return
+
+      if (lock && parent && !isLocked) {
+        addParentClass(parent, PARENT_LOCK_CLASS)
+        isLocked = true
+      }
 
       instance.setVisible(true)
     })
@@ -40,24 +85,28 @@ function createInstance(options: VeLoadingProps = {}) {
 
   const close = function () {
     nextTick(() => {
-      if (instance.lock && instance.parent__)
-        removeClass(instance.parent__, PARENT_LOCK_CLASS)
+      if (isDestroyed)
+        return
+
+      unlockParent()
 
       instance.setVisible(false)
     })
   }
 
   const destroy = function () {
-    if (instance.parent__) {
-      removeClass(instance.parent__, PARENT_RELATIVE_CLASS)
-      removeClass(instance.parent__, PARENT_LOCK_CLASS)
-    }
+    if (isDestroyed)
+      return
+    isDestroyed = true
+
+    unlockParent()
+    if (parent)
+      removeParentClass(parent, PARENT_RELATIVE_CLASS)
 
     if (instance.$el && instance.$el.parentNode)
       instance.$el.parentNode.removeChild(instance.$el)
 
     app.unmount()
-    instance.setVisible(false)
   }
 
   return {
@@ -90,12 +139,10 @@ function Loading(options: VeLoadingProps = {}) {
   else
     options.fullscreen = true
 
-  const loadingInstance = createInstance(options)
-
-  // set parent
+  // set parent（须在 createInstance 之前设置，才能作为 props 传入）
   options.parent__ = options.fullscreen ? document.body : options.target as HTMLElement
 
-  addClass(options.parent__ as HTMLElement, PARENT_RELATIVE_CLASS)
+  const loadingInstance = createInstance(options)
 
   options.parent__!.appendChild(loadingInstance.instance.$el)
 
