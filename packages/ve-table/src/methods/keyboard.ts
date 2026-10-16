@@ -173,7 +173,8 @@ export const keyboardMethods = {
         }
         case KEY_CODES.F2: {
           if (!isCellEditing) {
-            if (currentColumn.edit) {
+            // 列可能已被隐藏（SEL-01）
+            if (currentColumn?.edit) {
               // start editing cell and don't allow stop eidting by direction key
               this.enableStopEditing = false
               this[INSTANCE_METHODS.START_EDITING_CELL]({

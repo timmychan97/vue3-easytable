@@ -158,7 +158,7 @@ export default defineComponent({
           'left': `${left}px`,
           'height': null,
           // because @ve-fixed-body-cell-index: 10;
-          'z-index': column.fixed ? 10 : 0,
+          'z-index': column?.fixed ? 10 : 0,
           'opacity': 1,
         }
       }

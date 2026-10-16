@@ -436,6 +436,10 @@ export default defineComponent({
         return []
       return (tableData as any[]).map(x => x[rowKeyFieldName])
     },
+    // 选区 / 编辑状态依赖的行列 key（SEL-01，供同步 watcher 使用）
+    cellStateKeys(): [ColgroupData[], Array<string | number>] {
+      return [this.colgroups, this.allRowKeys]
+    },
     // Overscan count for TanStack virtual (extra rows above/below visible area)
     virtualScrollOverscan() {
       const { virtualScrollOption, defaultVirtualScrollBufferScale } = this
@@ -728,33 +732,13 @@ export default defineComponent({
       immediate: true,
       deep: true,
     },
-    'allRowKeys': {
-      handler(newVal) {
-        if (Array.isArray(newVal)) {
-          const { currentCell, normalEndCell } = this.cellSelectionData
-          // 行被移除，清空单元格选中
-          if (currentCell.rowIndex > -1) {
-            if (!newVal.includes(currentCell.rowKey)) {
-              this.clearCellSelectionCurrentCell()
-            }
-            else {
-              // Row still exists but index may have changed (e.g., row inserted above)
-              // Update the rowIndex to reflect the new position
-              const newRowIndex = newVal.indexOf(currentCell.rowKey)
-              if (newRowIndex !== currentCell.rowIndex) {
-                this.cellSelectionData.currentCell.rowIndex = newRowIndex
-                // Also update normalEndCell rowIndex if it exists
-                if (normalEndCell.rowIndex > -1 && newVal.includes(normalEndCell.rowKey)) {
-                  this.cellSelectionData.normalEndCell.rowIndex = newVal.indexOf(normalEndCell.rowKey)
-                }
-                // Trigger selection position refresh after DOM updates
-                this.$nextTick(() => {
-                  this.hooks.triggerHook(HOOKS_NAME.CLIPBOARD_CELL_VALUE_CHANGE)
-                })
-              }
-            }
-          }
-        }
+    /*
+        行或列变化后同步选区与编辑状态（SEL-01）
+        包括原来 allRowKeys watcher 对 currentCell 的处理（行被移除时清空、行位置变化时更新 rowIndex）
+        */
+    'cellStateKeys': {
+      handler() {
+        this.reconcileCellState()
       },
       immediate: false,
     },
@@ -822,8 +806,13 @@ export default defineComponent({
     'isAutofillStarting': {
       handler(val) {
         if (!val) {
-          this.setCellSelectionByAutofill()
-          this.clearCellSelectionAutofillEndCell()
+          // 填充过程中出现异常也要清除 autofill 结束单元格（INFRA-07）
+          try {
+            this.setCellSelectionByAutofill()
+          }
+          finally {
+            this.clearCellSelectionAutofillEndCell()
+          }
         }
       },
     },
@@ -2012,15 +2001,7 @@ export default defineComponent({
       if (!editOption)
         return false
 
-      let currentRow = this.tableData.find(
-        x => x[rowKeyFieldName] === rowKey,
-      )
-
-      currentRow = cloneDeep(currentRow)
-
-      /*
-            调用API编辑的情况，需要关闭之前编辑的单元格
-            */
+      // 已经在编辑该单元格
       if (
         editingCell.rowKey === rowKey
         && editingCell.colKey === colKey
@@ -2028,10 +2009,31 @@ export default defineComponent({
         return false
       }
 
+      const sourceRow = this.tableData.find(
+        x => x[rowKeyFieldName] === rowKey,
+      )
       const currentColumn = colgroups.find(x => x.key === colKey)
+
+      // 未知的 rowKey / colKey 直接忽略，当前编辑保持不变（EDIT-04、SEL-01）
+      if (!sourceRow || !currentColumn)
+        return false
+
       // 当前列是否可编辑
       if (!currentColumn.edit)
         return false
+
+      /*
+            调用API编辑的情况，需要先关闭（并保存）之前编辑的单元格（EDIT-04）
+            */
+      if (this.isCellEditing) {
+        // 停止编辑会重置 enableStopEditing，这里保留调用方（如 F2）设置的值
+        const { enableStopEditing } = this
+        this[INSTANCE_METHODS.STOP_EDITING_CELL]()
+        this.enableStopEditing = enableStopEditing
+      }
+
+      // 在保存之后再拷贝，拿到上一个单元格保存后的行数据
+      const currentRow = cloneDeep(sourceRow)
 
       const { beforeStartCellEditing } = editOption
 
