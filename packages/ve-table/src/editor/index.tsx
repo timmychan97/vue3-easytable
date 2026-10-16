@@ -426,7 +426,8 @@ export default defineComponent({
 
         const caretPosition = getCaretPosition(textareaInputEl)
 
-        let value = editingCell.row[editingCell.colKey]
+        // 单元格的值按列的 field 取，而不是 colKey（两者可以不同）
+        let value = editingCell.row[editingCell.column.field]
         // solve error of number slice method
         value += ''
 

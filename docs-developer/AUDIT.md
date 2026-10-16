@@ -282,9 +282,10 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
 
 ## EDIT — cell editing
 
-- [ ] **EDIT-01** 🔴 🔍 Alt+Enter while editing replaces the text with `"undefined\n"` when `key !== field`
+- [x] ✅ 2026-10-16 · fix/audit-batch1-crash-oneliners **EDIT-01** 🔴 🔍 Alt+Enter while editing replaces the text with `"undefined\n"` when `key !== field`
   - **Where:** [editor/index.tsx:429](../packages/ve-table/src/editor/index.tsx#L429). It reads `editingCell.row[editingCell.colKey]`. The rest of the table uses `row[column.field]` (`methods/editing.ts:43`). The repo's own fixtures use `key: 'a', field: 'name'`.
   - **Fix:** `editingCell.row[editingCell.column.field]`.
+  - **Verified:** `ve-table-cell-edit.spec.ts` › "key code alt+enter event when column key differs from field" (columns keyed `col-<field>`; the textarea read `'und\nefined'` before the fix, now `'AAA\n'` and `afterCellValueChange` gets `date: 'AAA\n'`).
 
 - [ ] **EDIT-02** 🟠 🔍 Editor lifecycle: the Vue 2 `destroyed()` hook never runs
   - **Where:** [editor/index.tsx:465](../packages/ve-table/src/editor/index.tsx#L465) (`destroyed`, the only Vue 2 lifecycle hook left in the repo), `:450-460` (uncancelled lodash debounces), `:224` (uncancelled `setTimeout`).
