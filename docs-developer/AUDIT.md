@@ -654,7 +654,8 @@ Record new decisions here with the next free `D` number and the date. Reference 
 
 - The VeLoading "lock" test asserts only `.ve-loading-fixed` (LOAD-01).
 - `ve-table-cell-selection.spec.ts:599-604` asserts buggy behaviour (SEL-03).
-- ~~No tests for remount or toggle scenarios (toggle `cellSelectionOption.enable`, `showHeader`, `rowInsertOption.enable`), which would catch INFRA-01 and INFRA-02.~~ Added in `ve-table-lifecycle.spec.ts` (batch 2).
+- ~~No tests for remount or toggle scenarios (toggle `cellSelectionOption.enable`, `showHeader`, `rowInsertOption.enable`), which would catch INFRA-01 and INFRA-02.~~ Added in `ve-table-lifecycle.spec.ts` (batch 2), together with fake-timer unmount tests in `ve-dropdown.spec.tsx`, `ve-contextmenu.spec.tsx` and `ve-checkbox.spec.ts` ("lifecycle and timers" blocks).
+- The shared `wrapMount` helper (`tests/utils/index.ts`) mounts with `attachTo: 'body'`, and VTU never removes that container, so every mount leaves one `div` in `body`. Body-leak tests have to mount without `attachTo` (the batch 2 tests do).
 - No clipboard codec round-trip tests (CLIP-03 … CLIP-05).
 - No virtual-scroll tests with variable row heights plus edits (VS-03).
 - **The suite has been red since `442962c` (40 failures).** 29 snapshots were never refreshed after the measurement row moved out of `<tbody>`, plus the en-US pagination text changes. The 11 virtual-scroll specs fail because jsdom has no layout: the scroll container measures 0 px, so TanStack yields no items and nothing renders. One (`dynamically turns virtual scrolling on`, :158) also still asserts the removed `.ve-table-virtual-phantom`. Fix: pass TanStack's `initialRect` (or mock `getBoundingClientRect` / `offsetHeight` in the spec), then rewrite the assertions for the spacer-based DOM.
@@ -667,6 +668,8 @@ Record new decisions here with the next free `D` number and the date. Reference 
 ## Changelog
 
 Newest first. One line per change: date · IDs · what happened · commit/PR.
+
+- **2026-10-16** · INFRA-01, INFRA-02, INFRA-03, EDIT-02, DD-01, DD-02, MENU-03, MENU-04, FORM-01 ✅ · MENU-06 added · Batch 2 (lifecycle and leaks). `Hooks.addHook` returns a disposer and `triggerHook` isolates errors. The emitter mixin `bus.off`s on unmount. Debounces, timers and document listeners are cancelled in ve-table, selection, editor (`destroyed` → `beforeUnmount`), column-resizer and contextmenu. The dropdown hides synchronously (no 150ms timer) and removes its body container. Contextmenu containers are tracked in a Set. Checkbox-group callbacks unregister. New finding: **MENU-06** 🔴, the ve-table menu is removed right after it opens (jsdom only, needs a browser check). 18 new tests; no new failures (still 40, same set), tsc 461, eslint clean. · `fix/audit-batch2-lifecycle-leaks`
 
 - **2026-10-16** · VS-01, VS-02 ⛔ · VS-04, I18N-03 ✅ · VS-05, VS-06, COL-07, I18N-04, I18N-05 added · SEL-01, MOD-02 progress · Re-checked the audit after merging `81a1ebb`, `442962c`, `1645d44` and `0c5b732` from remote. VS-01/VS-02: code removed by the TanStack switch. VS-04: rewritten without the timer, with a null check. I18N-03: all langs complete as of `81a1ebb`. New: **VS-05** 🔴 virtual-mode body loses its class (styling, selection, editor, row insert), **COL-07** hidden measurement table may mis-measure widths (unconfirmed), **I18N-04** locale keys renamed to Chinese (breaking, decision pending), plus VS-06 and I18N-05 (🟢). SEL-01: stop-editing on a hidden column is now guarded. MOD-02: step 1 (method modules) done. SEL-03: corrected the function name (`setRangeCellSelectionByBodyIndicator`; the line numbers were right). Re-anchored line numbers for every item in changed files. Baseline: tests now red (40 failures), tsc 615 → 462, eslint clean.
 
