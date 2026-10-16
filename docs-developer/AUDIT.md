@@ -462,17 +462,21 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
 
 ## DD — dropdown and select
 
-- [ ] **DD-01** 🔴 🔍 A hide/show race through an uncancelled 150ms timer
+- [x] ✅ 2026-10-16 · fix/audit-batch2-lifecycle-leaks · **DD-01** 🔴 🔍 A hide/show race through an uncancelled 150ms timer
   - **Where:** [ve-dropdown/src/index.tsx:306-319](../packages/ve-dropdown/src/index.tsx#L306-L319). `visible-change(false)` is emitted immediately, but `internalVisible = false` and the panel clear happen 150ms later. The `FIXME` is already there.
   - **Trigger:**
     - Uncontrolled: a second click within 150ms sees "visible" and hides again, so the click is lost.
     - Controlled (ve-table filters): `visible` goes true → false → true within 150ms, and the old timer empties the freshly shown panel.
   - **Fix:** keep `hideTimer`, `clearTimeout` it in `showDropDown` and `beforeUnmount`, and set `internalVisible` synchronously. If a fade is wanted, it must be interruptible: cancel any in-flight animation and start from the current visual state, with no queued timers.
+  - **Done:** the panel has no CSS transition (`ve-dropdown-dd-show` isn't styled; hiding means emptying the popper container), so the timer only delayed the hide. `hideDropDown` now sets `internalVisible = false` and empties the container synchronously, so there is no hide timer left to race with or cancel. The `dropdownClickOutside` `setTimeout(0)` is now stored as `clickOutsideTimer`, coalesced, and cleared in `beforeUnmount`. The controlled `visible` watcher's double-`nextTick` callback returns early once the instance is unmounted.
+  - **Verified:** `ve-dropdown.spec.tsx` › "rapid clicks toggle correctly when uncontrolled (DD-01)" (three clicks within 20ms emitted `true, false, false` before the fix and now emit `true, false, true`), "controlled visible true → false → true keeps the panel content (DD-01)" (the container was empty before the fix), and "the click-outside timer does not fire after unmount (DD-01)" (`hideDropDown` ran after unmount before the fix).
 
-- [ ] **DD-02** 🔴 🔍 The dropdown leaks its body container on every unmount
+- [x] ✅ 2026-10-16 · fix/audit-batch2-lifecycle-leaks · **DD-02** 🔴 🔍 The dropdown leaks its body container on every unmount
   - **Where:** [ve-dropdown/src/index.tsx:337-343](../packages/ve-dropdown/src/index.tsx#L337-L343) (only `innerHTML = ''`), `227-228`, `516-535`
   - **Trigger:** every VeSelect (one per VePagination) and every ve-table filter column leaves one div in `body` per mount, so route changes grow the DOM without bound. Unmounting before the `nextTick` in `addRootElementToElement` creates the div after unmount.
   - **Fix:** `rootEl.remove()` in `beforeUnmount`. Better: `<Teleport>` (MOD-09).
+  - **Done:** new `removeRootElement()` runs in `beforeUnmount` (it replaces the old `removeOrEmptyRootPanel()` call in `unmounted`). The `nextTick` in `addRootElementToElement` returns early if the instance is already unmounted. MOD-09 is still the long-term fix.
+  - **Verified:** `ve-dropdown.spec.tsx` › "unmount removes the body container (DD-02)" (5 mount / open / unmount cycles leave `document.body.children.length` unchanged; it was +5 before) and "unmount before the container is created leaves nothing behind (DD-02)" (mount + immediate unmount, ×5). These tests mount without `attachTo`, because the shared `wrapMount` helper leaves its own container in `body` on every mount.
 
 - [ ] **DD-03** 🟠 Every document click "hides" every closed dropdown
   - **Where:** `ve-dropdown/src/index.tsx:472-480, 640`. `v-click-outside` is always bound, and `hideDropDown()` has no visibility check.

@@ -138,6 +138,8 @@ export default defineComponent({
       popperAppendToEl: null as HTMLElement | null,
       // 弹出被添加到的目标元素标签名称
       appendToElTagName: null as string | null,
+      // clickoutside 延迟处理的定时器（卸载时需要清除）
+      clickOutsideTimer: null as ReturnType<typeof setTimeout> | null,
     }
   },
   computed: {
@@ -192,6 +194,9 @@ export default defineComponent({
         // deal after mounted hook
         await nextTick()
         nextTick(() => {
+          // 组件可能已在等待期间卸载
+          if (this.$.isUnmounted)
+            return
           if (isControlled) {
             if (visible)
               showDropDown()
@@ -224,9 +229,14 @@ export default defineComponent({
     window.addEventListener('resize', this.changDropdownPanelPosition)
   },
 
-  unmounted() {
-    this.removeOrEmptyRootPanel()
+  beforeUnmount() {
+    // 清除待执行的定时器，避免卸载后仍然触发隐藏逻辑
+    this.clearClickOutsideTimer()
+    // 移除挂在 body（或 popperAppendTo）上的弹出层容器，否则每次挂载都会泄漏一个 div
+    this.removeRootElement()
+  },
 
+  unmounted() {
     this.$nextTick(() => {
       const targetEl
                 = this.appendToElTagName === 'BODY'
@@ -312,11 +322,10 @@ export default defineComponent({
 
       this.$emit(EMIT_EVENTS.VISIBLE_CHANGE, nextVisible)
 
-      setTimeout(() => {
-        this.internalVisible = false
-        this.removeOrEmptyRootPanel()
-      }, 150)
-      // FIXME: change setTimeout to nextTick or something?
+      // 同步隐藏：之前延迟 150ms 的定时器会与紧接着的显示操作竞争（快速点击丢失、受控模式面板被清空）。
+      // 弹出层本身没有过渡动画，所以无需等待。
+      this.internalVisible = false
+      this.removeOrEmptyRootPanel()
     },
 
     // before visible change callback
@@ -340,6 +349,25 @@ export default defineComponent({
       const rootEl = document.querySelector(`#${rootId}`)
       if (rootEl)
         rootEl.innerHTML = ''
+    },
+
+    // 移除弹出层容器
+    removeRootElement() {
+      const { rootId } = this
+      if (!rootId)
+        return
+
+      const rootEl = document.querySelector(`#${rootId}`)
+      if (rootEl)
+        rootEl.remove()
+    },
+
+    // 清除 clickoutside 的定时器
+    clearClickOutsideTimer() {
+      if (this.clickOutsideTimer) {
+        clearTimeout(this.clickOutsideTimer)
+        this.clickOutsideTimer = null
+      }
     },
 
     changDropdownPanelPosition() {
@@ -471,7 +499,9 @@ export default defineComponent({
 
     dropdownClickOutside() {
       // 是否显示触发器被点击了（被点击将忽略 clickOutside 事件）
-      setTimeout(() => {
+      this.clearClickOutsideTimer()
+      this.clickOutsideTimer = setTimeout(() => {
+        this.clickOutsideTimer = null
         if (this.isDropdownShowTriggerClicked)
           this.isDropdownShowTriggerClicked = false
         else
@@ -514,6 +544,10 @@ export default defineComponent({
         // FIXME: What is this comment below here? Remove?
         // fixed unit test error: [Vue warn]: Error in v-on handler: "TypeError: Failed to execute 'appendChild' on 'Node': parameter 1 is not of type 'Node'."
         this.$nextTick(() => {
+          // 在 nextTick 之前已卸载：不再创建容器，否则会泄漏
+          if (this.$.isUnmounted)
+            return
+
           const containerEl = document.createElement('div')
 
           containerEl.setAttribute('id', this.rootId)
