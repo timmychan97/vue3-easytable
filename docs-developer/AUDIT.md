@@ -541,10 +541,12 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
 
 ## FORM — checkbox, checkbox-group and radio
 
-- [ ] **FORM-01** 🟠 Checkbox-group callbacks are never unregistered
+- [x] ✅ 2026-10-16 · fix/audit-batch2-lifecycle-leaks · **FORM-01** 🟠 Checkbox-group callbacks are never unregistered
   - **Where:** `ve-checkbox-group/src/uses.ts:219-223` (`callbacks.push(cb)`), `ve-checkbox/src/index.tsx:34`
   - **Trigger:** `v-for` checkboxes whose options change. Dead checkboxes keep receiving updates.
   - **Fix:** `onCheckboxGroupUpdate` returns an unregister function, called in `onBeforeUnmount`.
+  - **Done:** as proposed. The `Payload` type and the inject default both return a disposer, and the checkbox calls it in `onBeforeUnmount`.
+  - **Verified:** `ve-checkbox.spec.ts` › "unmounted checkboxes stop receiving group updates (FORM-01)". A probe child wraps the group's `onCheckboxGroupUpdate` to count calls. After replacing a 3-item `v-for` three times, one `modelValue` change called 12 callbacks before the fix and calls 3 now.
 
 - [ ] **FORM-02** 🟢 Disabled and uncontrolled checkbox/radio state
   - **Where:** `ve-checkbox/src/index.tsx:113-126`, `ve-radio/src/index.tsx:83-86`. A disabled control ignores model changes, so it goes stale when the group value changes. An uncontrolled one with no `v-model` never shows the `*-checked` class.

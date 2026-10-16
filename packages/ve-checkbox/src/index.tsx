@@ -31,7 +31,11 @@ export default defineComponent({
   },
   setup(props, { emit, slots }) {
     const { onCheckboxGroupUpdate, updateCheckboxGroup, inCheckboxGroup, isVerticalShow, groupModelValue } = injectCheckboxGroup()
-    onCheckboxGroupUpdate(updateModelByGroup)
+    const offCheckboxGroupUpdate = onCheckboxGroupUpdate(updateModelByGroup)
+    // 卸载后不再接收 checkbox-group 的更新
+    onBeforeUnmount(() => {
+      offCheckboxGroupUpdate?.()
+    })
 
     // 当前checkbox 选中状态
     const model = ref(props.modelValue)
