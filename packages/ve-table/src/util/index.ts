@@ -722,7 +722,7 @@ export function getColKeysByRangeColKeys({ colKey1, colKey2, colgroups }) {
   const index1 = colgroups.findIndex(x => x.key === colKey1)
   const index2 = colgroups.findIndex(x => x.key === colKey2)
 
-  if (index1 !== -1 && index1 !== -1) {
+  if (index1 !== -1 && index2 !== -1) {
     const beginIndex = index1 < index2 ? index1 : index2
     const endIndex = index1 < index2 ? index2 : index1
     result = colgroups.slice(beginIndex, endIndex + 1).map(x => x.key)

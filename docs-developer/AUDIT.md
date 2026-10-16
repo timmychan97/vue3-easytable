@@ -194,8 +194,9 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
   - **Note:** the test at `__tests__/ve-table-cell-selection.spec.ts:599-604` **locks in the bug** (`leftColKey: 'b'`). Update it with the fix.
   - **Fix:** use the first column where `!x.operationColumn`.
 
-- [ ] **SEL-04** 🟢 🔍 Typo in a range check: `index1 !== -1 && index1 !== -1`
+- [x] ✅ 2026-10-16 · fix/audit-batch1-crash-oneliners **SEL-04** 🟢 🔍 Typo in a range check: `index1 !== -1 && index1 !== -1`
   - **Where:** [util/index.ts:725](../packages/ve-table/src/util/index.ts#L725). It should test `index2`. An unknown `colKey2` returns `slice(-1, …)` garbage instead of `null`.
+  - **Verified:** `ve-table-util.spec.ts` › `getColKeysByRangeColKeys` › "returns null when colKey2 is unknown" (failed with `[]` before the fix).
 
 - [ ] **SEL-05** 🟢 🔍 `getNextColKey` with an unknown key returns the first column
   - **Where:** [util/index.ts:1092-1102](../packages/ve-table/src/util/index.ts#L1092-L1102). `-1 < length - 1` is true.
