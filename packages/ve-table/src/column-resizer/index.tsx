@@ -63,6 +63,8 @@ export default defineComponent({
         left: 0,
         height: 0,
       },
+      // 表头 mousemove hook 的注销函数
+      removeHeaderCellMousemoveHook: null as (() => void) | null,
     }
   },
   computed: {
@@ -84,8 +86,11 @@ export default defineComponent({
     parentRendered: {
       handler(val) {
         if (val) {
+          // 先注销旧的 hook，避免重复注册
+          if (this.removeHeaderCellMousemoveHook)
+            this.removeHeaderCellMousemoveHook()
           // header cell mousemove
-          this.hooks.addHook(
+          this.removeHeaderCellMousemoveHook = this.hooks.addHook(
             HOOKS_NAME.HEADER_CELL_MOUSEMOVE,
             ({ event, column }) => {
               if (column.disableResizing)
@@ -257,6 +262,22 @@ export default defineComponent({
         return true
       }
     },
+  },
+
+  beforeUnmount() {
+    // 卸载后不再响应表头 mousemove hook
+    if (this.removeHeaderCellMousemoveHook) {
+      this.removeHeaderCellMousemoveHook()
+      this.removeHeaderCellMousemoveHook = null
+    }
+    // 拖动过程中卸载：移除 document 上的拖动监听，并恢复文本选择
+    document.removeEventListener(
+      'mousemove',
+      this.setColumnResizerPositionByDrag,
+    )
+    document.removeEventListener('mouseup', this.columnResizerMouseup)
+    if (this.isColumnResizing)
+      this.clearColumnResizerStatus()
   },
 
   render() {

@@ -71,22 +71,28 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
 
 ## INFRA — cross-cutting infrastructure
 
-- [ ] **INFRA-01** 🔴 `Hooks` has no `removeHook`, so subscriptions leak and dead instances throw
+- [x] ✅ 2026-10-16 · fix/audit-batch2-lifecycle-leaks · **INFRA-01** 🔴 `Hooks` has no `removeHook`, so subscriptions leak and dead instances throw
   - **Where:** [common/utils/hooks-manager.ts](../packages/common/utils/hooks-manager.ts). Registered and never removed in `selection/index.tsx:246-290`, `editor/index.tsx:193-208`, `column-resizer/index.tsx:88-95` and `row-insert-indicator/index.tsx:396`.
   - **Trigger:** select a cell, toggle `cellSelectionOption.enable` (or `rowInsertOption.enable`) at runtime, then scroll. The unmounted editor's scroll hook runs `autoResize.init(null)`, and `auto-resize.ts:130` (`el.nodeName`) throws. That aborts `triggerHook`'s `forEach`, so the remaining hooks never run. Each toggle also adds another set of closures.
   - **Fix:** make `addHook` return a disposer and call it in each child's `beforeUnmount`. Isolate errors per callback in `triggerHook`.
+  - **Done:** `addHook` returns a disposer and there is a new `removeHook`. `triggerHook` iterates over a copy and wraps each callback in try/catch + `console.error`. `selection` and `editor` keep `hookDisposers` (cleared before re-registering) and dispose them in `beforeUnmount`. `column-resizer` does the same with its one hook. `row-insert-indicator` disposes in `onUnmounted` and skips its `nextTick` registration if it already unmounted.
+  - **Verified:** `ve-table-lifecycle.spec.ts` › "toggling cellSelectionOption.enable removes the old hooks (INFRA-01)" (hook count 24 → 6 after three toggles; triggering scroll / size-change after disabling no longer throws or logs) and "toggling rowInsertOption.enable removes the old scroll hook (INFRA-01)" (6 → 3). `common/__tests__/hooks-manager.spec.ts` covers the disposer, error isolation, and self-disposal during trigger.
 
-- [ ] **INFRA-02** 🔴 🔍 The emitter mixin never unsubscribes, so handlers run once per past mount
+- [x] ✅ 2026-10-16 · fix/audit-batch2-lifecycle-leaks · **INFRA-02** 🔴 🔍 The emitter mixin never unsubscribes, so handlers run once per past mount
   - **Where:** [common/mixins/emitter.ts:30-33](../packages/common/mixins/emitter.ts#L30-L33). `bus.on(key, callback.bind(this))`, and there is no `off` anywhere in the repo.
   - **Trigger:** toggle `showHeader` off and on, then click a sort icon. Both the dead and the live `header/index.tsx` instances handle `SORT_CHANGE`, so the user's `sortOption.sortChange` runs twice, the first time with stale `sortColumns`. That means two fetches, and the stale one can win. `header-checkbox-content` remounts on every columns change (its key includes `columnsOptionResetTime`), so it leaks as well.
   - **Fix:** keep each bound handler and `bus.off` all of them in the mixin's `beforeUnmount`. Long term: MOD-01.
+  - **Done:** `on()` records `{ bus, type, handler }` per instance, and the mixin's `beforeUnmount` `bus.off`s all of them.
+  - **Verified:** `ve-table-lifecycle.spec.ts` › "toggling showHeader does not leave a dead SORT_CHANGE handler (INFRA-02)": after two `showHeader` toggles, `sortChange` was called 3 times before the fix and is now called once, with `{ age: 'asc' }`.
 
-- [ ] **INFRA-03** 🟠 Debounces, timers and rAF are not cancelled on unmount
-  - [ ] `ve-table.tsx`: `debouncedBodyCellWidthChange` and `debouncedMeasureCellWidthChange` (created at 858-867) are never cancelled. `unmounted` (1000-1005) destroys the virtualizer and removes the keydown listener, but nothing else. *(Since `442962c`: the rAF timeout, `initVirtualScroll` and `setVirtualPhantomHeight` are gone, and `initTanStackVirtualScroll` null-guards its ref.)*
-  - [ ] `selection/index.tsx:1542-1547`: two debounced functions, no `beforeUnmount`.
-  - [ ] `column-resizer/index.tsx:169-182, 253-258`: document listeners are not removed on unmount. See also COL-05.
+- [x] ✅ 2026-10-16 · fix/audit-batch2-lifecycle-leaks · **INFRA-03** 🟠 Debounces, timers and rAF are not cancelled on unmount
+  - [x] `ve-table.tsx`: `debouncedBodyCellWidthChange` and `debouncedMeasureCellWidthChange` (created at 858-867) are never cancelled. `unmounted` (1000-1005) destroys the virtualizer and removes the keydown listener, but nothing else. *(Since `442962c`: the rAF timeout, `initVirtualScroll` and `setVirtualPhantomHeight` are gone, and `initTanStackVirtualScroll` null-guards its ref.)* → both are `.cancel()`ed in `unmounted`. (If COL-07 deletes `debouncedBodyCellWidthChange`, drop its cancel line too.)
+  - [x] `selection/index.tsx:1542-1547`: two debounced functions, no `beforeUnmount`. → cancelled in the new `beforeUnmount` (which also disposes the hooks, INFRA-01).
+  - [x] `column-resizer/index.tsx:169-182, 253-258`: document listeners are not removed on unmount. See also COL-05. → `beforeUnmount` removes the `mousemove` / `mouseup` listeners, and if a drag is in progress it calls `clearColumnResizerStatus()`, which resets `document.onselectstart` / `ondragstart`. Replacing those globals is still COL-05.
   - (The editor is tracked in EDIT-02, the contextmenu in MENU-03, the dropdown in DD-01.)
   - **Fix:** add a `beforeUnmount` to each, calling `.cancel()` / `cancelAnimationTimeout` / `clearTimeout`, and null-guard `$refs` in async callbacks.
+  - **`$refs` guards:** the remaining ve-table async callbacks were re-read. `setScrollBarStatus` and `initTanStackVirtualScroll` already null-guard their refs, and the other `$nextTick` callbacks only trigger hooks, which no longer reach unmounted children (INFRA-01). The editor's `nextTick` → focus `setTimeout` chain now returns early once unmounted (EDIT-02).
+  - **Verified:** `ve-table-lifecycle.spec.ts` (fake timers) › "pending ve-table debounces do not run after unmount (INFRA-03)" (before the fix, `hooks.triggerHook` ran twice after unmount), "pending selection debounces do not run after unmount (INFRA-03)" (before the fix, `setSelectionPositions` ran after `cellSelectionOption.enable` was turned off), and "column resizer removes its document listeners on unmount (INFRA-03)" (unmounting mid-drag removes both listeners and restores `onselectstart`).
 
 - [ ] **INFRA-04** 🟠 Row and column keys are interpolated unescaped into `querySelector`
   - **Where:** `methods/scrolling.ts:61` (`rowToVisible`), `ve-table.tsx:1989` (`scrollToRowKey`); `selection/index.tsx:1421, 1438, 1452, 1498`; `editor/index.tsx:282`
@@ -158,7 +164,7 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
   - **Issues:**
     - It overwrites `document.onselectstart` and `document.ondragstart`, removing any app handlers.
     - Alt-tab, or releasing the mouse outside the window, leaves resizing stuck.
-    - There is no unmount cleanup (also listed in INFRA-03).
+    - There is no unmount cleanup (also listed in INFRA-03). → Fixed by INFRA-03 (batch 2). The other two bullets are still open.
   - **Fix:** use `addEventListener('selectstart', prevent)` and remove it afterwards. In mousemove, `if (e.buttons === 0) end()`; also end on `window` `blur` and on Escape.
 
 - [ ] **COL-06** 🟢 🔍 Fixed-column edge detection compares `field` instead of `key`
@@ -289,10 +295,12 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
   - **Fix:** `editingCell.row[editingCell.column.field]`.
   - **Verified:** `ve-table-cell-edit.spec.ts` › "key code alt+enter event when column key differs from field" (columns keyed `col-<field>`; the textarea read `'und\nefined'` before the fix, now `'AAA\n'` and `afterCellValueChange` gets `date: 'AAA\n'`).
 
-- [ ] **EDIT-02** 🟠 🔍 Editor lifecycle: the Vue 2 `destroyed()` hook never runs
+- [x] ✅ 2026-10-16 · fix/audit-batch2-lifecycle-leaks · **EDIT-02** 🟠 🔍 Editor lifecycle: the Vue 2 `destroyed()` hook never runs
   - **Where:** [editor/index.tsx:465](../packages/ve-table/src/editor/index.tsx#L465) (`destroyed`, the only Vue 2 lifecycle hook left in the repo), `:450-460` (uncancelled lodash debounces), `:224` (uncancelled `setTimeout`).
   - **Effect:** `autoResize` is never unobserved. After unmount the debounces run `setTextareaPosition` against null refs and throw.
   - **Fix:** `beforeUnmount() { debounceSetTextareaPosition.cancel(); debounceSetCellEl.cancel(); clearTimeout(focusTimer); textareaUnObserve() }`.
+  - **Done:** `destroyed()` was removed. `beforeUnmount` disposes the hooks (INFRA-01), cancels both debounces, clears the stored `focusTimer`, and calls `textareaUnObserve()`. The `currentCell` watcher's `nextTick` callback returns early once unmounted, and re-selecting a cell clears the previous focus timer before scheduling a new one.
+  - **Verified:** `ve-table-lifecycle.spec.ts` › "pending editor timers do not run after unmount (EDIT-02)": while editing with non-zero mocked rects, trigger the scroll hook and change cell, then turn `cellSelectionOption.enable` off. `autoResize.unObserve` is called, and advancing fake timers no longer throws `Cannot read properties of null (reading 'nodeName')`.
 
 - [ ] **EDIT-03** 🟠 The editor stays positioned over the previous cell
   - **Where:** `editor/index.tsx:275-290` (`setCellEl` only assigns when a cell is found).
@@ -445,34 +453,47 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
   - **Where:** `ve-contextmenu/src/index.tsx:109-115, 458-474`. The old listener is never removed, and a string selector is resolved by an `immediate` watcher before mount, so it gets `null` and is never retried.
   - **Fix:** call `removeContextmenuEvent()` before re-registering, and resolve strings in `mounted`.
 
-- [ ] **MENU-03** 🟠 The debounced hover handler fires after unmount
+- [x] ✅ 2026-10-16 · fix/audit-batch2-lifecycle-leaks · **MENU-03** 🟠 The debounced hover handler fires after unmount
   - **Where:** `ve-contextmenu/src/index.tsx:120-133, 217-226` (the 300ms `debounceCreatePanelByHover` is never cancelled).
   - **Trigger:** right-click, hover a parent item, then change route within 300ms. A new body div is created, then `appendChild(undefined)` throws a TypeError.
   - **Fix:** in `beforeUnmount`, `debounceCreatePanelByHover.cancel()` and set `isPanelsEmptyed = true`.
+  - **Done:** as proposed, plus the `$nextTick` inside `createPanelByHover` returns early once the instance is unmounted.
+  - **Verified:** `ve-contextmenu.spec.tsx` › "the hover debounce does not fire after unmount (MENU-03)" (fake timers). Before the fix it reproduced exactly as described: `body` gained a div and there was an unhandled `TypeError: Failed to execute 'appendChild'`.
 
-- [ ] **MENU-04** 🟠 Submenu containers leak on every right-click
+- [x] ✅ 2026-10-16 · fix/audit-batch2-lifecycle-leaks · **MENU-04** 🟠 Submenu containers leak on every right-click
   - **Where:** `ve-contextmenu/src/index.tsx:411-447`. `removeOrEmptyPanels(true)` removes only containers whose IDs are in the current `panelOptions`. ve-table replaces `options` on every right-click (`methods/contextmenu.ts:39, 53`), which regenerates the IDs.
   - **Fix:** keep a `Set` of the created container elements, and remove them all when the options change and on unmount (or MOD-09).
+  - **Done:** `addContextmenuPanelToBody` records each container in a non-reactive `panelContainerEls` set (`markRaw`). The `options` watcher and `unmounted` call the new `removeAllPanelContainers()` instead of `removeOrEmptyPanels(true)`, whose `isRemove` branch no longer has a caller.
+  - **Verified:** `ve-contextmenu.spec.tsx` › "repeated right-clicks with replaced options do not leak submenu containers (MENU-04)". Each cycle opens a submenu, right-clicks again (which resets `panelOptions` to the root only), then replaces `options`. Before the fix this leaked one container per cycle (+5); now the count is flat and unmount returns `body` to its starting size. See also MENU-06, found while writing this test.
 
 - [ ] **MENU-05** 🟢 Submenu positioning
   - **Where:** `ve-contextmenu/src/index.tsx:366, 372`. When opening to the left it uses `parentPanelLeft - parentPanelWidth` instead of `currentPanelWidth`. The viewport-relative `getViewportOffset().left` is used as a body coordinate, so it is off by `scrollX`. Nothing clamps a panel that is larger than the viewport.
   - **Fix:** use `currentPanelWidth`, add the scroll offsets, and clamp to the viewport.
 
+- [ ] **MENU-06** 🔴 The ve-table contextmenu is removed right after it opens (found in batch 2; seen in jsdom, not yet confirmed in a browser)
+  - **Where:** `ve-table.tsx` `bodyCellContextmenu` / `headerCellContextmenu` → `setContextmenuOptions` (`methods/contextmenu.ts:33-62`), together with the `options` watcher in `ve-contextmenu/src/index.tsx:93-108`.
+  - **Trigger:** right-click a body cell. The cell's `contextmenu` handler replaces `contextmenuOptions` synchronously. The same event then bubbles to `.ve-table-content`, where `showRootContextmenuPanel` shows the panel in the **old** root container. On the next flush, the `options` watcher removes that container (since `65b1cfd`, initial import) and creates a new, empty one. A jsdom probe right after `dispatchEvent` found 2 nodes inside `.ve-contextmenu-popper`, and 0 after `await later()`, on every right-click. The existing ve-table contextmenu specs don't catch this, because they count `.ve-contextmenu-node` anywhere in the document, including the hidden render root.
+  - **Fix (proposal):** don't regenerate the menu on every right-click while it is being shown. Either compute the options before the menu opens (for example on right-button `mousedown`), or have the `options` watcher rebuild in place and re-show when the menu is open. Covered long-term by MOD-09. Confirm in the docs site first.
+
 ---
 
 ## DD — dropdown and select
 
-- [ ] **DD-01** 🔴 🔍 A hide/show race through an uncancelled 150ms timer
+- [x] ✅ 2026-10-16 · fix/audit-batch2-lifecycle-leaks · **DD-01** 🔴 🔍 A hide/show race through an uncancelled 150ms timer
   - **Where:** [ve-dropdown/src/index.tsx:306-319](../packages/ve-dropdown/src/index.tsx#L306-L319). `visible-change(false)` is emitted immediately, but `internalVisible = false` and the panel clear happen 150ms later. The `FIXME` is already there.
   - **Trigger:**
     - Uncontrolled: a second click within 150ms sees "visible" and hides again, so the click is lost.
     - Controlled (ve-table filters): `visible` goes true → false → true within 150ms, and the old timer empties the freshly shown panel.
   - **Fix:** keep `hideTimer`, `clearTimeout` it in `showDropDown` and `beforeUnmount`, and set `internalVisible` synchronously. If a fade is wanted, it must be interruptible: cancel any in-flight animation and start from the current visual state, with no queued timers.
+  - **Done:** the panel has no CSS transition (`ve-dropdown-dd-show` isn't styled; hiding means emptying the popper container), so the timer only delayed the hide. `hideDropDown` now sets `internalVisible = false` and empties the container synchronously, so there is no hide timer left to race with or cancel. The `dropdownClickOutside` `setTimeout(0)` is now stored as `clickOutsideTimer`, coalesced, and cleared in `beforeUnmount`. The controlled `visible` watcher's double-`nextTick` callback returns early once the instance is unmounted.
+  - **Verified:** `ve-dropdown.spec.tsx` › "rapid clicks toggle correctly when uncontrolled (DD-01)" (three clicks within 20ms emitted `true, false, false` before the fix and now emit `true, false, true`), "controlled visible true → false → true keeps the panel content (DD-01)" (the container was empty before the fix), and "the click-outside timer does not fire after unmount (DD-01)" (`hideDropDown` ran after unmount before the fix).
 
-- [ ] **DD-02** 🔴 🔍 The dropdown leaks its body container on every unmount
+- [x] ✅ 2026-10-16 · fix/audit-batch2-lifecycle-leaks · **DD-02** 🔴 🔍 The dropdown leaks its body container on every unmount
   - **Where:** [ve-dropdown/src/index.tsx:337-343](../packages/ve-dropdown/src/index.tsx#L337-L343) (only `innerHTML = ''`), `227-228`, `516-535`
   - **Trigger:** every VeSelect (one per VePagination) and every ve-table filter column leaves one div in `body` per mount, so route changes grow the DOM without bound. Unmounting before the `nextTick` in `addRootElementToElement` creates the div after unmount.
   - **Fix:** `rootEl.remove()` in `beforeUnmount`. Better: `<Teleport>` (MOD-09).
+  - **Done:** new `removeRootElement()` runs in `beforeUnmount` (it replaces the old `removeOrEmptyRootPanel()` call in `unmounted`). The `nextTick` in `addRootElementToElement` returns early if the instance is already unmounted. MOD-09 is still the long-term fix.
+  - **Verified:** `ve-dropdown.spec.tsx` › "unmount removes the body container (DD-02)" (5 mount / open / unmount cycles leave `document.body.children.length` unchanged; it was +5 before) and "unmount before the container is created leaves nothing behind (DD-02)" (mount + immediate unmount, ×5). These tests mount without `attachTo`, because the shared `wrapMount` helper leaves its own container in `body` on every mount.
 
 - [ ] **DD-03** 🟠 Every document click "hides" every closed dropdown
   - **Where:** `ve-dropdown/src/index.tsx:472-480, 640`. `v-click-outside` is always bound, and `hideDropDown()` has no visibility check.
@@ -527,10 +548,12 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
 
 ## FORM — checkbox, checkbox-group and radio
 
-- [ ] **FORM-01** 🟠 Checkbox-group callbacks are never unregistered
+- [x] ✅ 2026-10-16 · fix/audit-batch2-lifecycle-leaks · **FORM-01** 🟠 Checkbox-group callbacks are never unregistered
   - **Where:** `ve-checkbox-group/src/uses.ts:219-223` (`callbacks.push(cb)`), `ve-checkbox/src/index.tsx:34`
   - **Trigger:** `v-for` checkboxes whose options change. Dead checkboxes keep receiving updates.
   - **Fix:** `onCheckboxGroupUpdate` returns an unregister function, called in `onBeforeUnmount`.
+  - **Done:** as proposed. The `Payload` type and the inject default both return a disposer, and the checkbox calls it in `onBeforeUnmount`.
+  - **Verified:** `ve-checkbox.spec.ts` › "unmounted checkboxes stop receiving group updates (FORM-01)". A probe child wraps the group's `onCheckboxGroupUpdate` to count calls. After replacing a 3-item `v-for` three times, one `modelValue` change called 12 callbacks before the fix and calls 3 now.
 
 - [ ] **FORM-02** 🟢 Disabled and uncontrolled checkbox/radio state
   - **Where:** `ve-checkbox/src/index.tsx:113-126`, `ve-radio/src/index.tsx:83-86`. A disabled control ignores model changes, so it goes stale when the group value changes. An uncontrolled one with no `v-model` never shows the `*-checked` class.
@@ -638,7 +661,8 @@ Record new decisions here with the next free `D` number and the date. Reference 
 
 - ~~The VeLoading "lock" test asserts only `.ve-loading-fixed` (LOAD-01).~~ Closed 2026-10-16 by the LOAD-01 tests (parent classes on show/close/destroy, same-tick destroy, shared target).
 - `ve-table-cell-selection.spec.ts:599-604` asserts buggy behaviour (SEL-03).
-- No tests for remount or toggle scenarios (toggle `cellSelectionOption.enable`, `showHeader`, `rowInsertOption.enable`), which would catch INFRA-01 and INFRA-02.
+- ~~No tests for remount or toggle scenarios (toggle `cellSelectionOption.enable`, `showHeader`, `rowInsertOption.enable`), which would catch INFRA-01 and INFRA-02.~~ Added in `ve-table-lifecycle.spec.ts` (batch 2), together with fake-timer unmount tests in `ve-dropdown.spec.tsx`, `ve-contextmenu.spec.tsx` and `ve-checkbox.spec.ts` ("lifecycle and timers" blocks).
+- The shared `wrapMount` helper (`tests/utils/index.ts`) mounts with `attachTo: 'body'`, and VTU never removes that container, so every mount leaves one `div` in `body`. Body-leak tests have to mount without `attachTo` (the batch 2 tests do).
 - No clipboard codec round-trip tests (CLIP-03 … CLIP-05).
 - No virtual-scroll tests with variable row heights plus edits (VS-03).
 - **The suite has been red since `442962c` (40 failures).** 29 snapshots were never refreshed after the measurement row moved out of `<tbody>`, plus the en-US pagination text changes. The 11 virtual-scroll specs fail because jsdom has no layout: the scroll container measures 0 px, so TanStack yields no items and nothing renders. One (`dynamically turns virtual scrolling on`, :158) also still asserts the removed `.ve-table-virtual-phantom`. Fix: pass TanStack's `initialRect` (or mock `getBoundingClientRect` / `offsetHeight` in the spec), then rewrite the assertions for the spacer-based DOM.
@@ -653,6 +677,7 @@ Record new decisions here with the next free `D` number and the date. Reference 
 
 Newest first. One line per change: date · IDs · what happened · commit/PR.
 
+- **2026-10-16** · INFRA-01, INFRA-02, INFRA-03, EDIT-02, DD-01, DD-02, MENU-03, MENU-04, FORM-01 ✅ · MENU-06 added · Batch 2 (lifecycle and leaks). `Hooks.addHook` returns a disposer and `triggerHook` isolates errors. The emitter mixin `bus.off`s on unmount. Debounces, timers and document listeners are cancelled in ve-table, selection, editor (`destroyed` → `beforeUnmount`), column-resizer and contextmenu. The dropdown hides synchronously (no 150ms timer) and removes its body container. Contextmenu containers are tracked in a Set. Checkbox-group callbacks unregister. New finding: **MENU-06** 🔴, the ve-table menu is removed right after it opens (jsdom only, needs a browser check). 18 new tests; no new failures (still 40, same set), tsc 461, eslint clean. · `fix/audit-batch2-lifecycle-leaks`
 - **2026-10-16** · COL-01, EDIT-01, DD-05, SEL-04, LOAD-01 ✅ · Batch 1 (crash one-liners), each fixed test-first: conflicting fixed-direction menu action no longer crashes and its menu item is disabled; Alt+Enter reads `column.field`; VeSelect arrow toggles; `getColKeysByRangeColKeys` checks `index2`; VeLoading sets the parent before mounting, guards `nextTick` after destroy and ref-counts parent classes (closes the LOAD-01 test gap). New `ve-table-util.spec.ts`. **I18N-01 deferred** until the I18N-04 locale-key work from batch 0 has merged. Suite: same 40 baseline failures, +15 passing tests; eslint clean; tsc 462 (unchanged). Progress and Baseline tables left for the post-merge recount. · `fix/audit-batch1-crash-oneliners`
 - **2026-10-16** · VS-01, VS-02 ⛔ · VS-04, I18N-03 ✅ · VS-05, VS-06, COL-07, I18N-04, I18N-05 added · SEL-01, MOD-02 progress · Re-checked the audit after merging `81a1ebb`, `442962c`, `1645d44` and `0c5b732` from remote. VS-01/VS-02: code removed by the TanStack switch. VS-04: rewritten without the timer, with a null check. I18N-03: all langs complete as of `81a1ebb`. New: **VS-05** 🔴 virtual-mode body loses its class (styling, selection, editor, row insert), **COL-07** hidden measurement table may mis-measure widths (unconfirmed), **I18N-04** locale keys renamed to Chinese (breaking, decision pending), plus VS-06 and I18N-05 (🟢). SEL-01: stop-editing on a hidden column is now guarded. MOD-02: step 1 (method modules) done. SEL-03: corrected the function name (`setRangeCellSelectionByBodyIndicator`; the line numbers were right). Re-anchored line numbers for every item in changed files. Baseline: tests now red (40 failures), tsc 615 → 462, eslint clean.
 

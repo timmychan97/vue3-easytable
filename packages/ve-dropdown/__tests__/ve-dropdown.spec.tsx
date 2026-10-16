@@ -1,5 +1,6 @@
 import veDropdown from '@/ve-dropdown'
 import { later, wrapMount as mount } from '@test-utils'
+import { mount as mountDetached } from '@vue/test-utils'
 import { expect, vi } from 'vitest'
 
 describe('veDropdown', () => {
@@ -480,5 +481,126 @@ describe('veDropdown', () => {
       nextVisible: false,
     })
     wrapper.unmount()
+  })
+
+  describe('lifecycle and timers', () => {
+    afterEach(() => {
+      vi.useRealTimers()
+    })
+
+    // 弹出层容器（挂在 body 上）
+    function getRootEl(wrapper: any) {
+      return document.getElementById(wrapper.vm.rootId)
+    }
+
+    it('rapid clicks toggle correctly when uncontrolled (DD-01)', async () => {
+      vi.useFakeTimers()
+      const wrapper = mount(veDropdown, {
+        props: { modelValue: DROPDOWN_ITEMS },
+        slots: { default: `<div class="btn">click me</div>` },
+      })
+      await nextTick()
+
+      // 打开 → 关闭 → 再打开，全部在 150ms 内完成
+      wrapper.find('.btn').trigger('click')
+      vi.advanceTimersByTime(10)
+      wrapper.find('.btn').trigger('click')
+      vi.advanceTimersByTime(10)
+      wrapper.find('.btn').trigger('click')
+      vi.advanceTimersByTime(500)
+      await nextTick()
+
+      expect(wrapper.emitted('on-dropdown-visible-change')).toEqual([[true], [false], [true]])
+      expect((wrapper.vm as any).internalVisible).toBe(true)
+      expect(getRootEl(wrapper)!.querySelector('.ve-dropdown-items-li')).not.toBeNull()
+      wrapper.unmount()
+    })
+
+    it('controlled visible true → false → true keeps the panel content (DD-01)', async () => {
+      vi.useFakeTimers()
+      const wrapper = mount(veDropdown, {
+        props: { modelValue: DROPDOWN_ITEMS, isControlled: true, visible: false },
+        slots: { default: `<div class="btn">click me</div>` },
+      })
+      await nextTick()
+      await nextTick()
+
+      // visible 的 watcher 内部会等待两个 tick
+      const flush = async () => {
+        for (let i = 0; i < 3; i++)
+          await nextTick()
+      }
+
+      await wrapper.setProps({ visible: true })
+      await flush()
+      vi.advanceTimersByTime(10)
+      await wrapper.setProps({ visible: false })
+      await flush()
+      vi.advanceTimersByTime(10)
+      await wrapper.setProps({ visible: true })
+      await flush()
+
+      vi.advanceTimersByTime(500)
+      await nextTick()
+
+      expect(getRootEl(wrapper)!.querySelector('.ve-dropdown-items-li')).not.toBeNull()
+      wrapper.unmount()
+    })
+
+    // 注意：wrapMount 的 attachTo 每次都会在 body 留下一个 div，所以这里不挂载到 body
+    it('unmount removes the body container (DD-02)', async () => {
+      const before = document.body.children.length
+
+      for (let i = 0; i < 5; i++) {
+        const wrapper = mountDetached(veDropdown, {
+          props: { modelValue: DROPDOWN_ITEMS as any },
+          slots: { default: `<div class="btn">click me</div>` },
+        })
+        await later()
+        wrapper.find('.btn').trigger('click')
+        await later()
+        wrapper.unmount()
+        await later()
+      }
+
+      expect(document.body.children.length).toBe(before)
+    })
+
+    it('unmount before the container is created leaves nothing behind (DD-02)', async () => {
+      const before = document.body.children.length
+
+      for (let i = 0; i < 5; i++) {
+        const wrapper = mountDetached(veDropdown, {
+          props: { modelValue: DROPDOWN_ITEMS as any },
+          slots: { default: `<div class="btn">click me</div>` },
+        })
+        // 在 addRootElementToElement 的 nextTick 执行前卸载
+        wrapper.unmount()
+      }
+      await later()
+
+      expect(document.body.children.length).toBe(before)
+    })
+
+    it('the click-outside timer does not fire after unmount (DD-01)', async () => {
+      vi.useFakeTimers()
+      const wrapper = mount(veDropdown, {
+        props: { modelValue: DROPDOWN_ITEMS },
+        slots: { default: `<div class="btn">click me</div>` },
+      })
+      await nextTick()
+
+      wrapper.find('.btn').trigger('click')
+      vi.advanceTimersByTime(10)
+      expect((wrapper.vm as any).internalVisible).toBe(true)
+
+      // 点击外部：clickoutside 会排一个 setTimeout 去隐藏
+      const hideSpy = vi.spyOn(wrapper.vm as any, 'hideDropDown')
+      document.body.click()
+      wrapper.unmount()
+
+      expect(() => vi.advanceTimersByTime(1000)).not.toThrow()
+      expect(hideSpy).not.toHaveBeenCalled()
+    })
   })
 })

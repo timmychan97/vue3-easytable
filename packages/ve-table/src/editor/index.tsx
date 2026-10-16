@@ -98,6 +98,10 @@ export default defineComponent({
       autoResize: null,
       // is edit cell focus
       isEditCellFocus: false,
+      // 已注册 hooks 的注销函数
+      hookDisposers: [] as (() => void)[],
+      // 聚焦定时器（卸载时需要清除）
+      focusTimer: null as ReturnType<typeof setTimeout> | null,
     }
   },
   computed: {
@@ -189,23 +193,28 @@ export default defineComponent({
           // fixed #471
           this.setTableEl()
 
-          // add table container scroll hook
-          this.hooks.addHook(
-            HOOKS_NAME.TABLE_CONTAINER_SCROLL,
-            () => {
-              if (this.displayTextarea) {
-                if (!this.cellEl)
-                  this.setCellEl()
-              }
-              this.debounceSetCellEl()
+          // 先注销旧的 hooks，避免重复注册
+          this.removeHooks()
+          // 保存注销函数，在 beforeUnmount 中统一移除
+          this.hookDisposers = [
+            // add table container scroll hook
+            this.hooks.addHook(
+              HOOKS_NAME.TABLE_CONTAINER_SCROLL,
+              () => {
+                if (this.displayTextarea) {
+                  if (!this.cellEl)
+                    this.setCellEl()
+                }
+                this.debounceSetCellEl()
+                this.setTextareaPosition()
+                this.debounceSetTextareaPosition()
+              },
+            ),
+            // add table size change hook
+            this.hooks.addHook(HOOKS_NAME.TABLE_SIZE_CHANGE, () => {
               this.setTextareaPosition()
-              this.debounceSetTextareaPosition()
-            },
-          )
-          // add table size change hook
-          this.hooks.addHook(HOOKS_NAME.TABLE_SIZE_CHANGE, () => {
-            this.setTextareaPosition()
-          })
+            }),
+          ]
         }
       },
       immediate: true,
@@ -220,8 +229,14 @@ export default defineComponent({
           this.setCellEl()
           // wait for selection cell rendered
           this.$nextTick(() => {
+            // 组件可能已在等待期间卸载
+            if (this.$.isUnmounted)
+              return
             this.setTextareaPosition()
-            setTimeout(() => {
+            if (this.focusTimer)
+              clearTimeout(this.focusTimer)
+            this.focusTimer = setTimeout(() => {
+              this.focusTimer = null
               this.isEditCellFocus = true
             })
           })
@@ -445,6 +460,12 @@ export default defineComponent({
         setCaretPosition(textareaInputEl, caretPosition + 1)
       }
     },
+
+    // 移除本组件注册的所有 hooks
+    removeHooks() {
+      this.hookDisposers.forEach(dispose => dispose())
+      this.hookDisposers = []
+    },
   },
   created() {
     // debounce set textarea position
@@ -463,7 +484,17 @@ export default defineComponent({
   mounted() {
     this.autoResize = autoResize()
   },
-  destroyed() {
+  beforeUnmount() {
+    // 卸载后不再响应表格 hooks（否则已卸载实例仍会被滚动等事件触发）
+    this.removeHooks()
+    // 取消未执行的防抖调用与聚焦定时器（否则卸载后会对已销毁的 textarea 定位并报错）
+    ;(this.debounceSetTextareaPosition as unknown as ReturnType<typeof debounce>).cancel()
+    ;(this.debounceSetCellEl as unknown as ReturnType<typeof debounce>).cancel()
+    if (this.focusTimer) {
+      clearTimeout(this.focusTimer)
+      this.focusTimer = null
+    }
+    // 停止监听 textarea 尺寸变化（原 Vue 2 的 destroyed 钩子在 Vue 3 中不会执行）
     this.textareaUnObserve()
   },
   render() {

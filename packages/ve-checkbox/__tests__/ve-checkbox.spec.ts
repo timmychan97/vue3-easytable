@@ -1,4 +1,5 @@
 import veCheckbox from '@/ve-checkbox'
+import { CheckboxGroupInjectionKey } from '@/ve-checkbox-group'
 import { wrapMount as mount } from '@test-utils'
 import { describe, expect } from 'vitest'
 
@@ -247,5 +248,49 @@ describe('veCheckbox', () => {
     await wrapper.find('.ve-checkbox').trigger('click')
 
     expect((wrapper.vm as any).checkboxValue).toEqual(['西红柿', '哈密瓜', '南瓜'])
+  })
+
+  it('unmounted checkboxes stop receiving group updates (FORM-01)', async () => {
+    // 探针：包装 group 提供的 onCheckboxGroupUpdate，统计回调被调用的次数
+    let groupCallbackCalls = 0
+    const CallbackCounter = defineComponent({
+      setup() {
+        const payload = inject(CheckboxGroupInjectionKey)!
+        const register = payload.onCheckboxGroupUpdate
+        payload.onCheckboxGroupUpdate = cb => register((val) => {
+          groupCallbackCalls++
+          cb(val)
+        })
+        return () => null
+      },
+    })
+
+    const wrapper = mount({
+      components: { CallbackCounter },
+      template: `
+                <ve-checkbox-group v-model="checkboxValue">
+                    <callback-counter />
+                    <ve-checkbox v-for="item in options" :key="item" :label="item" />
+                </ve-checkbox-group>
+            `,
+      data() {
+        return {
+          options: ['a', 'b', 'c'],
+          checkboxValue: [] as string[],
+        }
+      },
+    })
+
+    // v-for 的选项多次整体替换，旧的 checkbox 全部卸载
+    for (let i = 0; i < 3; i++) {
+      await wrapper.setData({ options: [`x${i}`, `y${i}`, `z${i}`] })
+    }
+
+    groupCallbackCalls = 0
+    await wrapper.setData({ checkboxValue: ['x2'] })
+
+    // 只有当前挂载的 3 个 checkbox 收到更新
+    expect(groupCallbackCalls).toBe(3)
+    expect(wrapper.findAll('.ve-checkbox-checked').length).toBe(1)
   })
 })

@@ -998,6 +998,9 @@ export default defineComponent({
     }
   },
   unmounted() {
+    // 取消未执行的防抖调用，避免卸载后仍更新 colgroups / 触发 hooks
+    ;(this.debouncedBodyCellWidthChange as ReturnType<typeof debounce> | null)?.cancel()
+    ;(this.debouncedMeasureCellWidthChange as ReturnType<typeof debounce> | null)?.cancel()
     // remove key down event listener
     document.removeEventListener('keydown', this.dealKeydownEvent)
     // Clean up TanStack virtual scroll instance

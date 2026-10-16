@@ -116,6 +116,8 @@ export default defineComponent({
           height: 0,
         },
       },
+      // 已注册 hooks 的注销函数
+      hookDisposers: [] as (() => void)[],
     }
   },
 
@@ -247,46 +249,51 @@ export default defineComponent({
     'parentRendered': {
       handler(val) {
         if (val) {
-          // add table container scroll hook
-          this.hooks.addHook(
-            HOOKS_NAME.TABLE_CONTAINER_SCROLL,
-            () => {
-              this.setCellEls()
-              this.debounceSetCellEls()
+          // 先注销旧的 hooks，避免重复注册
+          this.removeHooks()
+          // 保存注销函数，在 beforeUnmount 中统一移除
+          this.hookDisposers = [
+            // add table container scroll hook
+            this.hooks.addHook(
+              HOOKS_NAME.TABLE_CONTAINER_SCROLL,
+              () => {
+                this.setCellEls()
+                this.debounceSetCellEls()
 
-              this.resetCellPositions()
+                this.resetCellPositions()
+                // debounce reset cell positions
+                this.debounceResetCellPositions()
+              },
+            ),
+            // add table size change hook
+            this.hooks.addHook(HOOKS_NAME.TABLE_SIZE_CHANGE, () => {
               // debounce reset cell positions
               this.debounceResetCellPositions()
-            },
-          )
-          // add table size change hook
-          this.hooks.addHook(HOOKS_NAME.TABLE_SIZE_CHANGE, () => {
-            // debounce reset cell positions
-            this.debounceResetCellPositions()
-          })
-          // add table td width change hook
-          this.hooks.addHook(
-            HOOKS_NAME.TABLE_CELL_WIDTH_CHANGE,
-            () => {
-              this.$nextTick(() => {
-                this.resetCellPositions()
-              })
-            },
-          )
+            }),
+            // add table td width change hook
+            this.hooks.addHook(
+              HOOKS_NAME.TABLE_CELL_WIDTH_CHANGE,
+              () => {
+                this.$nextTick(() => {
+                  this.resetCellPositions()
+                })
+              },
+            ),
 
-          // add clipboard cell value change hook
-          this.hooks.addHook(
-            HOOKS_NAME.CLIPBOARD_CELL_VALUE_CHANGE,
-            () => {
-              this.$nextTick(() => {
-                // Re-fetch cell elements from DOM before resetting positions
-                // This is needed when rows are inserted/removed and DOM elements have changed
-                this.setCurrentCellEl()
-                this.setNormalEndCellEl()
-                this.resetCellPositions()
-              })
-            },
-          )
+            // add clipboard cell value change hook
+            this.hooks.addHook(
+              HOOKS_NAME.CLIPBOARD_CELL_VALUE_CHANGE,
+              () => {
+                this.$nextTick(() => {
+                  // Re-fetch cell elements from DOM before resetting positions
+                  // This is needed when rows are inserted/removed and DOM elements have changed
+                  this.setCurrentCellEl()
+                  this.setNormalEndCellEl()
+                  this.resetCellPositions()
+                })
+              },
+            ),
+          ]
         }
       },
       immediate: true,
@@ -1535,6 +1542,12 @@ export default defineComponent({
         height: 0,
       }
     },
+
+    // 移除本组件注册的所有 hooks
+    removeHooks() {
+      this.hookDisposers.forEach(dispose => dispose())
+      this.hookDisposers = []
+    },
   },
 
   created() {
@@ -1545,6 +1558,14 @@ export default defineComponent({
     )
     // debounce set cell els
     this.debounceSetCellEls = debounce(this.setCellEls, 200)
+  },
+
+  beforeUnmount() {
+    // 卸载后不再响应表格 hooks（否则已卸载实例仍会被滚动等事件触发）
+    this.removeHooks()
+    // 取消未执行的防抖调用
+    ;(this.debounceResetCellPositions as unknown as ReturnType<typeof debounce>).cancel()
+    ;(this.debounceSetCellEls as unknown as ReturnType<typeof debounce>).cancel()
   },
 
   render() {

@@ -384,16 +384,25 @@ export default defineComponent({
       document.removeEventListener('mousemove', handleDocumentMouseMove)
     }
 
+    // 组件是否已卸载（nextTick 回调可能在卸载之后才执行）
+    let isUnmounted = false
+    // scroll hook 的注销函数
+    let removeScrollHook: (() => void) | null = null
+
     // Watch for parent rendered
     watch(
       () => props.parentRendered,
       (val) => {
         if (val) {
           nextTick(() => {
+            if (isUnmounted)
+              return
+
             setupEventListeners()
 
             // Add scroll hook
-            props.hooks.addHook(HOOKS_NAME.TABLE_CONTAINER_SCROLL, handleScroll)
+            removeScrollHook?.()
+            removeScrollHook = props.hooks.addHook(HOOKS_NAME.TABLE_CONTAINER_SCROLL, handleScroll)
           })
         }
       },
@@ -416,6 +425,10 @@ export default defineComponent({
 
     // Cleanup on unmount
     onUnmounted(() => {
+      isUnmounted = true
+      // 卸载后不再响应表格滚动 hook
+      removeScrollHook?.()
+      removeScrollHook = null
       removeEventListeners()
       clearHideTimeout()
       document.removeEventListener('mousemove', handleDocumentMouseMove)
