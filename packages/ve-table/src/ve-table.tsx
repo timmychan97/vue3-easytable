@@ -1,3 +1,4 @@
+import type { KeyboardMode } from './util/constant.js'
 import type {
   BodyIndicatorRowKeys,
   CellSelectionData,
@@ -56,6 +57,7 @@ import {
   EMIT_EVENTS,
   HOOKS_NAME,
   INSTANCE_METHODS,
+  KEYBOARD_MODE,
 } from './util/constant.js'
 import {
   clsName,
@@ -353,6 +355,8 @@ export default defineComponent({
       isAutofillStarting: false,
       autofillingDirection: null as string | null,
       currentCellSelectionType: '',
+      // 键盘模式（SEL-08）：单元格导航 / 表格（焦点在根元素上，Tab 交给浏览器）
+      keyboardMode: KEYBOARD_MODE.TABLE as KeyboardMode,
 
       // Layout
       tableOffestHeight: 0,
@@ -831,6 +835,18 @@ export default defineComponent({
       },
       deep: true,
       immediate: true,
+    },
+    // SEL-08：活动单元格变化（点击、API、键盘）时进入单元格导航（编辑框会获得焦点），清空时回到表格模式。
+    // 只监听 key，rowIndex 因排序等变化时不切换模式
+    'cellSelectionData.currentCell.rowKey': {
+      handler() {
+        this.syncKeyboardModeByCurrentCell()
+      },
+    },
+    'cellSelectionData.currentCell.colKey': {
+      handler() {
+        this.syncKeyboardModeByCurrentCell()
+      },
     },
     // watch header indicator colKeys
     'headerIndicatorColKeys': {
@@ -1372,6 +1388,9 @@ export default defineComponent({
     bodyCellMousedown({ event, rowData, column }) {
       if (!this.enableCellSelection)
         return false
+
+      // SEL-08：点击单元格（包括当前单元格）恢复单元格导航
+      this.keyboardMode = KEYBOARD_MODE.CELL
 
       const { shiftKey } = event
 
@@ -2238,7 +2257,14 @@ export default defineComponent({
       ref: this.tableRootRef,
       class: {
         'vue-table-root': true,
+        // SEL-08：表格模式下弱化活动单元格
+        [clsName('keyboard-dormant')]:
+          this.keyboardMode === KEYBOARD_MODE.TABLE
+          && !isEmptyValue(cellSelectionData.currentCell.rowKey)
+          && !isEmptyValue(cellSelectionData.currentCell.colKey),
       },
+      // SEL-08：根元素可获得焦点（Esc 离开单元格导航后焦点停在这里，Tab 进入表格时也落在这里）
+      tabindex: enableCellSelection ? 0 : undefined,
     }
 
     // table container wrapper props
@@ -2347,6 +2373,7 @@ export default defineComponent({
       hasYScrollBar: this.hasYScrollBar,
       hasRightFixedColumn: this.hasRightFixedColumn,
       scrollBarWidth: this.getScrollBarWidth(),
+      keyboardMode: this.keyboardMode,
       // edit input click
       [getEmitEventName(EMIT_EVENTS.EDIT_INPUT_CLICK)]: () => {
         this.enableStopEditing = false

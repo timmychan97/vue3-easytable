@@ -37,6 +37,16 @@ export const CELL_SELECTION_DIRECTION = {
   LEFT: 'left',
 }
 
+// 键盘模式（SEL-08）
+export const KEYBOARD_MODE = {
+  // 单元格导航：方向键、Tab 等在单元格之间移动（Tab 被拦截）
+  CELL: 'cell',
+  // 表格模式：焦点在表格根元素上，单元格键盘处理休眠，Tab 交给浏览器
+  TABLE: 'table',
+} as const
+
+export type KeyboardMode = typeof KEYBOARD_MODE[keyof typeof KEYBOARD_MODE]
+
 // autofilling direction
 export const AUTOFILLING_DIRECTION = {
   UP: 'up',

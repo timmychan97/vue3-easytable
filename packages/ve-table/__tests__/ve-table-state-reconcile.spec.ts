@@ -71,7 +71,10 @@ describe('veTable state reconcile', () => {
   }
 
   function keydown(keyCode: number) {
-    return new KeyboardEvent('keydown', { keyCode })
+    const event = new KeyboardEvent('keydown', { keyCode, bubbles: true, cancelable: true })
+    // SEL-02：只处理目标在表格内的按键，先在表格根元素上派发，让事件目标落在表格内
+    wrapper.element.dispatchEvent(event)
+    return event
   }
 
   afterEach(() => {

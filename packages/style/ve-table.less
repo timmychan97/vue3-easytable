@@ -4,6 +4,8 @@
 @ve-normal-cell-selection-corner-index: 1;
 @ve-column-resizer-handler-index: 50;
 @ve-column-resizer-line-index: 50;
+// 键盘焦点环（SEL-08）：高于固定表头 / 固定列（最高 30），低于列宽调整手柄
+@ve-table-focus-ring-index: 40;
 
 .ve-table *,
 .ve-table *:before,
@@ -564,6 +566,34 @@
 .vue-table-root {
     position: relative;
     overflow: hidden;
+
+    // SEL-08：根元素可获得焦点（tabindex="0"）。只为键盘焦点显示焦点环，鼠标点击单元格时不显示。
+    // 焦点环画在覆盖层上：outline 会被定位的子元素（表头、固定列）盖住，向外偏移又会被外层 overflow: hidden 的容器裁掉
+    &:focus {
+        outline: none;
+    }
+    &:focus-visible::after {
+        content: "";
+        position: absolute;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        border: 2px solid @ve-table-focus-ring-color;
+        pointer-events: none;
+        z-index: @ve-table-focus-ring-index;
+    }
+
+    // SEL-08：表格模式下单元格键盘处理休眠，活动单元格保留但弱化显示
+    &.ve-table-keyboard-dormant {
+        .ve-table-selection-current,
+        .ve-table-selection-normal-area {
+            .ve-table-selection-border,
+            .ve-table-selection-corner {
+                opacity: @ve-table-selection-dormant-opacity;
+            }
+        }
+    }
 
     .ve-table-row-insert-indicator-wrapper {
         position: absolute;
