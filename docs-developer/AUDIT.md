@@ -449,18 +449,27 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
   - **Where:** `ve-contextmenu/src/index.tsx:109-115, 458-474`. The old listener is never removed, and a string selector is resolved by an `immediate` watcher before mount, so it gets `null` and is never retried.
   - **Fix:** call `removeContextmenuEvent()` before re-registering, and resolve strings in `mounted`.
 
-- [ ] **MENU-03** 🟠 The debounced hover handler fires after unmount
+- [x] ✅ 2026-10-16 · fix/audit-batch2-lifecycle-leaks · **MENU-03** 🟠 The debounced hover handler fires after unmount
   - **Where:** `ve-contextmenu/src/index.tsx:120-133, 217-226` (the 300ms `debounceCreatePanelByHover` is never cancelled).
   - **Trigger:** right-click, hover a parent item, then change route within 300ms. A new body div is created, then `appendChild(undefined)` throws a TypeError.
   - **Fix:** in `beforeUnmount`, `debounceCreatePanelByHover.cancel()` and set `isPanelsEmptyed = true`.
+  - **Done:** as proposed, plus the `$nextTick` inside `createPanelByHover` returns early once the instance is unmounted.
+  - **Verified:** `ve-contextmenu.spec.tsx` › "the hover debounce does not fire after unmount (MENU-03)" (fake timers). Before the fix it reproduced exactly as described: `body` gained a div and there was an unhandled `TypeError: Failed to execute 'appendChild'`.
 
-- [ ] **MENU-04** 🟠 Submenu containers leak on every right-click
+- [x] ✅ 2026-10-16 · fix/audit-batch2-lifecycle-leaks · **MENU-04** 🟠 Submenu containers leak on every right-click
   - **Where:** `ve-contextmenu/src/index.tsx:411-447`. `removeOrEmptyPanels(true)` removes only containers whose IDs are in the current `panelOptions`. ve-table replaces `options` on every right-click (`methods/contextmenu.ts:39, 53`), which regenerates the IDs.
   - **Fix:** keep a `Set` of the created container elements, and remove them all when the options change and on unmount (or MOD-09).
+  - **Done:** `addContextmenuPanelToBody` records each container in a non-reactive `panelContainerEls` set (`markRaw`). The `options` watcher and `unmounted` call the new `removeAllPanelContainers()` instead of `removeOrEmptyPanels(true)`, whose `isRemove` branch no longer has a caller.
+  - **Verified:** `ve-contextmenu.spec.tsx` › "repeated right-clicks with replaced options do not leak submenu containers (MENU-04)". Each cycle opens a submenu, right-clicks again (which resets `panelOptions` to the root only), then replaces `options`. Before the fix this leaked one container per cycle (+5); now the count is flat and unmount returns `body` to its starting size. See also MENU-06, found while writing this test.
 
 - [ ] **MENU-05** 🟢 Submenu positioning
   - **Where:** `ve-contextmenu/src/index.tsx:366, 372`. When opening to the left it uses `parentPanelLeft - parentPanelWidth` instead of `currentPanelWidth`. The viewport-relative `getViewportOffset().left` is used as a body coordinate, so it is off by `scrollX`. Nothing clamps a panel that is larger than the viewport.
   - **Fix:** use `currentPanelWidth`, add the scroll offsets, and clamp to the viewport.
+
+- [ ] **MENU-06** 🔴 The ve-table contextmenu is removed right after it opens (found in batch 2; seen in jsdom, not yet confirmed in a browser)
+  - **Where:** `ve-table.tsx` `bodyCellContextmenu` / `headerCellContextmenu` → `setContextmenuOptions` (`methods/contextmenu.ts:33-62`), together with the `options` watcher in `ve-contextmenu/src/index.tsx:93-108`.
+  - **Trigger:** right-click a body cell. The cell's `contextmenu` handler replaces `contextmenuOptions` synchronously. The same event then bubbles to `.ve-table-content`, where `showRootContextmenuPanel` shows the panel in the **old** root container. On the next flush, the `options` watcher removes that container (since `65b1cfd`, initial import) and creates a new, empty one. A jsdom probe right after `dispatchEvent` found 2 nodes inside `.ve-contextmenu-popper`, and 0 after `await later()`, on every right-click. The existing ve-table contextmenu specs don't catch this, because they count `.ve-contextmenu-node` anywhere in the document, including the hidden render root.
+  - **Fix (proposal):** don't regenerate the menu on every right-click while it is being shown. Either compute the options before the menu opens (for example on right-button `mousedown`), or have the `options` watcher rebuild in place and re-show when the menu is open. Covered long-term by MOD-09. Confirm in the docs site first.
 
 ---
 

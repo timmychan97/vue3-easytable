@@ -4,7 +4,7 @@ import { getMousePosition, getViewportOffset } from '@vue3-easytable/common/util
 import { getRandomId } from '@vue3-easytable/common/utils/random'
 import VeIcon from '@vue3-easytable/ve-icon'
 import { cloneDeep, debounce } from 'lodash'
-import { defineComponent } from 'vue'
+import { defineComponent, markRaw } from 'vue'
 import {
   COMPS_NAME,
   CONTEXTMENU_NODE_TYPES,
@@ -77,6 +77,11 @@ export default defineComponent({
             防止hover后菜单被移除，仍然显示子集菜单的问题
             */
       isPanelsEmptyed: true,
+      /*
+            本组件在 body 上创建的所有菜单容器元素
+            options 变化后 id 会重新生成，只靠 panelOptions 无法找回旧容器，所以单独记录
+            */
+      panelContainerEls: markRaw(new Set<HTMLElement>()),
     }
   },
 
@@ -96,7 +101,7 @@ export default defineComponent({
           /*
                     如果配置项修改,则重新销毁并创建
                     */
-          this.removeOrEmptyPanels(true)
+          this.removeAllPanelContainers()
           this.rootContextmenuId = this.getRandomIdWithPrefix()
           this.createInternalOptions()
           this.createPanelOptions({ options: this.internalOptions })
@@ -127,9 +132,15 @@ export default defineComponent({
     this.addRootContextmenuPanelToBody()
   },
 
+  beforeUnmount() {
+    // 取消未执行的悬浮防抖，避免卸载后再创建子菜单容器
+    ;(this.debounceCreatePanelByHover as unknown as ReturnType<typeof debounce>).cancel()
+    this.isPanelsEmptyed = true
+  },
+
   unmounted() {
     this.removeContextmenuEvent()
-    this.removeOrEmptyPanels(true)
+    this.removeAllPanelContainers()
   },
 
   methods: {
@@ -215,6 +226,10 @@ export default defineComponent({
         })
 
         this.$nextTick(() => {
+          // 组件可能已在等待期间卸载
+          if (this.$.isUnmounted)
+            return
+
           this.addContextmenuPanelToBody({
             contextmenuId: menu.id,
           })
@@ -444,7 +459,14 @@ export default defineComponent({
         containerEl.setAttribute('id', `${contextmenuId}`)
 
         document.body.appendChild(containerEl)
+        this.panelContainerEls.add(containerEl)
       }
+    },
+
+    // 移除本组件创建的所有菜单容器（包括 id 已失效的旧容器）
+    removeAllPanelContainers() {
+      this.panelContainerEls.forEach(el => el.remove())
+      this.panelContainerEls.clear()
     },
 
     addRootContextmenuPanelToBody() {

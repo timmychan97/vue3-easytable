@@ -3,6 +3,8 @@ import {
   later,
   wrapMount as mount,
 } from '@test-utils'
+import { mount as mountDetached } from '@vue/test-utils'
+import { cloneDeep } from 'lodash'
 import { afterEach, beforeEach, expect, vi } from 'vitest'
 
 describe('veContextmenu', () => {
@@ -804,5 +806,79 @@ describe('veContextmenu', () => {
     expect(veContextmenuComp.vm.isPanelsEmptyed).toBe(true)
 
     wrapper.unmount()
+  })
+
+  describe('lifecycle and timers', () => {
+    afterEach(() => {
+      vi.useRealTimers()
+    })
+
+    // 注意：wrapMount 的 attachTo 每次都会在 body 留下一个 div，这里不挂载到 body，方便统计 body 子元素数量
+    function mountMenu() {
+      return mountDetached(veContextmenu, {
+        props: {
+          options: cloneDeep(OPTIONS) as any,
+          eventTarget: document.querySelector('#contextmenu-target') as HTMLElement,
+        },
+      })
+    }
+
+    // 右键打开根菜单，并悬浮在带子菜单的 menu2 上（悬浮有 300ms 防抖）
+    async function rightClickAndHover(wrapper: any) {
+      document.querySelector('#contextmenu-target')!.dispatchEvent(new MouseEvent('contextmenu'))
+      await nextTick()
+      const rootPanelEl = document.getElementById(wrapper.vm.rootContextmenuId)!
+      rootPanelEl.querySelectorAll('.ve-contextmenu-node')[1].dispatchEvent(new MouseEvent('mouseover'))
+    }
+
+    it('the hover debounce does not fire after unmount (MENU-03)', async () => {
+      vi.useFakeTimers()
+      const before = document.body.children.length
+      const wrapper = mountMenu()
+      await nextTick()
+
+      await rightClickAndHover(wrapper)
+      // 300ms 防抖未到期时卸载（例如切换路由）
+      wrapper.unmount()
+
+      expect(() => vi.advanceTimersByTime(500)).not.toThrow()
+      await nextTick()
+      await nextTick()
+
+      expect(document.body.children.length).toBe(before)
+    })
+
+    it('repeated right-clicks with replaced options do not leak submenu containers (MENU-04)', async () => {
+      vi.useFakeTimers()
+      const before = document.body.children.length
+      const wrapper = mountMenu()
+      await nextTick()
+
+      // 打开子菜单后再次右键：resetContextmenu 会把 panelOptions 重置为只有根菜单，
+      // 之前创建的子菜单容器不再被 panelOptions 引用
+      const openSubmenuThenRightClickAgain = async () => {
+        await rightClickAndHover(wrapper)
+        vi.advanceTimersByTime(350)
+        await nextTick()
+        document.querySelector('#contextmenu-target')!.dispatchEvent(new MouseEvent('contextmenu'))
+        await nextTick()
+      }
+
+      await openSubmenuThenRightClickAgain()
+      // 根菜单 + 子菜单
+      const afterFirstOpen = document.body.children.length
+      expect(afterFirstOpen).toBe(before + 2)
+
+      // ve-table 每次右键都会替换 options（id 会重新生成）
+      for (let i = 0; i < 5; i++) {
+        await wrapper.setProps({ options: cloneDeep(OPTIONS) as any })
+        await openSubmenuThenRightClickAgain()
+      }
+
+      expect(document.body.children.length).toBe(afterFirstOpen)
+
+      wrapper.unmount()
+      expect(document.body.children.length).toBe(before)
+    })
   })
 })
