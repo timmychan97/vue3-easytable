@@ -553,7 +553,7 @@ describe('veDropdown', () => {
 
       for (let i = 0; i < 5; i++) {
         const wrapper = mountDetached(veDropdown, {
-          props: { modelValue: DROPDOWN_ITEMS },
+          props: { modelValue: DROPDOWN_ITEMS as any },
           slots: { default: `<div class="btn">click me</div>` },
         })
         await later()
@@ -571,7 +571,7 @@ describe('veDropdown', () => {
 
       for (let i = 0; i < 5; i++) {
         const wrapper = mountDetached(veDropdown, {
-          props: { modelValue: DROPDOWN_ITEMS },
+          props: { modelValue: DROPDOWN_ITEMS as any },
           slots: { default: `<div class="btn">click me</div>` },
         })
         // 在 addRootElementToElement 的 nextTick 执行前卸载

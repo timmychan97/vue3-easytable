@@ -116,6 +116,8 @@ export default defineComponent({
           height: 0,
         },
       },
+      // 已注册 hooks 的注销函数
+      hookDisposers: [] as (() => void)[],
     }
   },
 
@@ -1543,8 +1545,7 @@ export default defineComponent({
 
     // 移除本组件注册的所有 hooks
     removeHooks() {
-      if (this.hookDisposers)
-        this.hookDisposers.forEach(dispose => dispose())
+      this.hookDisposers.forEach(dispose => dispose())
       this.hookDisposers = []
     },
   },
@@ -1562,6 +1563,9 @@ export default defineComponent({
   beforeUnmount() {
     // 卸载后不再响应表格 hooks（否则已卸载实例仍会被滚动等事件触发）
     this.removeHooks()
+    // 取消未执行的防抖调用
+    ;(this.debounceResetCellPositions as unknown as ReturnType<typeof debounce>).cancel()
+    ;(this.debounceSetCellEls as unknown as ReturnType<typeof debounce>).cancel()
   },
 
   render() {

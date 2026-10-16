@@ -153,4 +153,143 @@ describe('veTable lifecycle (remount / toggle)', () => {
 
     wrapper.unmount()
   })
+
+  it('pending ve-table debounces do not run after unmount (INFRA-03)', async () => {
+    const wrapper = mount(veTable, {
+      props: {
+        columns: COLUMNS,
+        tableData: TABLE_DATA,
+        rowKeyFieldName: 'rowKey',
+      },
+    })
+    await later()
+
+    vi.useFakeTimers()
+    const vm = wrapper.vm as any
+    // 两个 0ms 防抖：宽度测量回调
+    vm.measureCellSizeChange({ key: 'a', width: 120 })
+    vm.debouncedBodyCellWidthChange?.(new Map([['a', 120]]))
+    const triggerHookSpy = vi.spyOn(vm.hooks, 'triggerHook')
+
+    wrapper.unmount()
+
+    expect(() => vi.advanceTimersByTime(100)).not.toThrow()
+    expect(triggerHookSpy).not.toHaveBeenCalled()
+  })
+
+  it('pending selection debounces do not run after unmount (INFRA-03)', async () => {
+    mockNonZeroRect()
+    const wrapper = mount(veTable, {
+      props: {
+        columns: COLUMNS,
+        tableData: TABLE_DATA,
+        rowKeyFieldName: 'rowKey',
+      },
+    })
+    await later()
+
+    wrapper.findAll('.ve-table-body-tr')[1].findAll('.ve-table-body-td')[1].trigger('mousedown')
+    await later()
+
+    const selection = wrapper.findComponent({ name: 'VeTableSelection' }).vm as any
+
+    vi.useFakeTimers()
+    // 滚动 hook 会排两个防抖：debounceSetCellEls(200ms) 与 debounceResetCellPositions(210ms)
+    const containerEl = wrapper.find('.ve-table-container').element
+    ;(wrapper.vm as any).hooks.triggerHook(HOOKS_NAME.TABLE_CONTAINER_SCROLL, containerEl)
+
+    const setPositionsSpy = vi.spyOn(selection, 'setSelectionPositions')
+    const setCurrentCellElSpy = vi.spyOn(selection, 'setCurrentCellEl')
+
+    await wrapper.setProps({ cellSelectionOption: { enable: false } })
+
+    expect(() => vi.advanceTimersByTime(1000)).not.toThrow()
+    expect(setPositionsSpy).not.toHaveBeenCalled()
+    expect(setCurrentCellElSpy).not.toHaveBeenCalled()
+
+    wrapper.unmount()
+  })
+
+  it('column resizer removes its document listeners on unmount (INFRA-03)', async () => {
+    const wrapper = mount(veTable, {
+      props: {
+        columns: COLUMNS,
+        tableData: TABLE_DATA,
+        rowKeyFieldName: 'rowKey',
+        columnWidthResizeOption: { enable: true },
+      },
+    })
+    await later()
+
+    const added: [string, unknown][] = []
+    const removed: [string, unknown][] = []
+    const addSpy = vi.spyOn(document, 'addEventListener').mockImplementation(function (this: Document, type: string, fn: any, opts?: any) {
+      added.push([type, fn])
+      return EventTarget.prototype.addEventListener.call(this, type, fn, opts)
+    })
+    const removeSpy = vi.spyOn(document, 'removeEventListener').mockImplementation(function (this: Document, type: string, fn: any, opts?: any) {
+      removed.push([type, fn])
+      return EventTarget.prototype.removeEventListener.call(this, type, fn, opts)
+    })
+
+    // 开始拖动列宽（不松开鼠标）
+    const handler = wrapper.find('.ve-table-column-resizer-handler')
+    await handler.trigger('mouseenter')
+    await handler.trigger('mousedown')
+
+    const resizerListeners = added.filter(([type]) => type === 'mousemove' || type === 'mouseup')
+    expect(resizerListeners.length).toBe(2)
+
+    // 拖动过程中卸载
+    wrapper.unmount()
+
+    for (const [type, fn] of resizerListeners)
+      expect(removed).toContainEqual([type, fn])
+
+    // 拖动中设置的全局禁止选中也应恢复
+    expect((document.onselectstart as any)?.()).not.toBe(false)
+
+    addSpy.mockRestore()
+    removeSpy.mockRestore()
+  })
+
+  it('pending editor timers do not run after unmount (EDIT-02)', async () => {
+    mockNonZeroRect()
+    const wrapper = mount(veTable, {
+      props: {
+        columns: COLUMNS,
+        tableData: TABLE_DATA,
+        rowKeyFieldName: 'rowKey',
+        editOption: {},
+      },
+    })
+    await later()
+
+    const firstCell = wrapper.findAll('.ve-table-body-tr')[1].findAll('.ve-table-body-td')[1]
+    firstCell.trigger('mousedown')
+    await later()
+    firstCell.trigger('dblclick')
+    await later()
+
+    const editor = wrapper.findComponent({ name: 'VeTableEditInput' }).vm as any
+    const unObserveSpy = vi.spyOn(editor.autoResize, 'unObserve')
+
+    vi.useFakeTimers()
+    // 滚动 hook 会排两个防抖：debounceSetCellEl(200ms) 与 debounceSetTextareaPosition(210ms)
+    const containerEl = wrapper.find('.ve-table-container').element
+    ;(wrapper.vm as any).hooks.triggerHook(HOOKS_NAME.TABLE_CONTAINER_SCROLL, containerEl)
+    // 切换当前单元格会在 nextTick 后排一个聚焦用的 setTimeout
+    wrapper.findAll('.ve-table-body-tr')[2].findAll('.ve-table-body-td')[1].trigger('mousedown')
+    await nextTick()
+    await nextTick()
+
+    unObserveSpy.mockClear()
+
+    await wrapper.setProps({ cellSelectionOption: { enable: false } })
+
+    expect(unObserveSpy).toHaveBeenCalled()
+    expect(() => vi.advanceTimersByTime(1000)).not.toThrow()
+
+    wrapper.unmount()
+  })
 })

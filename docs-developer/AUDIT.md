@@ -85,12 +85,14 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
   - **Done:** `on()` records `{ bus, type, handler }` per instance, and the mixin's `beforeUnmount` `bus.off`s all of them.
   - **Verified:** `ve-table-lifecycle.spec.ts` › "toggling showHeader does not leave a dead SORT_CHANGE handler (INFRA-02)": after two `showHeader` toggles, `sortChange` was called 3 times before the fix and is now called once, with `{ age: 'asc' }`.
 
-- [ ] **INFRA-03** 🟠 Debounces, timers and rAF are not cancelled on unmount
-  - [ ] `ve-table.tsx`: `debouncedBodyCellWidthChange` and `debouncedMeasureCellWidthChange` (created at 858-867) are never cancelled. `unmounted` (1000-1005) destroys the virtualizer and removes the keydown listener, but nothing else. *(Since `442962c`: the rAF timeout, `initVirtualScroll` and `setVirtualPhantomHeight` are gone, and `initTanStackVirtualScroll` null-guards its ref.)*
-  - [ ] `selection/index.tsx:1542-1547`: two debounced functions, no `beforeUnmount`.
-  - [ ] `column-resizer/index.tsx:169-182, 253-258`: document listeners are not removed on unmount. See also COL-05.
+- [x] ✅ 2026-10-16 · fix/audit-batch2-lifecycle-leaks · **INFRA-03** 🟠 Debounces, timers and rAF are not cancelled on unmount
+  - [x] `ve-table.tsx`: `debouncedBodyCellWidthChange` and `debouncedMeasureCellWidthChange` (created at 858-867) are never cancelled. `unmounted` (1000-1005) destroys the virtualizer and removes the keydown listener, but nothing else. *(Since `442962c`: the rAF timeout, `initVirtualScroll` and `setVirtualPhantomHeight` are gone, and `initTanStackVirtualScroll` null-guards its ref.)* → both are `.cancel()`ed in `unmounted`. (If COL-07 deletes `debouncedBodyCellWidthChange`, drop its cancel line too.)
+  - [x] `selection/index.tsx:1542-1547`: two debounced functions, no `beforeUnmount`. → cancelled in the new `beforeUnmount` (which also disposes the hooks, INFRA-01).
+  - [x] `column-resizer/index.tsx:169-182, 253-258`: document listeners are not removed on unmount. See also COL-05. → `beforeUnmount` removes the `mousemove` / `mouseup` listeners, and if a drag is in progress it calls `clearColumnResizerStatus()`, which resets `document.onselectstart` / `ondragstart`. Replacing those globals is still COL-05.
   - (The editor is tracked in EDIT-02, the contextmenu in MENU-03, the dropdown in DD-01.)
   - **Fix:** add a `beforeUnmount` to each, calling `.cancel()` / `cancelAnimationTimeout` / `clearTimeout`, and null-guard `$refs` in async callbacks.
+  - **`$refs` guards:** the remaining ve-table async callbacks were re-read. `setScrollBarStatus` and `initTanStackVirtualScroll` already null-guard their refs, and the other `$nextTick` callbacks only trigger hooks, which no longer reach unmounted children (INFRA-01). The editor's `nextTick` → focus `setTimeout` chain now returns early once unmounted (EDIT-02).
+  - **Verified:** `ve-table-lifecycle.spec.ts` (fake timers) › "pending ve-table debounces do not run after unmount (INFRA-03)" (before the fix, `hooks.triggerHook` ran twice after unmount), "pending selection debounces do not run after unmount (INFRA-03)" (before the fix, `setSelectionPositions` ran after `cellSelectionOption.enable` was turned off), and "column resizer removes its document listeners on unmount (INFRA-03)" (unmounting mid-drag removes both listeners and restores `onselectstart`).
 
 - [ ] **INFRA-04** 🟠 Row and column keys are interpolated unescaped into `querySelector`
   - **Where:** `methods/scrolling.ts:61` (`rowToVisible`), `ve-table.tsx:1989` (`scrollToRowKey`); `selection/index.tsx:1421, 1438, 1452, 1498`; `editor/index.tsx:282`
@@ -160,7 +162,7 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
   - **Issues:**
     - It overwrites `document.onselectstart` and `document.ondragstart`, removing any app handlers.
     - Alt-tab, or releasing the mouse outside the window, leaves resizing stuck.
-    - There is no unmount cleanup (also listed in INFRA-03).
+    - There is no unmount cleanup (also listed in INFRA-03). → Fixed by INFRA-03 (batch 2). The other two bullets are still open.
   - **Fix:** use `addEventListener('selectstart', prevent)` and remove it afterwards. In mousemove, `if (e.buttons === 0) end()`; also end on `window` `blur` and on Escape.
 
 - [ ] **COL-06** 🟢 🔍 Fixed-column edge detection compares `field` instead of `key`
@@ -289,10 +291,12 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
   - **Where:** [editor/index.tsx:429](../packages/ve-table/src/editor/index.tsx#L429). It reads `editingCell.row[editingCell.colKey]`. The rest of the table uses `row[column.field]` (`methods/editing.ts:43`). The repo's own fixtures use `key: 'a', field: 'name'`.
   - **Fix:** `editingCell.row[editingCell.column.field]`.
 
-- [ ] **EDIT-02** 🟠 🔍 Editor lifecycle: the Vue 2 `destroyed()` hook never runs
+- [x] ✅ 2026-10-16 · fix/audit-batch2-lifecycle-leaks · **EDIT-02** 🟠 🔍 Editor lifecycle: the Vue 2 `destroyed()` hook never runs
   - **Where:** [editor/index.tsx:465](../packages/ve-table/src/editor/index.tsx#L465) (`destroyed`, the only Vue 2 lifecycle hook left in the repo), `:450-460` (uncancelled lodash debounces), `:224` (uncancelled `setTimeout`).
   - **Effect:** `autoResize` is never unobserved. After unmount the debounces run `setTextareaPosition` against null refs and throw.
   - **Fix:** `beforeUnmount() { debounceSetTextareaPosition.cancel(); debounceSetCellEl.cancel(); clearTimeout(focusTimer); textareaUnObserve() }`.
+  - **Done:** `destroyed()` was removed. `beforeUnmount` disposes the hooks (INFRA-01), cancels both debounces, clears the stored `focusTimer`, and calls `textareaUnObserve()`. The `currentCell` watcher's `nextTick` callback returns early once unmounted, and re-selecting a cell clears the previous focus timer before scheduling a new one.
+  - **Verified:** `ve-table-lifecycle.spec.ts` › "pending editor timers do not run after unmount (EDIT-02)": while editing with non-zero mocked rects, trigger the scroll hook and change cell, then turn `cellSelectionOption.enable` off. `autoResize.unObserve` is called, and advancing fake timers no longer throws `Cannot read properties of null (reading 'nodeName')`.
 
 - [ ] **EDIT-03** 🟠 The editor stays positioned over the previous cell
   - **Where:** `editor/index.tsx:275-290` (`setCellEl` only assigns when a cell is found).

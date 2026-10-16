@@ -63,6 +63,8 @@ export default defineComponent({
         left: 0,
         height: 0,
       },
+      // 表头 mousemove hook 的注销函数
+      removeHeaderCellMousemoveHook: null as (() => void) | null,
     }
   },
   computed: {
@@ -268,6 +270,14 @@ export default defineComponent({
       this.removeHeaderCellMousemoveHook()
       this.removeHeaderCellMousemoveHook = null
     }
+    // 拖动过程中卸载：移除 document 上的拖动监听，并恢复文本选择
+    document.removeEventListener(
+      'mousemove',
+      this.setColumnResizerPositionByDrag,
+    )
+    document.removeEventListener('mouseup', this.columnResizerMouseup)
+    if (this.isColumnResizing)
+      this.clearColumnResizerStatus()
   },
 
   render() {

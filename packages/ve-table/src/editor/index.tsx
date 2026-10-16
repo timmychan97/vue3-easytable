@@ -98,6 +98,10 @@ export default defineComponent({
       autoResize: null,
       // is edit cell focus
       isEditCellFocus: false,
+      // 已注册 hooks 的注销函数
+      hookDisposers: [] as (() => void)[],
+      // 聚焦定时器（卸载时需要清除）
+      focusTimer: null as ReturnType<typeof setTimeout> | null,
     }
   },
   computed: {
@@ -225,8 +229,14 @@ export default defineComponent({
           this.setCellEl()
           // wait for selection cell rendered
           this.$nextTick(() => {
+            // 组件可能已在等待期间卸载
+            if (this.$.isUnmounted)
+              return
             this.setTextareaPosition()
-            setTimeout(() => {
+            if (this.focusTimer)
+              clearTimeout(this.focusTimer)
+            this.focusTimer = setTimeout(() => {
+              this.focusTimer = null
               this.isEditCellFocus = true
             })
           })
@@ -452,8 +462,7 @@ export default defineComponent({
 
     // 移除本组件注册的所有 hooks
     removeHooks() {
-      if (this.hookDisposers)
-        this.hookDisposers.forEach(dispose => dispose())
+      this.hookDisposers.forEach(dispose => dispose())
       this.hookDisposers = []
     },
   },
@@ -477,8 +486,14 @@ export default defineComponent({
   beforeUnmount() {
     // 卸载后不再响应表格 hooks（否则已卸载实例仍会被滚动等事件触发）
     this.removeHooks()
-  },
-  destroyed() {
+    // 取消未执行的防抖调用与聚焦定时器（否则卸载后会对已销毁的 textarea 定位并报错）
+    ;(this.debounceSetTextareaPosition as unknown as ReturnType<typeof debounce>).cancel()
+    ;(this.debounceSetCellEl as unknown as ReturnType<typeof debounce>).cancel()
+    if (this.focusTimer) {
+      clearTimeout(this.focusTimer)
+      this.focusTimer = null
+    }
+    // 停止监听 textarea 尺寸变化（原 Vue 2 的 destroyed 钩子在 Vue 3 中不会执行）
     this.textareaUnObserve()
   },
   render() {
