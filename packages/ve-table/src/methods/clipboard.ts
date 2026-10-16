@@ -12,7 +12,7 @@ import {
   onBeforeCut,
   onBeforeDelete,
   onBeforePaste,
-} from '../util/clipboard.js'
+} from '../util/clipboard/index.js'
 import { HOOKS_NAME } from '../util/constant.js'
 import { getSelectionRangeData } from '../util/index.js'
 
