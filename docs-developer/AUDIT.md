@@ -7,7 +7,8 @@
 - **Started:** 2026-10-16, on branch `refactor/all` @ `a0bfb50`
 - **Scope:** everything under `packages/` (excluding `docs/`)
 - **Method:** four parallel read-only reviews (ve-table core · selection/clipboard/util · table subcomponents · common + other components), then triage. Duplicates were merged across reviews. Every item was confirmed by reading the code. Items marked 🔍 were also re-checked line-by-line during triage. **None have been reproduced at runtime yet**, so start every fix with a failing test.
-- **Line numbers** are as of `a0bfb50` and will drift. Search for the quoted symbol if a line no longer matches.
+- **Re-checked:** 2026-10-16 at `0c5b732`, after merging four remote commits (`81a1ebb` docs localisation + locale re-keying, `442962c` ve-table split into `methods/*` + TanStack virtual scroll, `1645d44` / `0c5b732` formatting and lint). Every item that pointed at a changed file was re-read against the new code. See the Changelog for what moved.
+- **Line numbers** are as of `0c5b732` for items in changed files, and `a0bfb50` elsewhere (those files are unchanged). They will drift. Search for the quoted symbol if a line no longer matches.
 
 ---
 
@@ -36,19 +37,19 @@ Rules:
 
 | Severity | Total | Open | Done | Won't fix |
 |---|---:|---:|---:|---:|
-| 🔴 High | 14 | 14 | 0 | 0 |
-| 🟠 Medium | 33 | 33 | 0 | 0 |
-| 🟢 Low | 28 | 28 | 0 | 0 |
-| **Findings** | **75** | **75** | **0** | **0** |
+| 🔴 High | 15 | 15 | 0 | 0 |
+| 🟠 Medium | 35 | 33 | 0 | 2 |
+| 🟢 Low | 30 | 28 | 2 | 0 |
+| **Findings** | **80** | **76** | **2** | **2** |
 | Modularity (MOD) | 11 | 11 | 0 | 0 |
 
 ### Baseline health (update after each batch)
 
-| Check | 2026-10-16 (`a0bfb50`) |
-|---|---|
-| `vitest run` | 37 files · 272 tests · all pass |
-| `eslint packages --quiet` | clean |
-| `vue-tsc --noEmit` | 615 errors (pre-existing; 160 in `ve-table.tsx`). Must not increase. |
+| Check | 2026-10-16 (`a0bfb50`) | 2026-10-16 (`0c5b732`, after merge) |
+|---|---|---|
+| `vitest run` | 37 files · 272 tests · all pass | **24 files · 40 tests fail** · 231 pass (271 total). 29 are stale snapshots: the body measurement row moved out (`442962c`), and the en-US pagination text changed (`81a1ebb`). 11 are virtual-scroll assertions; see VS-05 and Test gaps. Needs `pnpm install` first, because `@tanstack/virtual-core` is a new dependency. |
+| `eslint packages --quiet` | clean | clean |
+| `vue-tsc --noEmit` | 615 errors (pre-existing; 160 in `ve-table.tsx`). Must not increase. | 462 errors (16 in `ve-table.tsx`). New ceiling: must not increase. |
 
 ---
 
@@ -56,12 +57,13 @@ Rules:
 
 Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
 
-1. **Crash one-liners.** Small diffs with high value: COL-01, EDIT-01, DD-05, I18N-01, SEL-04, LOAD-01, VS-02
+0. **Regressions from the merge.** Get the test suite green again (refresh the stale snapshots, make the virtual-scroll specs work under jsdom), then VS-05. Settle the I18N-04 decision before anything else touches locale keys. Check COL-07 at runtime.
+1. **Crash one-liners.** Small diffs with high value: COL-01, EDIT-01, DD-05, I18N-01, SEL-04, LOAD-01
 2. **Lifecycle and leaks.** INFRA-01, INFRA-02, INFRA-03, EDIT-02, DD-01, DD-02, MENU-03, MENU-04, FORM-01
 3. **State reconciliation and keyboard.** SEL-01, CLIP-01, SEL-02 + SEL-08 (together), EDIT-04, INFRA-07
 4. **Row selection and expand.** MOD-08 first (derived state, D2), then ROW-01 … ROW-05 on top of it
 5. **Clipboard codec.** CLIP-02 … CLIP-05 (MOD-04 first makes these trivially unit-testable)
-6. **Virtual scroll and render performance.** VS-01, VS-03, RENDER-02, RENDER-03, RENDER-06
+6. **Virtual scroll and render performance.** VS-03, VS-06, RENDER-02, RENDER-03, RENDER-06
 7. **Remaining 🟠 / 🟢**
 8. **Modularity** (see MOD section; Composition API per D1)
 
@@ -70,7 +72,7 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
 ## INFRA — cross-cutting infrastructure
 
 - [ ] **INFRA-01** 🔴 `Hooks` has no `removeHook`, so subscriptions leak and dead instances throw
-  - **Where:** [common/utils/hooks-manager.ts](../packages/common/utils/hooks-manager.ts). Registered and never removed in `selection/index.tsx:257-304`, `editor/index.tsx:193-208`, `column-resizer/index.tsx:88-95` and `row-insert-indicator/index.tsx:396`.
+  - **Where:** [common/utils/hooks-manager.ts](../packages/common/utils/hooks-manager.ts). Registered and never removed in `selection/index.tsx:246-290`, `editor/index.tsx:193-208`, `column-resizer/index.tsx:88-95` and `row-insert-indicator/index.tsx:396`.
   - **Trigger:** select a cell, toggle `cellSelectionOption.enable` (or `rowInsertOption.enable`) at runtime, then scroll. The unmounted editor's scroll hook runs `autoResize.init(null)`, and `auto-resize.ts:130` (`el.nodeName`) throws. That aborts `triggerHook`'s `forEach`, so the remaining hooks never run. Each toggle also adds another set of closures.
   - **Fix:** make `addHook` return a disposer and call it in each child's `beforeUnmount`. Isolate errors per callback in `triggerHook`.
 
@@ -80,15 +82,15 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
   - **Fix:** keep each bound handler and `bus.off` all of them in the mixin's `beforeUnmount`. Long term: MOD-01.
 
 - [ ] **INFRA-03** 🟠 Debounces, timers and rAF are not cancelled on unmount
-  - [ ] `ve-table.tsx`: debounced `bodyCellWidthChange` (~941) and the rAF timeout (~2224) are never cancelled. The `nextTick` in `initVirtualScroll` (~2244) and `setVirtualPhantomHeight` read `$refs` without null guards.
-  - [ ] `selection/index.tsx:1551-1559`: two debounced functions, no `beforeUnmount`.
+  - [ ] `ve-table.tsx`: `debouncedBodyCellWidthChange` and `debouncedMeasureCellWidthChange` (created at 858-867) are never cancelled. `unmounted` (1000-1005) destroys the virtualizer and removes the keydown listener, but nothing else. *(Since `442962c`: the rAF timeout, `initVirtualScroll` and `setVirtualPhantomHeight` are gone, and `initTanStackVirtualScroll` null-guards its ref.)*
+  - [ ] `selection/index.tsx:1542-1547`: two debounced functions, no `beforeUnmount`.
   - [ ] `column-resizer/index.tsx:169-182, 253-258`: document listeners are not removed on unmount. See also COL-05.
   - (The editor is tracked in EDIT-02, the contextmenu in MENU-03, the dropdown in DD-01.)
   - **Fix:** add a `beforeUnmount` to each, calling `.cancel()` / `cancelAnimationTimeout` / `clearTimeout`, and null-guard `$refs` in async callbacks.
 
 - [ ] **INFRA-04** 🟠 Row and column keys are interpolated unescaped into `querySelector`
-  - **Where:** `ve-table.tsx:1880, 3743`; `selection/index.tsx:1432, 1449, 1463, 1509`; `editor/index.tsx:282`
-  - **Trigger:** a rowKey or colKey containing `"` or `\` makes `querySelector` throw a `SyntaxError`, in several places inside a watcher. A key that isn't rendered returns `null`, and code then reads `.offsetTop` and similar on it.
+  - **Where:** `methods/scrolling.ts:61` (`rowToVisible`), `ve-table.tsx:1989` (`scrollToRowKey`); `selection/index.tsx:1421, 1438, 1452, 1498`; `editor/index.tsx:282`
+  - **Trigger:** a rowKey or colKey containing `"` or `\` makes `querySelector` throw a `SyntaxError`, in several places inside a watcher. A key that isn't rendered returns `null`, and code then reads `.offsetTop` and similar on it. (`rowToVisible` and `scrollToRowKey` now null-check; the selection sites still don't.)
   - **Fix:** a shared helper `queryCell(root, rowKey, colKey)` using `CSS.escape` that returns `null` safely, with null guards at the call sites.
 
 - [ ] **INFRA-05** 🔴 Importing the library during SSR crashes
@@ -97,25 +99,25 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
   - **Fix:** `type: [String, Object] as PropType<string | HTMLElement>`. Resolve `document.body` lazily in `mounted`, and do all DOM work in `mounted` or later.
 
 - [ ] **INFRA-06** 🟢 `VeTable` declares no `emits`
-  - **Where:** `ve-table.tsx` (e.g. `on-row-insert`, ~3865)
+  - **Where:** `ve-table.tsx` (e.g. `on-row-insert` in `handleRowInsert`, ~2111)
   - **Effect:** listeners also fall through as attributes onto the root `<div>`, and there is no typing.
   - **Fix:** declare `emits` for every emitted event.
 
 - [ ] **INFRA-07** 🟠 A throwing user callback leaves internal state half-updated
   - **Where:**
-    - `afterPaste`: `ve-table.tsx:3336-3364`. The data is mutated, but the selection update and the `CLIPBOARD_CELL_VALUE_CHANGE` hook are skipped.
-    - `afterAutofill`: `ve-table.tsx:1491-1505`. `clearCellSelectionAutofillEndCell` is skipped.
-    - `beforeCopy`: `ve-table.tsx:3289-3298`. It runs after `preventDefault`, so nothing is copied.
-    - `beforeCellValueChange` / `afterCellValueChange`: `ve-table.tsx:2354-2403`. The editing state is never cleared, every later stop re-throws, and the after-callbacks re-fire.
+    - `afterPaste`: `methods/clipboard.ts:118-140`. The data is mutated, but the selection update and the `CLIPBOARD_CELL_VALUE_CHANGE` hook are skipped.
+    - `afterAutofill`: `methods/cell-selection.ts:270-290`. The current/end cell update is skipped, and so is `clearCellSelectionAutofillEndCell` in the `isAutofillStarting` watcher (`ve-table.tsx:817-824`).
+    - `beforeCopy`: `methods/clipboard.ts:48-69`. It runs after `preventDefault`, so nothing is copied.
+    - `beforeCellValueChange` / `afterCellValueChange`: `methods/editing.ts:45-75`. The editing state is never cleared, every later stop re-throws, and the after-callbacks re-fire.
   - **Fix:** a small `safeCall(fn, ...args)` that logs through `console.error` and continues, plus `try/finally` around internal cleanup. Clear internal state before calling the "after" callbacks.
 
 - [ ] **INFRA-08** 🟠 Optional user callbacks are called without existence guards
   - **Where:**
-    - `body/index.tsx:711`: `checkboxOption.selectedRowChange`
-    - `body/index.tsx:785`: `radioOption.selectedRowChange`
+    - `body/index.tsx:705`: `checkboxOption.selectedRowChange`
+    - `body/index.tsx:779`: `radioOption.selectedRowChange`
     - `header/index.tsx:114, 132`: `sortOption.sortChange`, and `sortOption` itself may be undefined
     - `header-th.tsx:344`: `checkboxOption.hideSelectAll` with no `checkboxOption`
-    - `body/index.tsx:671`: `checkboxOption` becomes null, or `selectedRowKeys` is unset
+    - `body/index.tsx:665`: `checkboxOption` becomes null, or `selectedRowKeys` is unset
   - **Trigger:** e.g. a column with `sortBy` but no `sortOption` throws on click.
   - **Fix:** optional chaining plus `typeof fn === 'function'` checks.
 
@@ -132,21 +134,21 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
 ## COL — columns (fixed, hide/show, resize)
 
 - [ ] **COL-01** 🔴 🔍 "Left/Right fixed column to" on a column fixed the other way crashes the table
-  - **Where:** [util/index.ts:1504-1506](../packages/ve-table/src/util/index.ts#L1504-L1506). `setColumnFixed` returns `false`, and the callers `ve-table.tsx:3095, 3118` assign it to `this.cloneColumns`. The watcher (~852) then runs `initGroupColumns(false)`, which throws `false.forEach is not a function`.
+  - **Where:** [util/index.ts:1447-1450](../packages/ve-table/src/util/index.ts#L1447-L1450). `setColumnFixed` returns `false`, and the callers `methods/contextmenu.ts:135, 158` assign it to `this.cloneColumns`. The `cloneColumns` watcher (`ve-table.tsx:771`) then runs `initGroupColumns(false)`, which throws `false.forEach is not a function`.
   - **Trigger:** a column with `fixed: 'left'`, right-click its header, choose "Right fixed column to".
-  - **Fix:** `return cloneColumns` (or have the callers ignore a falsy result). Also disable the menu item when the direction conflicts (`setHeaderContextmenuOptions`, util ~497-521).
+  - **Fix:** `return cloneColumns` (or have the callers ignore a falsy result). Also disable the menu item when the direction conflicts (`setHeaderContextmenuOptions`, util ~404-470).
 
 - [ ] **COL-02** 🟢 🔍 The "don't left-fix the last column" guard is a no-op
-  - **Where:** [util/index.ts:1527](../packages/ve-table/src/util/index.ts#L1527). `index < cloneColumns.length` is always true. The RIGHT branch (`index > 0`) is correct.
+  - **Where:** [util/index.ts:1471](../packages/ve-table/src/util/index.ts#L1471). `index < cloneColumns.length` is always true. The RIGHT branch (`index > 0`) is correct.
   - **Fix:** `index < cloneColumns.length - 1`.
 
 - [ ] **COL-03** 🟠 Hide/show columns mutates the user's prop and discards resize and fixed state
-  - **Where:** `ve-table.tsx:1179` (`this.hiddenColumns = defaultHiddenColumnKeys` keeps the prop reference, and `showColumnsByKeys` ~3702 `splice`s it); `ve-table.tsx:1187-1209` (rebuilds from `cloneDeep(this.columns)`, then `initColumnWidthByColumnResize` resets widths).
+  - **Where:** `ve-table.tsx:1122` (`this.hiddenColumns = defaultHiddenColumnKeys` keeps the prop reference, and `showColumnsByKeys` ~1958 `splice`s it); `ve-table.tsx:1129-1153` (rebuilds from `cloneDeep(this.columns)`, then `initColumnWidthByColumnResize` resets widths).
   - **Trigger:** resize a column or fix it via the contextmenu, then call `hideColumnsByKeys` / `showColumnsByKeys`. The resized widths and the fixed state are lost, and the user's `defaultHiddenColumnKeys` array is mutated.
   - **Fix:** copy the array (`[...keys]`), and re-apply `_columnResizeWidth` and `fixed` from the current colgroups.
 
 - [ ] **COL-04** 🟢 A `columns` change runs `initGroupColumns` and `initColumnWidthByColumnResize` twice
-  - **Where:** `ve-table.tsx:837-879`. The `columns` watcher, then the `cloneColumns` watcher.
+  - **Where:** `ve-table.tsx:756-782`. The `columns` watcher, then the `cloneColumns` watcher.
   - **Fix:** do the work only in the `cloneColumns` watcher.
 
 - [ ] **COL-05** 🟢 The column resizer clobbers globals and can get stuck
@@ -158,50 +160,57 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
   - **Fix:** use `addEventListener('selectstart', prevent)` and remove it afterwards. In mousemove, `if (e.buttons === 0) end()`; also end on `window` `blur` and on Escape.
 
 - [ ] **COL-06** 🟢 🔍 Fixed-column edge detection compares `field` instead of `key`
-  - **Where:** `body/index.tsx:417-457` and `footer-td.tsx` (last-left / first-right shadow classes); `selection/index.tsx:249` (`isFirstNotFixedSelectionCol` compares `col.field` to `leftColKey`). `header-th.tsx` correctly uses `_keys`.
+  - **Where:** `body/index.tsx:423-462` and `footer-td.tsx` (last-left / first-right shadow classes); `selection/index.tsx:238` (`isFirstNotFixedSelectionCol` compares `col.field` to `leftColKey`). `header-th.tsx` correctly uses `_keys`.
   - **Trigger:** two left-fixed columns without `field` (checkbox plus index) mean neither gets the shadow class. When `key !== field`, the selection's 1px left-border fix never applies.
   - **Fix:** compare by `key` everywhere. Long term: MOD-06.
+
+- [ ] **COL-07** 🟠 Column widths are now measured in a separate hidden table that may not match the real one
+  - **Where:** `ve-table.tsx:2427-2468`, added in `442962c`. The old zero-height measurement row inside the real `<tbody>` was replaced by a second, absolutely positioned `<table>` that mirrors only the `<colgroup>`. `measureCellWidthChange` (1047) writes those widths into `colgroups[]._realTimeWidth`.
+  - **Why it can diverge:** the real `table.ve-table-content` has `table-layout: fixed; min-width: 100%; border-collapse: separate` (`style/ve-table.less:37-41`). The hidden table has none of that, so it uses auto layout. It is also sized `width: tableStyle.width || '100%'` against whatever its containing block is. Columns with explicit widths should still match. Columns without a width, or a table narrower than its column sum, may not.
+  - **Effect if it diverges:** `_realTimeWidth` feeds fixed-column `left`/`right` offsets, selection border geometry and `columnToVisible`, so all of them would be off.
+  - **Status:** found by reading the code. **Not yet confirmed at runtime.** First step: in a browser, compare `_realTimeWidth` with `td.getBoundingClientRect().width` for a table that mixes fixed-width and auto-width columns.
+  - **Also:** `bodyCellWidthChange` and `debouncedBodyCellWidthChange` (1057, 858) are now dead code, since nothing emits `BODY_CELL_WIDTH_CHANGE` any more. Remove them along with the fix.
 
 ---
 
 ## SEL — cell selection and keyboard
 
 - [ ] **SEL-01** 🔴 Selection and editing state is not reconciled when columns or rows change
-  - **Root cause:** nothing re-validates `cellSelectionData` (`currentCell`, `normalEndCell`), `cellSelectionRangeData` or `editingCell` when `colgroups` or `allRowKeys` change. The `allRowKeys` watcher (`ve-table.tsx:808-832`) only re-checks `currentCell`.
+  - **Root cause:** nothing re-validates `cellSelectionData` (`currentCell`, `normalEndCell`), `cellSelectionRangeData` or `editingCell` when `colgroups` or `allRowKeys` change. The `allRowKeys` watcher (`ve-table.tsx:726-755`) only re-checks `currentCell`.
   - **Symptoms:**
-    - [ ] 🔍 The selection layer crashes on render: `cornerCellInfo` reads `colgroups[index + 1].fixed` with `index === -1` ([selection/index.tsx:212-216](../packages/ve-table/src/selection/index.tsx#L212-L216)). `getBorders` destructures it before its `isRender` early return. Repro: select a cell, then `hideColumnsByKeys([thatColKey])`.
-    - [ ] F2, typing a letter, or stopping an edit after the column was hidden throws, because `currentColumn` is undefined (`ve-table.tsx:1753, 3796, 2359`).
-    - [ ] A stale `normalEndCell` after its row is removed: paste throws (`tableData[-1]`), right-click throws (`isCellInSelectionRange` → `null.includes`, `util/index.ts:853-855`), and copy writes `""` to the clipboard. See CLIP-01.
-    - [ ] Editing gets stuck when the edited row is removed: `saveCellWhenStopEditing` skips `clearEditingCell()` (`ve-table.tsx:2354-2403`). Copy, paste and Delete all stay disabled.
+    - [ ] 🔍 The selection layer crashes on render: `cornerCellInfo` reads `colgroups[index + 1].fixed` with `index === -1` ([selection/index.tsx:201-204](../packages/ve-table/src/selection/index.tsx#L201-L204)). `getBorders` destructures it before its `isRender` early return. Repro: select a cell, then `hideColumnsByKeys([thatColKey])`.
+    - [ ] F2 or typing a letter after the column was hidden throws, because `currentColumn` is undefined (`methods/keyboard.ts:176`, `ve-table.tsx:2042`). *Partly fixed in `442962c`:* stopping an edit on a hidden column no longer throws, because `saveCellWhenStopEditing` now clears the editor when the column is missing (`methods/editing.ts:38-41`).
+    - [ ] A stale `normalEndCell` after its row is removed: paste throws (`tableData[-1]`), right-click throws (`isCellInSelectionRange` → `null.includes`, `util/index.ts:807-834`), and copy writes `""` to the clipboard. See CLIP-01.
+    - [ ] Editing gets stuck when the edited row is removed: `saveCellWhenStopEditing` has no `else` for a missing row, so it skips `clearEditingCell()` (`methods/editing.ts:29-86`). Copy, paste and Delete all stay disabled.
   - **Fix:** one reconcile watcher on `[colgroups, allRowKeys]` that clears or clamps `currentCell`, `normalEndCell`, `editingCell` and the range whenever their keys disappear. Add defensive `index < 0` guards at the sites above, and make `isCellInSelectionRange` null-safe.
 
 - [ ] **SEL-02** 🔴 🔍 The document `keydown` handler acts on keys from anywhere on the page
-  - **Where:** `ve-table.tsx:1070` (listener), [ve-table.tsx:1589](../packages/ve-table/src/ve-table.tsx#L1589) (`dealKeydownEvent`, no target check). `preventDefault` calls are at ~1620 (Tab), ~1724 and ~1737.
-  - **Trigger:** while a cell is selected, type into any other input on the page. A typical case: a dialog opened from the contextmenu's `afterMenuClick` (contextmenu clicks deliberately keep the selection, ~2310). Space and Backspace are swallowed, arrows and Enter move the table selection, and letters start editing the cell. Tab is always prevented, so focus can never leave the table.
+  - **Where:** `ve-table.tsx:990` (listener), [methods/keyboard.ts:12](../packages/ve-table/src/methods/keyboard.ts#L12) (`dealKeydownEvent`, no target check). `preventDefault` calls are at keyboard.ts:43 (Tab), 136 (Enter), 147 (Space) and 160 (Backspace).
+  - **Trigger:** while a cell is selected, type into any other input on the page. A typical case: a dialog opened from the contextmenu's `afterMenuClick` (contextmenu clicks deliberately keep the selection, `tableClickOutside` → `isContextmenuPanelClicked`, ve-table.tsx:1302). Space and Backspace are swallowed, arrows and Enter move the table selection, and letters start editing the cell. Tab is always prevented, so focus can never leave the table.
   - **Fix:** `if (!this.$el.contains(event.target)) return` at the top. Tab stays trapped inside the table (D4). The way out is Esc, which is specified in SEL-08. Ship the two together.
 
 - [ ] **SEL-03** 🟠 🔍 `setAllCellSelection()` skips the first column when there is no operation column
-  - **Where:** [ve-table.tsx:3518-3527](../packages/ve-table/src/ve-table.tsx#L3518-L3527). It hard-codes `colgroups[1]`.
+  - **Where:** [methods/cell-selection.ts:371-389](../packages/ve-table/src/methods/cell-selection.ts#L371-L389). `setRangeCellSelectionByBodyIndicator` hard-codes `colgroups[1]`. `setAllCellSelection()` (`ve-table.tsx:1904`) reaches it through the `bodyIndicatorRowKeys` watcher, and so does any row-indicator selection. *(The original entry pointed at the right lines but named the wrong function.)*
   - **Note:** the test at `__tests__/ve-table-cell-selection.spec.ts:599-604` **locks in the bug** (`leftColKey: 'b'`). Update it with the fix.
   - **Fix:** use the first column where `!x.operationColumn`.
 
 - [ ] **SEL-04** 🟢 🔍 Typo in a range check: `index1 !== -1 && index1 !== -1`
-  - **Where:** [util/index.ts:739](../packages/ve-table/src/util/index.ts#L739). It should test `index2`. An unknown `colKey2` returns `slice(-1, …)` garbage instead of `null`.
+  - **Where:** [util/index.ts:725](../packages/ve-table/src/util/index.ts#L725). It should test `index2`. An unknown `colKey2` returns `slice(-1, …)` garbage instead of `null`.
 
 - [ ] **SEL-05** 🟢 🔍 `getNextColKey` with an unknown key returns the first column
-  - **Where:** [util/index.ts:1150-1158](../packages/ve-table/src/util/index.ts#L1150-L1158). `-1 < length - 1` is true.
+  - **Where:** [util/index.ts:1092-1102](../packages/ve-table/src/util/index.ts#L1092-L1102). `-1 < length - 1` is true.
   - **Fix:** return `null` when `index < 0`.
 
 - [ ] **SEL-06** 🟢 `columnToVisible(undefined)` throws
-  - **Where:** `ve-table.tsx:~1833`. The public `setCellSelection` / `setRangeCellSelection` reach it with an unknown colKey when there is a horizontal scrollbar.
+  - **Where:** `methods/scrolling.ts:10-20` (`nextColumn.fixed`). The public `setCellSelection` / `setRangeCellSelection` (`ve-table.tsx:1816-1818, 1861-1863`) reach it with an unknown colKey when there is a horizontal scrollbar.
   - **Fix:** validate keys in the public APIs and guard `columnToVisible`.
 
 - [ ] **SEL-07** 🟢 `getSelectionAreas` shares a nested border object that `getBorders` mutates
-  - **Where:** `selection/index.tsx:884-898` and `1243-1249`. The area layer's position on the right-fixed side depends on this hidden mutation, and on the first row the layer is shifted 1px.
+  - **Where:** `selection/index.tsx:873-887` and `1243-1260`. The area layer's position on the right-fixed side depends on this hidden mutation, and on the first row the layer is shifted 1px.
   - **Fix:** clone the border objects per consumer, or make the geometry pure (MOD-05).
 
 - [ ] **SEL-08** 🟠 No keyboard way to leave the table: Tab is trapped and there is no Esc handling (decision D4)
-  - **Where:** `ve-table.tsx:1605-1620` (`KEY_CODES.TAB` always calls `preventDefault`). There is no `ESC` case anywhere in `dealKeydownEvent`, and the table root has no `tabindex`, so it can't hold focus itself.
+  - **Where:** `methods/keyboard.ts:28-45` (`KEY_CODES.TAB` always calls `preventDefault`). There is no `ESC` case anywhere in `dealKeydownEvent`, and the table root has no `tabindex`, so it can't hold focus itself.
   - **Why it matters:** a keyboard-only user who enters cell navigation can never Tab out (WCAG 2.1.2 "No Keyboard Trap", level A).
   - **Target behaviour (D4):**
     1. **Cell navigation mode** (a cell is active): Tab / Shift+Tab move between cells, and stay trapped as they do today.
@@ -222,12 +231,12 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
 ## CLIP — clipboard
 
 - [ ] **CLIP-01** 🔴 Clipboard handlers continue with `-1` indices, after `preventDefault`
-  - **Where:** `clipboard.ts:230` (`startRowIndex = -1`), `:244` (`colgroups[-1].key`), `:282` (`Object.assign(tableData[-1], …)`); `ve-table.tsx:3272` (`editorCopy` calls `preventDefault()` before validating).
+  - **Where:** `util/clipboard.ts:230` (`startRowIndex = -1`), `:244` (`colgroups[-1].key`), `:282` (`Object.assign(tableData[-1], …)`); `methods/clipboard.ts:48` (`editorCopy` calls `preventDefault()` before validating; same in `editorPaste` :97 and `editorCut` :172).
   - **Trigger:** a stale range (SEL-01), or the edit textarea still focused after the selection is cleared. Paste throws a TypeError, and copy overwrites the user's clipboard with `""`.
   - **Fix:** in `onBeforePaste`, `onBeforeCopy`, `onBeforeCut` and `onBeforeDelete`, return `null` if any index is `-1`. Callers bail out **before** `preventDefault`.
 
 - [ ] **CLIP-02** 🟠 Pasting a non-text clipboard (an image or file) wipes the selected cell
-  - **Where:** `clipboard.ts:13-14, 218`. `getData('text/plain')` returns `''`, `decodeSpreadsheetStr('')` returns `[['']]`, and `editorPaste` (~3330) writes `''`.
+  - **Where:** `util/clipboard.ts:13-14, 218`. `getData('text/plain')` returns `''`, `decodeSpreadsheetStr('')` returns `[['']]`, and `editorPaste` (`methods/clipboard.ts:118`) writes `''`.
   - **Fix:** `if (!pastedData) return null`.
 
 - [ ] **CLIP-03** 🟠 Copy/paste does not round-trip
@@ -247,7 +256,7 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
   - **Fix:** use the maximum row length.
 
 - [ ] **CLIP-06** 🟢 Contextmenu copy and cut use the deprecated `execCommand` and fail silently
-  - **Where:** `ve-table.tsx:3082, 3087, 3187, 3192`. The return value is ignored, and there is no contextmenu paste.
+  - **Where:** `methods/contextmenu.ts:122, 127, 227, 232`. The return value is ignored, and there is no contextmenu paste.
   - **Fix:** `navigator.clipboard` with an `execCommand` fallback; handle the rejection (permission or insecure context) and surface it through a callback.
 
 ---
@@ -256,15 +265,15 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
 
 - [ ] **FILL-01** 🟠 The autofill direction is a render side effect and goes stale
   - **Where:**
-    - `selection/index.tsx:1124-1141, 1163-1169` dispatches `AUTOFILLING_DIRECTION_CHANGE` from inside render.
-    - `ve-table.tsx:1556` (`autofillingDirection` is never reset).
-    - `ve-table.tsx:1444` (`setCellSelectionByAutofill`).
-    - `util/index.ts:1220-1403` (`cellAutofill`).
+    - `selection/index.tsx:~1110-1160` dispatches `AUTOFILLING_DIRECTION_CHANGE` from inside render (the dispatch is at 1153).
+    - `methods/cell-selection.ts:302-304` (`autofillingDirectionChange`; `autofillingDirection` is never reset).
+    - `methods/cell-selection.ts:105-291` (`setCellSelectionByAutofill`).
+    - `util/index.ts:1119-1405` (`cellAutofill`).
   - **Trigger:** `cellAutofillOption: { directionY: false }`. Autofill right once, then drag the corner down. On mouseup the stale RIGHT is used, and the current cell moves to the dragged-to row. If the first drag goes in a disallowed direction, the direction is `null` and `beforeAutofill`/`afterAutofill` still fire with every index at `-1`.
   - **Fix:** make the direction a pure computed value (geometry function, MOD-05). Reset it to `null` when autofill starts and ends. Return early when it is `null` or not allowed.
 
 - [ ] **FILL-02** 🟠 An autofill drag is not cancelled when the mouse is released outside the table or window
-  - **Where:** `isAutofillStarting` is reset only at `ve-table.tsx:2316, 2915-2932, 3032`. There is no `window` `mouseup` or `blur` listener.
+  - **Where:** `isAutofillStarting` is reset only at `ve-table.tsx:1308` (`tableClickOutside`), `1784` (`tableContainerMouseup`), `methods/contextmenu.ts:72` and `methods/cell-selection.ts:404`. There is no `window` `mouseup` or `blur` listener.
   - **Trigger:** release outside the browser window: the drag stays armed, and the next mouseup in the table commits it, overwriting data. Release outside the table but inside the page: `tableClickOutside` fires and the watcher **commits** instead of cancelling.
   - **Fix:** on corner mousedown, add `window` `mouseup` (once) and `blur` → cancel listeners. Releasing outside the table cancels without committing. Remove both in `beforeUnmount`.
 
@@ -273,7 +282,7 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
 ## EDIT — cell editing
 
 - [ ] **EDIT-01** 🔴 🔍 Alt+Enter while editing replaces the text with `"undefined\n"` when `key !== field`
-  - **Where:** [editor/index.tsx:429](../packages/ve-table/src/editor/index.tsx#L429). It reads `editingCell.row[editingCell.colKey]`. The rest of the table uses `row[column.field]` (`ve-table.tsx:2359`). The repo's own fixtures use `key: 'a', field: 'name'`.
+  - **Where:** [editor/index.tsx:429](../packages/ve-table/src/editor/index.tsx#L429). It reads `editingCell.row[editingCell.colKey]`. The rest of the table uses `row[column.field]` (`methods/editing.ts:43`). The repo's own fixtures use `key: 'a', field: 'name'`.
   - **Fix:** `editingCell.row[editingCell.column.field]`.
 
 - [ ] **EDIT-02** 🟠 🔍 Editor lifecycle: the Vue 2 `destroyed()` hook never runs
@@ -283,44 +292,65 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
 
 - [ ] **EDIT-03** 🟠 The editor stays positioned over the previous cell
   - **Where:** `editor/index.tsx:275-290` (`setCellEl` only assigns when a cell is found).
-  - **Trigger:** virtual scroll, or a target cell that isn't rendered. The textarea sits over the old cell while edits go to the new one.
+  - **Trigger:** virtual scroll, or a target cell that isn't rendered. The textarea sits over the old cell while edits go to the new one. Since `442962c` this happens on **every** cell in virtual-scroll mode, because the `tbody.ve-table-body` selector never matches there (see VS-05).
   - **Fix:** `else { this.cellEl = null; this.overflowViewport = true }`.
 
 - [ ] **EDIT-04** 🟢 `startEditingCell` while another cell is editing silently drops that value
-  - **Where:** `ve-table.tsx:3787-3839`. The comment says it closes the previous cell, but the code doesn't. An unknown rowKey also throws (`currentRow` is unchecked, ~3778-3820).
+  - **Where:** `ve-table.tsx:2008-2086`. The comment (2030-2032) says it closes the previous cell, but the code doesn't. An unknown rowKey also throws (`currentRow` is unchecked, ~2024-2066).
   - **Fix:** call `STOP_EDITING_CELL` first when `isCellEditing`, and guard `!currentRow || !currentColumn`.
 
 ---
 
 ## VS — virtual scroll
 
-- [ ] **VS-01** 🟠 🔍 The binary search is effectively linear and can return an out-of-range index
-  - **Where:** [ve-table.tsx:2137-2159](../packages/ve-table/src/ve-table.tsx#L2137-L2159), and the caller ~2110
+> Since `442962c`, virtual scroll is a thin adapter over `@tanstack/virtual-core` ([virtual-scroll.ts](../packages/ve-table/src/virtual-scroll.ts)). The body renders a top spacer, then one `<tbody data-index>` per visible row (measured by TanStack), then a bottom spacer. The hand-rolled position table, binary search, phantom and `BodyTrScrolling` placeholder are gone.
+
+- [x] ⛔ won't fix: code removed in `442962c` (TanStack replaced the hand-rolled index search). **VS-01** 🟠 🔍 The binary search is effectively linear and can return an out-of-range index
+  - **Where (at `a0bfb50`):** `ve-table.tsx:2137-2159`, and the caller ~2110
   - **Issues:**
     - `end = end - 1` should be `end = midIndex - 1`, so the search is O(n) on every scroll event.
     - An exact match returns `midIndex + 1`, which can equal `list.length`, and `positions[start].top` then throws. Repro: 40px rows, scrollTop 4000, and `tableData` shrinks to 100 rows.
     - The function returns `null` when scrollTop is past the end.
   - **Fix:** a correct lower-bound bisection, clamped to `[0, len - 1]`.
 
-- [ ] **VS-02** 🟠 `bodyRowHeightChange` with an unknown row key reads `positions[-1]`
-  - **Where:** `ve-table.tsx:2058-2062`. This happens without `rowKeyFieldName`, or for a row missing its key, because the ResizeObserver reports `key: null`.
+- [x] ⛔ won't fix: code removed in `442962c` (rows no longer report heights through `BODY_ROW_HEIGHT_CHANGE`; TanStack measures the `<tbody>` itself). **VS-02** 🟠 `bodyRowHeightChange` with an unknown row key reads `positions[-1]`
+  - **Where (at `a0bfb50`):** `ve-table.tsx:2058-2062`. This happens without `rowKeyFieldName`, or for a row missing its key, because the ResizeObserver reports `key: null`.
   - **Fix:** `if (index < 0) return`.
+  - **Leftover:** the `BODY_ROW_HEIGHT_CHANGE` constant (`util/constant.ts:62`) is now unused.
 
-- [ ] **VS-03** 🟠 Every cell edit discards all measured row heights
-  - **Where:** `ve-table.tsx:797-806` (the `deep: true` `tableData` watcher calls `initVirtualScrollPositions()`), `2046`. `virtualScrollPositions` is reactive despite the "非响应式" comment at ~337, which makes the loop at 2069-2078 slow.
-  - **Trigger:** variable-height rows with virtual scroll, then edit, paste or autofill a cell. The offset and phantom height go wrong and the content jumps.
-  - **Fix:** rebuild only when the row keys or the length change, keep known heights by rowKey, and store positions with `markRaw` or a non-reactive field.
+- [ ] **VS-03** 🟠 Every cell edit discards all measured row heights *(still true after the TanStack switch)*
+  - **Where:** `ve-table.tsx:706-725`. The `tableData` watcher is still `deep: true`, and on every change it calls `this._vs.measure()`, which clears TanStack's whole size cache.
+  - **Trigger:** variable-height rows with virtual scroll, then edit, paste or autofill a cell. Every row falls back to `estimateSize` until it is re-measured, so the spacer heights and the scroll offset jump.
+  - **Fix:** drop `deep: true`. Call `setOptions({ count, getItemKey })` only when the length or row keys change, and let TanStack's per-element `ResizeObserver` (`measureElement`) pick up the height change of an edited row. Sizes are cached by `getItemKey`, so they survive reordering.
 
-- [ ] **VS-04** 🟢 `scrollToRowKey` timer and null handling
-  - **Where:** `ve-table.tsx:3735-3747`. The 200ms `setTimeout` is never stored or cleared: a user who scrolls within 200ms is pulled back, and repeated calls jitter. An unrendered key gives `rowEl.offsetTop` on `null`. (Escaping: INFRA-04.)
-  - **Fix:** keep and clear the timer id, and null-guard the row element.
+- [x] ✅ 2026-10-16 · `442962c` **VS-04** 🟢 `scrollToRowKey` timer and null handling
+  - **Where (at `a0bfb50`):** `ve-table.tsx:3735-3747`. The 200ms `setTimeout` was never stored or cleared, and an unrendered key gave `rowEl.offsetTop` on `null`.
+  - **Resolved by the rewrite** (`ve-table.tsx:1970-2000`): the timer is gone, virtual mode uses `_vs.scrollToIndex`, and the non-virtual path null-checks the row. Verified by reading the code only; there is no test for it.
+  - **Residual (not tracked separately):** in non-virtual mode an unknown key now scrolls to the top (`scrollTop = 0`) instead of doing nothing. (Escaping: INFRA-04.)
+
+- [ ] **VS-05** 🔴 🔍 In virtual-scroll mode the body loses its `ve-table-body` class, which breaks styling, selection, the editor and row insert
+  - **Where:** [body/index.tsx:848-897](../packages/ve-table/src/body/index.tsx#L848-L897), added in `442962c`. The virtual path returns a **fragment** of `<tbody>` elements. `ve-table.tsx:2190` passes `class: [clsName('body'), this.tableBodyClass]` to `<Body>`, but Vue can't fall attributes through to a fragment root, so the class is dropped (a dev-mode warning; silent in production). None of the generated `<tbody>` elements gets `ve-table-body`, `ve-table-stripe`, `ve-table-row-hover` or `ve-table-row-highlight`.
+  - **Effects:**
+    - **Styling:** every rule under `tbody.ve-table-body` (`style/ve-table.less:161` onwards) stops applying: cell padding, background, font size, row height, operation-column and indicator colours, stripe, hover and highlight. Stripe would also be wrong even with the class, because each row is the first child of its own `<tbody>`, so `tr:nth-child(2n + 1)` matches every row.
+    - **Selection:** `selection/index.tsx:1421, 1438, 1452, 1498` look up cells with `tbody.ve-table-body …` and find nothing, so the selection borders don't render.
+    - **Editor:** `editor/index.tsx:282` uses the same selector, so the textarea is never positioned (EDIT-03).
+    - **Row insert:** `row-insert-indicator/index.tsx:183` takes `tableEl.querySelector('tbody')`. That is the top spacer `<tbody>` or a single row, so at most one row is ever considered.
+  - **Status:** confirmed by reading the code, not reproduced in a browser. The jsdom specs can't show it, because they render 0 virtual rows (see Test gaps).
+  - **Fix:** give every generated row `<tbody>` the body classes explicitly (computed in `ve-table.tsx`, passed as a prop rather than relying on fall-through). Change the cell lookups to a selector that works in both modes (e.g. `.ve-table-body tr[row-key=…]`, or a shared `queryCell` helper, see INFRA-04). Make stripe use a row-index class instead of `nth-child`. In the row-insert indicator, scan `tr.ve-table-body-tr` across the whole table.
+
+- [ ] **VS-06** 🟢 TanStack integration leftovers
+  - `_vs` and `measureColsWidths` are declared in `data()` (`ve-table.tsx:376-381`), so Vue makes the virtualizer adapter and the `Map` deeply reactive, despite the "non-reactive, managed manually" comment at 868-869. Use `markRaw`, or assign them in `created` without declaring them in `data`.
+  - `virtualScrollOption.scrolling`, `minRowHeight` and `bufferScale` are read once in `initTanStackVirtualScroll` (`ve-table.tsx:1222-1251`). Later changes are never pushed to `setOptions`, although `virtual-scroll.ts:189-241` supports it.
+  - No `scrollMargin` is passed, so TanStack treats row 0 as starting at `scrollTop = 0` even though the sticky header sits above it. The visible range is off by the header height; overscan (≥ 3 rows) hides this in most cases.
+  - `actualRenderTableData` is `[]` until the virtualizer exists (created in `$nextTick` after mount), so the first render of a virtual table has no rows.
+  - `rowInsertIndicatorProps` passes `virtualScrollPositions: []` (`ve-table.tsx:674`) only for compatibility. Remove the prop from `row-insert-indicator` together with INS-01.
 
 ---
 
 ## ROW — row checkbox, radio and expand
 
 - [ ] **ROW-01** 🔴 🔍 `defaultExpandAllRows` aliases and then mutates the table's `allRowKeys`
-  - **Where:** [body/index.tsx:588-590](../packages/ve-table/src/body/index.tsx#L588-L590) (`this.internalExpandRowkeys = allRowKeys`, no copy), `:488-493` (`splice`/`push` in place).
+  - **Where:** [body/index.tsx:582-584](../packages/ve-table/src/body/index.tsx#L582-L584) (`this.internalExpandRowkeys = allRowKeys`, no copy), `:494-499` (`splice`/`push` in place).
   - **Trigger:** `defaultExpandAllRows: true`, then click an expand icon. The row key is removed from the table's `allRowKeys`, so keyboard navigation skips that row and select-all and row-insert get the wrong keys.
   - **Fix:** `allRowKeys.slice()`, and make `expandRowChange` build new arrays.
 
@@ -329,17 +359,17 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
   - **Fix:** delete that branch, since `initInternalExpandRowKeys` already seeds the keys.
 
 - [ ] **ROW-03** 🔴 Non-deep watchers miss in-place array mutation (a Vue 2 assumption)
-  - **Where:** `body/index.tsx:348` (`expandOption.expandedRowKeys`), `:361` (`checkboxOption.selectedRowKeys`), `:367` (`internalCheckboxSelectedRowKeys`); `body/body-checkbox-content.tsx:66`
+  - **Where:** `body/index.tsx:354` (`expandOption.expandedRowKeys`), `:367` (`checkboxOption.selectedRowKeys`), `:373` (`internalCheckboxSelectedRowKeys`); `body/body-checkbox-content.tsx:66`
   - **Trigger:** the official demos mutate in place: `row-checkbox/selected-control.md:120-128`, `pagination/checkbox.md:104-108` and `expand-control.md:125`. Checkboxes and select-all don't update. A controlled expand goes stale, and the next click collapses unexpectedly.
   - **Fix (D2, proper fix):** derive the state instead of mirroring it: `isSelected = computed(() => selectedKeySet.value.has(rowKey))`, built on the MOD-08 composables. Remove the `internal*RowKeys` mirror copies and the non-deep watchers. Don't use `deep: true` as a stopgap. In-place mutation of the user's arrays must keep working, because the official demos rely on it.
 
 - [ ] **ROW-04** 🟠 The header select-all state goes stale
-  - **Where:** `body/index.tsx:367-372` (`sendToCheckboxAll` runs only on selection change), `header-checkbox-content.tsx:21` (starts at `isSelected = false` after a remount).
+  - **Where:** `body/index.tsx:373-378` (`sendToCheckboxAll` runs only on selection change), `header-checkbox-content.tsx:21` (starts at `isSelected = false` after a remount).
   - **Trigger:** select all, then add a row, and the header still shows checked. Change the columns, and the header shows unchecked while every row is selected.
   - **Fix:** watch `[isCheckboxSelectedAll, isCheckboxIndeterminate]`, or pass the state down as props.
 
 - [ ] **ROW-05** 🟠 The select-all math compares counts instead of sets
-  - **Where:** `body/index.tsx:307-328`
+  - **Where:** `body/index.tsx:313-334`
   - **Trigger:** all rows disabled and none selected gives `0 + N === N`, so the header shows checked. Keys from other pages, or disabled keys that are not in the data, inflate the count.
   - **Fix:** `all.length && all.some(k => !disabled.has(k)) && all.every(k => sel.has(k) || disabled.has(k))`.
 
@@ -352,7 +382,7 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
 ## INS — row insert indicator
 
 - [ ] **INS-01** 🟠 The row insert indicator inserts at the wrong index
-  - **Where:** `row-insert-indicator/index.tsx:180-181` (the header area always returns index `0`), `:231` (the virtual-scroll offset is skipped when `closestIndex === 0`).
+  - **Where:** `row-insert-indicator/index.tsx:180-181` (the header area always returns index `0`), `:231` (the virtual-scroll offset is skipped when `closestIndex === 0`). Since `442962c` the virtual case is broken further: only the first `<tbody>` is scanned (VS-05).
   - **Trigger:** a sticky header with the table scrolled to row 300: the line is drawn above row 300, but the insert goes to row 0. With virtual scroll, inserting at the first rendered row goes to the wrong index.
   - **Fix:** always use `start + closestIndex`, and map the header area to the first *visible* row.
 
@@ -375,9 +405,9 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
   - **Trigger:** user code calling `h('span')` throws "h is not a function". (`expand-tr.tsx:109` is correct.)
   - **Fix:** remove the `h` parameter and pass the imported `h`.
 
-- [ ] **RENDER-02** 🟠 Unkeyed fragments around each body row cause mass remounts
-  - **Where:** `body/index.tsx:864-921`. Each row returns `[<BodyTr key=…/>, expandRow]`, so Vue builds unkeyed Fragments and matches rows by position. The placeholder branch at `:904-906` drops expand rows while scrolling.
-  - **Trigger:** sorting, inserting at the top, or any virtual-scroll step. Every shifted row remounts, including its tds, checkboxes and `VueDomResizeObserver`, which re-emits heights (see VS-03).
+- [ ] **RENDER-02** 🟠 Unkeyed fragments around each body row cause mass remounts *(non-virtual path only since `442962c`)*
+  - **Where:** `body/index.tsx:899-911`. Each row returns `[<BodyTr key=…/>, expandRow]`, so Vue builds unkeyed Fragments and matches rows by position. *The virtual path (848-897) now wraps each row in a keyed `<tbody>`, and the placeholder branch that dropped expand rows is gone.*
+  - **Trigger:** sorting or inserting at the top of a non-virtual table. Every shifted row remounts, including its tds and checkboxes.
   - **Fix:** a flat array with keys: `<BodyTr key={k}/>`, plus `<ExpandTr key={`${k}__expand`}/>`.
 
 - [ ] **RENDER-03** 🟠 One deep watcher per cell on the whole `rowData`
@@ -394,8 +424,8 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
   - **Fix:** remove the early return, and handle string children, arrays and the `default` slot function.
 
 - [ ] **RENDER-06** 🟠 🔍 A scrollbar width of `0` is never cached, so it is re-measured on every render
-  - **Where:** [ve-table.tsx:1225-1238](../packages/ve-table/src/ve-table.tsx#L1225-L1238) (`if (scrollBarWidth)`). Callers ~573 and ~4116.
-  - **Trigger:** overlay scrollbars (the macOS default, mobile). Every render and every `tableContainerStyle` evaluation appends a probe div and forces layout twice, including on each virtual-scroll re-render.
+  - **Where:** [ve-table.tsx:1168-1182](../packages/ve-table/src/ve-table.tsx#L1168-L1182) (`if (scrollBarWidth)`). Callers ~479 and ~2354.
+  - **Trigger:** overlay scrollbars (the macOS default, mobile). Every render and every `tableContainerStyle` evaluation appends a probe div and forces layout twice, including on each virtual-scroll re-render (every `_vsVersion` bump).
   - **Fix:** a `null` sentinel for "not measured".
 
 ---
@@ -403,7 +433,7 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
 ## MENU — contextmenu (table menus and the `ve-contextmenu` component)
 
 - [ ] **MENU-01** 🟢 Commented-out contextmenu types give items `type: undefined`
-  - **Where:** `ve-table/src/util/constant.ts:255, 259` (`REMOVE_COLUMN`, `HIDE_COLUMN`); used at `util/index.ts:328, 336, 393`.
+  - **Where:** `ve-table/src/util/constant.ts:254, 258` (`REMOVE_COLUMN`, `HIDE_COLUMN`); used at `util/index.ts:318, 326, 383`.
   - **Effect:** a user menu item with no `type` matches "removeColumn", and a user `type: 'REMOVE_COLUMN'` renders with no label.
   - **Fix:** restore the constants (implementing them is optional), or remove them from the collections.
 
@@ -417,7 +447,7 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
   - **Fix:** in `beforeUnmount`, `debounceCreatePanelByHover.cancel()` and set `isPanelsEmptyed = true`.
 
 - [ ] **MENU-04** 🟠 Submenu containers leak on every right-click
-  - **Where:** `ve-contextmenu/src/index.tsx:411-447`. `removeOrEmptyPanels(true)` removes only containers whose IDs are in the current `panelOptions`. ve-table replaces `options` on every right-click (`ve-table.tsx:2698/2712`), which regenerates the IDs.
+  - **Where:** `ve-contextmenu/src/index.tsx:411-447`. `removeOrEmptyPanels(true)` removes only containers whose IDs are in the current `panelOptions`. ve-table replaces `options` on every right-click (`methods/contextmenu.ts:39, 53`), which regenerates the IDs.
   - **Fix:** keep a `Set` of the created container elements, and remove them all when the options change and on unmount (or MOD-09).
 
 - [ ] **MENU-05** 🟢 Submenu positioning
@@ -471,7 +501,7 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
   - **Fix:** `pageCount = Math.max(1, Math.ceil(total / Math.max(1, size)))`, use `>=` for disabled, and clamp in the watchers.
 
 - [ ] **PAG-02** 🟢 Hard-coded element IDs collide when there are several paginations
-  - **Where:** `ve-pagination/src/index.tsx:82, 89, 123, 127` (`ve-pagination-size-label`, `ve-pagination-jumper`). `aria-labelledby` points at the wrong instance.
+  - **Where:** `ve-pagination/src/index.tsx:82, 89, 123, 127` (`ve-pagination-size-label`, `ve-pagination-jumper`). (Re-checked at `0c5b732`: unchanged.) `aria-labelledby` points at the wrong instance.
   - **Fix:** per-instance ids (`useId()` or a random suffix).
 
 - [ ] **PAG-03** 🟢 `pageSizeChangeHandler` ignores its argument
@@ -519,9 +549,20 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
   - **Where:** `ve-locale/index.ts:22-35`. A second app's `use({ locale })` switches the first app's language.
   - **Fix:** `merge({}, defaultLang, lang)` into a fresh object, and a per-app provide (MOD-11).
 
-- [ ] **I18N-03** 🟢 Missing pagination aria keys in seven languages
-  - **Where:** `common/locale/lang/{fr-FR,ru-RU,ko-KR,pt-BR,zh-TW,af-ZA,zu-ZA}.ts`. They lack `prevPage`, `nextPage`, `paginationLabel`, `pageLabel`, `currentPageLabel`, `jumpToLabel` and `pageSizeLabel`, so those users get **Chinese** aria-labels.
-  - **Fix:** add the keys, plus a type-level check that every lang satisfies the full shape.
+- [x] ✅ 2026-10-16 · `81a1ebb` **I18N-03** 🟢 Missing pagination aria keys in seven languages
+  - **Where (at `a0bfb50`):** `common/locale/lang/{fr-FR,ru-RU,ko-KR,pt-BR,zh-TW,af-ZA,zu-ZA}.ts`. They lacked `prevPage`, `nextPage`, `paginationLabel`, `pageLabel`, `currentPageLabel`, `jumpToLabel` and `pageSizeLabel`, so those users got **Chinese** aria-labels.
+  - **Resolved:** all ten lang files now define all 13 pagination keys and all table keys (under the renamed keys, see I18N-04). `prev5`/`next5` also became functions of `pagingCount` everywhere. Verified by grepping every lang file for the full key set.
+  - **Not done:** the type-level shape check. `LocaleMessage` is still `Record<string, Record<string, …>>` (`common/locale/types.d.ts`), so a missing or misspelled key is still not a compile error. That check now belongs with I18N-04.
+
+- [ ] **I18N-04** 🟠 🔍 Locale message keys were renamed to Chinese, which silently breaks user locale overrides
+  - **Where:** `81a1ebb` re-keyed every lang file and every lookup: `pagination` → `分页`, `table` → `表格`, `goto` → `前往`, `cut` → `剪切`, `confirmFilter` → `确认筛选`, and so on (`ve-pagination/src/util/constant.ts:4`, `ve-table/src/util/constant.ts:4`, `ve-pagination/src/{index,pager}.tsx`, `ve-table/src/util/index.ts:302-388`, `header/header-filter-content.tsx:71-72`). A few English strings changed as well, e.g. `confirmFilter` "Confirm" → `确认筛选` "Filter", and "Remove $1 row" → "Delete $1 row(s)".
+  - **Effect:** this is a breaking change to the public locale format. A custom language object, or `VeLocale.update({ pagination: { goto: '…' } })`, written against the documented keys now merges into an unused `pagination` section and is silently ignored: no error, no warning. The UI falls back to the built-in language (zh-CN by default).
+  - **Still on the old keys:** the docs `docs/src/docs/{en,nb,zh}/locale.md` and `docs/src/docs/{en,nb,zh}/ve-locale/cover-lang.md` (the "cover lang" demo is now a no-op), and the test `ve-locale/__tests__/ve-locale.spec.tsx:51`.
+  - **Decision needed (open, see Decisions):** revert to the English keys, **or** keep the Chinese keys and ship a migration (accept the old keys through an alias map that logs a deprecation warning, update the docs, note it in the changelog). Either way, type `LocaleMessage` precisely so that missing and unknown keys fail `vue-tsc`.
+
+- [ ] **I18N-05** 🟢 The new Norwegian locale file is named `no-NB`
+  - **Where:** `common/locale/lang/no-NB.ts` (added in `81a1ebb`). The BCP 47 tag for Norwegian Bokmål is `nb-NO`, which is what the docs use (`docs/.vitepress/theme/index.ts:24-25` maps `nb-NO` → `no-NB`).
+  - **Fix:** rename the file to `nb-NO.ts` before it ships in a release and users start importing it by path.
 
 ---
 
@@ -531,19 +572,21 @@ These are structural changes. Several of them remove whole bug classes above (no
 **Approach (D1): Composition API.** Logic moves into `use*` composables organised by feature, e.g. `packages/ve-table/src/features/<feature>/use<Feature>.ts`, and components move to `setup()`. Migrate one feature at a time, keeping the test suite green after each step. The public API (props, emits, instance methods exposed via `expose`) must not change.
 
 - [ ] **MOD-01** Replace the emitter mixin and `Hooks` with a typed `provide/inject` table context (`useTableContext`) whose subscriptions auto-dispose through `onScopeDispose` / `beforeUnmount`. [INFRA-01, INFRA-02]
-- [ ] **MOD-02** Split `ve-table.tsx` (4.2k lines) into feature composables and move the component to `setup()` (D1). Instance methods currently called through `this[INSTANCE_METHODS.*]` (and by users through refs) must be kept via `expose`.
-  | Module | Approx. lines | Notes |
+- [ ] 🚧 **MOD-02** Split `ve-table.tsx` into feature composables and move the component to `setup()` (D1). Instance methods currently called through `this[INSTANCE_METHODS.*]` (and by users through refs) must be kept via `expose`.
+  - **Step 1 done in `442962c`:** `ve-table.tsx` went from 4.2k to 2.5k lines. Method groups moved to `src/methods/*.ts` as plain objects that are spread into the Options API `methods` (`ve-table.tsx:2117-2122`), virtual scroll moved to `src/virtual-scroll.ts`, and shared types to `src/ve-table-types.ts`. This is still the Options API: the modules take `this: any`, share all state through `this`, and are not composables. Note that the spread comes **last**, so a module method silently overrides a same-named inline method.
+  - **Remaining:** turn each module into a `use*` composable with explicit inputs and outputs, and move the component to `setup()`.
+  | Module | Where now (`0c5b732`) | Notes |
   |---|---|---|
-  | virtual-scroll | data 337-365; computed 491-539; watch 797-806, 884-898; methods 1939-2251; handler 4017-4052 | Most bugs (VS-*). Start here. |
-  | keyboard-navigation | 1588-1937 | Self-contained; SEL-02 |
-  | cell-selection (+ indicators, autofill) | 1273-1586, 2406-2932, 3491-3675; watch 899-937 | Mostly pure state transitions, so testable without a DOM |
-  | editing | 2331-2404, 2934-3023, 3761-3853 | EDIT-*, INFRA-07 |
-  | clipboard | 3244-3489 | Takes `{ tableData, colgroups, allRowKeys, rangeData, option }` |
-  | contextmenu wiring | 2686-2722, 3025-3242 | Mutates `tableData` and `cloneColumns` |
-  | columns (hide/show, group, resize, fixed) | 1081-1222, 3677-3707; watch 837-879 | COL-* |
-  | scroll shadow / scrollbar status | 2253-2305 | Container ref only |
-  | event wiring | 956-1067 | 24 near-identical `this.on(...)` calls → an `[event, method]` table |
-- [ ] **MOD-03** Split `util/index.ts` (1.6k lines) into:
+  | virtual-scroll | `virtual-scroll.ts`; ve-table.tsx computed 385-453, watch 706-725 and 803-815, methods 1216-1262 | Already isolated behind an adapter. VS-03, VS-05, VS-06 |
+  | keyboard-navigation | `methods/keyboard.ts` | SEL-02, SEL-08 |
+  | cell-selection (+ indicators, autofill) | `methods/cell-selection.ts`; ve-table.tsx 1391-1785 (mouse handlers), 1800-1931 (instance methods); watch 816-854 | Mostly pure state transitions, so testable without a DOM |
+  | editing | `methods/editing.ts`; ve-table.tsx 2008-2099 (start/stop instance methods) | EDIT-*, INFRA-07 |
+  | clipboard | `methods/clipboard.ts` | Takes `{ tableData, colgroups, allRowKeys, rangeData, option }` |
+  | contextmenu wiring | `methods/contextmenu.ts` | Mutates `tableData` and `cloneColumns` |
+  | columns (hide/show, group, resize, fixed) | ve-table.tsx 1040-1165, 1933-1963; watch 756-782 | COL-* |
+  | scroll shadow / scrollbar status | `methods/scrolling.ts` | Container ref only |
+  | event wiring | ve-table.tsx 879-987 | 21 near-identical `this.on(...)` calls → an `[event, method]` table |
+- [ ] **MOD-03** Split `util/index.ts` (1.5k lines) into:
   - `columns/`: init-group-columns, column-fixed, col-keys
   - `selection-range/range.ts`: this also removes the four copies of the index/keys logic in the clipboard `onBefore*` functions
   - `autofill/cell-autofill.ts`
@@ -580,6 +623,7 @@ Record new decisions here with the next free `D` number and the date. Reference 
 ### Still open
 
 - **SEL-08:** should Esc while editing discard or commit the uncommitted value? (Spreadsheet convention is to discard.)
+- **I18N-04:** locale keys. Revert to the English keys, or keep the Chinese keys from `81a1ebb` and ship a deprecation alias for the old ones? Either way it is a public-API change, so it needs a changelog entry.
 
 ---
 
@@ -590,6 +634,9 @@ Record new decisions here with the next free `D` number and the date. Reference 
 - No tests for remount or toggle scenarios (toggle `cellSelectionOption.enable`, `showHeader`, `rowInsertOption.enable`), which would catch INFRA-01 and INFRA-02.
 - No clipboard codec round-trip tests (CLIP-03 … CLIP-05).
 - No virtual-scroll tests with variable row heights plus edits (VS-03).
+- **The suite has been red since `442962c` (40 failures).** 29 snapshots were never refreshed after the measurement row moved out of `<tbody>`, plus the en-US pagination text changes. The 11 virtual-scroll specs fail because jsdom has no layout: the scroll container measures 0 px, so TanStack yields no items and nothing renders. One (`dynamically turns virtual scrolling on`, :158) also still asserts the removed `.ve-table-virtual-phantom`. Fix: pass TanStack's `initialRect` (or mock `getBoundingClientRect` / `offsetHeight` in the spec), then rewrite the assertions for the spacer-based DOM.
+- No test checks that virtual-scroll rows carry the body classes, or that selection and editor cell lookups work in virtual mode (VS-05).
+- `ve-locale.spec.tsx:51` still overrides the old `pagination.goto` key, so it passes without testing anything (I18N-04).
 - Still open from `REFACTOR_PLAN.md`: `ve-table-row-insert.spec.ts`, `ve-table-clipboard.spec.ts`, `ve-table-autofill.spec.ts`.
 
 ---
@@ -597,6 +644,8 @@ Record new decisions here with the next free `D` number and the date. Reference 
 ## Changelog
 
 Newest first. One line per change: date · IDs · what happened · commit/PR.
+
+- **2026-10-16** · VS-01, VS-02 ⛔ · VS-04, I18N-03 ✅ · VS-05, VS-06, COL-07, I18N-04, I18N-05 added · SEL-01, MOD-02 progress · Re-checked the audit after merging `81a1ebb`, `442962c`, `1645d44` and `0c5b732` from remote. VS-01/VS-02: code removed by the TanStack switch. VS-04: rewritten without the timer, with a null check. I18N-03: all langs complete as of `81a1ebb`. New: **VS-05** 🔴 virtual-mode body loses its class (styling, selection, editor, row insert), **COL-07** hidden measurement table may mis-measure widths (unconfirmed), **I18N-04** locale keys renamed to Chinese (breaking, decision pending), plus VS-06 and I18N-05 (🟢). SEL-01: stop-editing on a hidden column is now guarded. MOD-02: step 1 (method modules) done. SEL-03: corrected the function name (`setRangeCellSelectionByBodyIndicator`; the line numbers were right). Re-anchored line numbers for every item in changed files. Baseline: tests now red (40 failures), tsc 615 → 462, eslint clean.
 
 - **2026-10-16** · D1–D4, ROW-03, I18N-01, SEL-02, SEL-08, MOD · Decisions recorded (Composition API, derived row state, fix ConfigProvider, Tab trapped with Esc to leave). Added **SEL-08** (Esc / keyboard-trap behaviour). Moved the doc to `docs-developer/`, which is now tracked in git.
 - **2026-10-16** · all · Audit created from 4 parallel reviews; 74 findings + 11 modularity items logged at `a0bfb50`. No code changed.
