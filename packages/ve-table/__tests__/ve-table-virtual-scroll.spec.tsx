@@ -216,7 +216,7 @@ describe('veTable virtual scroll', () => {
     expect(rowTbodies[0].attributes('data-index')).toBe('0')
 
     // 顶部不需要占位；底部占位 = 总高度 - 已渲染行高度
-    const spacers = wrapper.findAll('tbody[aria-hidden="true"] td')
+    const spacers = wrapper.findAll('tbody[aria-hidden="true"] td[colspan]')
     expect(spacers.length).toBe(1)
     expect(spacers[0].attributes('style')).toContain(
       `height: ${(1000 - rowCount) * MIN_ROW_HEIGHT}px`,
@@ -261,7 +261,7 @@ describe('veTable virtual scroll', () => {
     expect(rowKeys[rowKeys.length - 1]).toBe(range.renderEndIndex)
 
     // 顶部与底部各有一个占位 <tbody>
-    const spacers = wrapper.findAll('tbody[aria-hidden="true"] td')
+    const spacers = wrapper.findAll('tbody[aria-hidden="true"] td[colspan]')
     expect(spacers.length).toBe(2)
     expect(spacers[0].attributes('style')).toContain(
       `height: ${range.renderStartIndex * MIN_ROW_HEIGHT}px`,
@@ -728,10 +728,13 @@ describe('veTable virtual scroll', () => {
         expect(tbody.classes()).toEqual(expect.arrayContaining(BODY_CLASSES))
       })
 
-      // 占位 <tbody> 不参与 body 样式
-      const spacerTbodies = wrapper.findAll('table.ve-table-content > tbody[aria-hidden="true"]')
+      // 占位 <tbody>（以及列宽测量行的 <tbody>）不参与 body 样式
+      const hiddenTbodies = wrapper.findAll('table.ve-table-content > tbody[aria-hidden="true"]')
+      const spacerTbodies = hiddenTbodies.filter(tbody => tbody.find('td[colspan]').exists())
       expect(spacerTbodies.length).toBe(1)
-      expect(spacerTbodies[0].classes()).not.toContain('ve-table-body')
+      hiddenTbodies.forEach((tbody) => {
+        expect(tbody.classes()).not.toContain('ve-table-body')
+      })
 
       // class 不再依赖 fall-through（片段根节点会丢弃它并告警）
       const fallThroughWarnings = warnSpy.mock.calls.filter(args =>

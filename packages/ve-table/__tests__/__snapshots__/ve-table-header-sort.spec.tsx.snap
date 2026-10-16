@@ -46,6 +46,25 @@ exports[`veTable header sort > render multiple field sort 1`] = `
               </th>
             </tr>
           </thead>
+          <tbody aria-hidden="true">
+            <tr style="height: 0px;">
+              <td style="padding: 0px; border: 0px; height: 0px;">
+                <!---->
+              </td>
+              <td style="padding: 0px; border: 0px; height: 0px;">
+                <!---->
+              </td>
+              <td style="padding: 0px; border: 0px; height: 0px;">
+                <!---->
+              </td>
+              <td style="padding: 0px; border: 0px; height: 0px;">
+                <!---->
+              </td>
+              <td style="padding: 0px; border: 0px; height: 0px;">
+                <!---->
+              </td>
+            </tr>
+          </tbody>
           <tbody class="ve-table-body ve-table-row-hover ve-table-row-highlight">
             <tr class="ve-table-body-tr">
               <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="a">
@@ -189,34 +208,6 @@ exports[`veTable header sort > render multiple field sort 1`] = `
             <!---->
           </tbody>
           <tfoot class="ve-table-fixed-footer ve-table-footer"></tfoot>
-        </table>
-        <table aria-hidden="true" style="position: absolute; top: 0px; left: 0px; width: 100%; visibility: hidden; pointer-events: none; z-index: -1;">
-          <colgroup>
-            <col>
-            <col>
-            <col>
-            <col>
-            <col>
-          </colgroup>
-          <tbody>
-            <tr>
-              <td style="padding: 0px; border: 0px; height: 0px;">
-                <!---->
-              </td>
-              <td style="padding: 0px; border: 0px; height: 0px;">
-                <!---->
-              </td>
-              <td style="padding: 0px; border: 0px; height: 0px;">
-                <!---->
-              </td>
-              <td style="padding: 0px; border: 0px; height: 0px;">
-                <!---->
-              </td>
-              <td style="padding: 0px; border: 0px; height: 0px;">
-                <!---->
-              </td>
-            </tr>
-          </tbody>
         </table>
         <div class="ve-table-selection-wrapper">
           <div class="ve-table-selection-fixed-left">
@@ -294,6 +285,25 @@ exports[`veTable header sort > render single field sort 1`] = `
               </th>
             </tr>
           </thead>
+          <tbody aria-hidden="true">
+            <tr style="height: 0px;">
+              <td style="padding: 0px; border: 0px; height: 0px;">
+                <!---->
+              </td>
+              <td style="padding: 0px; border: 0px; height: 0px;">
+                <!---->
+              </td>
+              <td style="padding: 0px; border: 0px; height: 0px;">
+                <!---->
+              </td>
+              <td style="padding: 0px; border: 0px; height: 0px;">
+                <!---->
+              </td>
+              <td style="padding: 0px; border: 0px; height: 0px;">
+                <!---->
+              </td>
+            </tr>
+          </tbody>
           <tbody class="ve-table-body ve-table-row-hover ve-table-row-highlight">
             <tr class="ve-table-body-tr">
               <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="a">
@@ -437,34 +447,6 @@ exports[`veTable header sort > render single field sort 1`] = `
             <!---->
           </tbody>
           <tfoot class="ve-table-fixed-footer ve-table-footer"></tfoot>
-        </table>
-        <table aria-hidden="true" style="position: absolute; top: 0px; left: 0px; width: 100%; visibility: hidden; pointer-events: none; z-index: -1;">
-          <colgroup>
-            <col>
-            <col>
-            <col>
-            <col>
-            <col>
-          </colgroup>
-          <tbody>
-            <tr>
-              <td style="padding: 0px; border: 0px; height: 0px;">
-                <!---->
-              </td>
-              <td style="padding: 0px; border: 0px; height: 0px;">
-                <!---->
-              </td>
-              <td style="padding: 0px; border: 0px; height: 0px;">
-                <!---->
-              </td>
-              <td style="padding: 0px; border: 0px; height: 0px;">
-                <!---->
-              </td>
-              <td style="padding: 0px; border: 0px; height: 0px;">
-                <!---->
-              </td>
-            </tr>
-          </tbody>
         </table>
         <div class="ve-table-selection-wrapper">
           <div class="ve-table-selection-fixed-left">

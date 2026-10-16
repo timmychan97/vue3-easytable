@@ -77,6 +77,28 @@ exports[`veTable header group > render 1`] = `
               </th>
             </tr>
           </thead>
+          <tbody aria-hidden="true">
+            <tr style="height: 0px;">
+              <td style="padding: 0px; border: 0px; height: 0px;">
+                <!---->
+              </td>
+              <td style="padding: 0px; border: 0px; height: 0px;">
+                <!---->
+              </td>
+              <td style="padding: 0px; border: 0px; height: 0px;">
+                <!---->
+              </td>
+              <td style="padding: 0px; border: 0px; height: 0px;">
+                <!---->
+              </td>
+              <td style="padding: 0px; border: 0px; height: 0px;">
+                <!---->
+              </td>
+              <td style="padding: 0px; border: 0px; height: 0px;">
+                <!---->
+              </td>
+            </tr>
+          </tbody>
           <tbody class="ve-table-body ve-table-row-hover ve-table-row-highlight">
             <tr class="ve-table-body-tr" row-key="0">
               <td class="ve-table-body-td" style="text-align: center;" rowspan="1" colspan="1" col-key="a">
@@ -146,38 +168,6 @@ exports[`veTable header group > render 1`] = `
             <!---->
           </tbody>
           <tfoot class="ve-table-fixed-footer ve-table-footer"></tfoot>
-        </table>
-        <table aria-hidden="true" style="position: absolute; top: 0px; left: 0px; width: 100%; visibility: hidden; pointer-events: none; z-index: -1;">
-          <colgroup>
-            <col style="width: 10%;">
-            <col style="width: 100px;">
-            <col style="width: 110px;">
-            <col style="width: 130px;">
-            <col style="width: 140px;">
-            <col style="width: 140px;">
-          </colgroup>
-          <tbody>
-            <tr>
-              <td style="padding: 0px; border: 0px; height: 0px;">
-                <!---->
-              </td>
-              <td style="padding: 0px; border: 0px; height: 0px;">
-                <!---->
-              </td>
-              <td style="padding: 0px; border: 0px; height: 0px;">
-                <!---->
-              </td>
-              <td style="padding: 0px; border: 0px; height: 0px;">
-                <!---->
-              </td>
-              <td style="padding: 0px; border: 0px; height: 0px;">
-                <!---->
-              </td>
-              <td style="padding: 0px; border: 0px; height: 0px;">
-                <!---->
-              </td>
-            </tr>
-          </tbody>
         </table>
         <div class="ve-table-selection-wrapper">
           <div class="ve-table-selection-fixed-left">
