@@ -1,5 +1,12 @@
 import veTable from '@/ve-table'
-import { getVirtualRenderRange, later, mockVirtualScrollLayout } from '@test-utils'
+import { queryBodyRows } from '@/ve-table/src/util/cell-dom'
+import {
+  CELL_RECT_OFFSET,
+  getVirtualRenderRange,
+  later,
+  mockCellRects,
+  mockVirtualScrollLayout,
+} from '@test-utils'
 import { mount } from '@vue/test-utils'
 
 describe('veTable virtual scroll', () => {
@@ -674,5 +681,176 @@ describe('veTable virtual scroll', () => {
 
     const rowCount = getExpectedRowCount({ rowHeight: () => minRowHeight })
     expect(wrapper.findAll('.ve-table-body-tr').length).toBe(rowCount)
+  })
+
+  // VS-05：虚拟滚动下每行一个 <tbody>，body 的 class、单元格查找、斑马纹、插入行指示器都必须照常工作
+  describe('body behaviour in virtual mode (VS-05)', () => {
+    const BODY_CLASSES = [
+      've-table-body',
+      've-table-stripe',
+      've-table-row-hover',
+      've-table-row-highlight',
+    ]
+
+    function mountVirtual(extraProps: Record<string, unknown> = {}) {
+      return mount(veTable, {
+        propsData: {
+          columns: COLUMNS,
+          tableData: TABLE_DATA_SAME_ROW_HEIGHT,
+          virtualScrollOption: {
+            enable: true,
+          },
+          maxHeight: MAX_HEIGHT,
+          rowKeyFieldName: 'rowKey',
+          ...extraProps,
+        },
+        attachTo: document.body,
+      })
+    }
+
+    async function scrollContainer(wrapper, scrollTop: number) {
+      const containerEl = wrapper.find('.ve-table-container').element as HTMLElement
+      containerEl.scrollTop = scrollTop
+      containerEl.dispatchEvent(new Event('scroll'))
+      await settle()
+    }
+
+    it('every rendered row <tbody> carries the body classes', async () => {
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+      const wrapper = mountVirtual({ rowStyleOption: { stripe: true } })
+      wrapper.triggerResizeObserver({ width: MAX_HEIGHT })
+      await settle()
+
+      const rowTbodies = wrapper.findAll('tbody[data-index]')
+      expect(rowTbodies.length).toBe(getExpectedRowCount())
+      rowTbodies.forEach((tbody) => {
+        expect(tbody.classes()).toEqual(expect.arrayContaining(BODY_CLASSES))
+      })
+
+      // 占位 <tbody> 不参与 body 样式
+      const spacerTbodies = wrapper.findAll('table.ve-table-content > tbody[aria-hidden="true"]')
+      expect(spacerTbodies.length).toBe(1)
+      expect(spacerTbodies[0].classes()).not.toContain('ve-table-body')
+
+      // class 不再依赖 fall-through（片段根节点会丢弃它并告警）
+      const fallThroughWarnings = warnSpy.mock.calls.filter(args =>
+        String(args[0]).includes('Extraneous non-'),
+      )
+      expect(fallThroughWarnings).toEqual([])
+
+      warnSpy.mockRestore()
+      wrapper.unmount()
+    })
+
+    it('stripes rows by data index, not by DOM position', async () => {
+      const wrapper = mountVirtual({ rowStyleOption: { stripe: true } })
+      wrapper.triggerResizeObserver({ width: MAX_HEIGHT })
+      await settle()
+
+      // 滚动到一个奇数起始行，确保与 DOM 位置无关
+      await scrollContainer(wrapper, 42 * MIN_ROW_HEIGHT)
+
+      const rows = wrapper.findAll('.ve-table-body-tr')
+      expect(Number(rows[0].attributes('row-key')) % 2).toBe(1)
+      rows.forEach((tr) => {
+        const rowIndex = Number(tr.attributes('row-key'))
+        expect(tr.classes().includes('ve-table-body-tr-stripe')).toBe(rowIndex % 2 === 0)
+      })
+
+      wrapper.unmount()
+    })
+
+    it('does not add the stripe row class when stripe is off', async () => {
+      const wrapper = mountVirtual()
+      wrapper.triggerResizeObserver({ width: MAX_HEIGHT })
+      await settle()
+
+      expect(wrapper.findAll('.ve-table-body-tr-stripe').length).toBe(0)
+
+      wrapper.unmount()
+    })
+
+    it('clicking a row highlights it', async () => {
+      const wrapper = mountVirtual()
+      wrapper.triggerResizeObserver({ width: MAX_HEIGHT })
+      await settle()
+
+      await wrapper.find('tbody[data-index="2"] td[col-key="b"]').trigger('click')
+      await settle()
+
+      const highlighted = wrapper.findAll('.ve-table-tr-highlight')
+      expect(highlighted.length).toBe(1)
+      expect(highlighted[0].attributes('row-key')).toBe('2')
+
+      wrapper.unmount()
+    })
+
+    it('cell selection finds the selected cell element', async () => {
+      const wrapper = mountVirtual()
+      wrapper.triggerResizeObserver({ width: MAX_HEIGHT })
+      await settle()
+
+      const tdEl = wrapper.find('tbody[data-index="3"] td[col-key="c"]')
+      await tdEl.trigger('mousedown')
+      await settle()
+
+      const selection = wrapper.findComponent({ name: 'VeTableSelection' })
+      expect((selection.vm as any).currentCellEl).toBe(tdEl.element)
+
+      // 首行 / 末行（已渲染）单元格，用于区域选择位置校准
+      const rows = wrapper.findAll('.ve-table-body-tr')
+      expect((selection.vm as any).getTableFirstRowCellByColKey('c')).toBe(
+        rows[0].find('td[col-key="c"]').element,
+      )
+      expect((selection.vm as any).getTableLastRowCellByColKey('c')).toBe(
+        rows[rows.length - 1].find('td[col-key="c"]').element,
+      )
+
+      wrapper.unmount()
+    })
+
+    it('the editor finds the selected cell element', async () => {
+      // 编辑框只有在单元格有尺寸时才保留 cellEl 并定位（jsdom 中默认全为 0）
+      const rectSpy = mockCellRects()
+
+      const wrapper = mountVirtual({
+        editOption: {
+          cellValueChange: () => {},
+        },
+      })
+      wrapper.triggerResizeObserver({ width: MAX_HEIGHT })
+      await settle()
+
+      const tdEl = wrapper.find('tbody[data-index="5"] td[col-key="b"]')
+      await tdEl.trigger('mousedown')
+      await settle()
+
+      const editor = wrapper.findComponent({ name: 'VeTableEditInput' })
+      expect((editor.vm as any).cellEl).toBe(tdEl.element)
+      expect((editor.vm as any).overflowViewport).toBe(false)
+      expect((editor.vm as any).textareaRect).toEqual(CELL_RECT_OFFSET)
+
+      wrapper.unmount()
+      rectSpy.mockRestore()
+    })
+
+    it('the row insert indicator sees every rendered row', async () => {
+      const wrapper = mountVirtual({
+        rowInsertOption: { enable: true },
+      })
+      wrapper.triggerResizeObserver({ width: MAX_HEIGHT })
+      await settle()
+
+      const tableEl = wrapper.find('table.ve-table-content').element as HTMLTableElement
+      const rows = queryBodyRows(tableEl)
+
+      expect(rows.length).toBe(getExpectedRowCount())
+      expect(rows.map(tr => tr.getAttribute('row-key'))).toEqual(
+        wrapper.findAll('.ve-table-body-tr').map(tr => tr.attributes('row-key')),
+      )
+
+      wrapper.unmount()
+    })
   })
 })

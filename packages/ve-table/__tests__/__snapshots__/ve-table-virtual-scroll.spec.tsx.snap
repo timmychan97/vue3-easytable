@@ -35,7 +35,7 @@ exports[`veTable virtual scroll > render same row height 1`] = `
             </tr>
           </thead>
           <!---->
-          <tbody data-index="0">
+          <tbody class="ve-table-body ve-table-row-hover ve-table-row-highlight" data-index="0">
             <tr class="ve-table-body-tr" row-key="0">
               <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="b">
                 <!---->
@@ -55,7 +55,7 @@ exports[`veTable virtual scroll > render same row height 1`] = `
             </tr>
             <!---->
           </tbody>
-          <tbody data-index="1">
+          <tbody class="ve-table-body ve-table-row-hover ve-table-row-highlight" data-index="1">
             <tr class="ve-table-body-tr" row-key="1">
               <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="b">
                 <!---->
@@ -75,7 +75,7 @@ exports[`veTable virtual scroll > render same row height 1`] = `
             </tr>
             <!---->
           </tbody>
-          <tbody data-index="2">
+          <tbody class="ve-table-body ve-table-row-hover ve-table-row-highlight" data-index="2">
             <tr class="ve-table-body-tr" row-key="2">
               <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="b">
                 <!---->
@@ -95,7 +95,7 @@ exports[`veTable virtual scroll > render same row height 1`] = `
             </tr>
             <!---->
           </tbody>
-          <tbody data-index="3">
+          <tbody class="ve-table-body ve-table-row-hover ve-table-row-highlight" data-index="3">
             <tr class="ve-table-body-tr" row-key="3">
               <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="b">
                 <!---->
@@ -115,7 +115,7 @@ exports[`veTable virtual scroll > render same row height 1`] = `
             </tr>
             <!---->
           </tbody>
-          <tbody data-index="4">
+          <tbody class="ve-table-body ve-table-row-hover ve-table-row-highlight" data-index="4">
             <tr class="ve-table-body-tr" row-key="4">
               <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="b">
                 <!---->
@@ -135,7 +135,7 @@ exports[`veTable virtual scroll > render same row height 1`] = `
             </tr>
             <!---->
           </tbody>
-          <tbody data-index="5">
+          <tbody class="ve-table-body ve-table-row-hover ve-table-row-highlight" data-index="5">
             <tr class="ve-table-body-tr" row-key="5">
               <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="b">
                 <!---->
@@ -155,7 +155,7 @@ exports[`veTable virtual scroll > render same row height 1`] = `
             </tr>
             <!---->
           </tbody>
-          <tbody data-index="6">
+          <tbody class="ve-table-body ve-table-row-hover ve-table-row-highlight" data-index="6">
             <tr class="ve-table-body-tr" row-key="6">
               <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="b">
                 <!---->
@@ -175,7 +175,7 @@ exports[`veTable virtual scroll > render same row height 1`] = `
             </tr>
             <!---->
           </tbody>
-          <tbody data-index="7">
+          <tbody class="ve-table-body ve-table-row-hover ve-table-row-highlight" data-index="7">
             <tr class="ve-table-body-tr" row-key="7">
               <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="b">
                 <!---->
@@ -195,7 +195,7 @@ exports[`veTable virtual scroll > render same row height 1`] = `
             </tr>
             <!---->
           </tbody>
-          <tbody data-index="8">
+          <tbody class="ve-table-body ve-table-row-hover ve-table-row-highlight" data-index="8">
             <tr class="ve-table-body-tr" row-key="8">
               <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="b">
                 <!---->
@@ -215,7 +215,7 @@ exports[`veTable virtual scroll > render same row height 1`] = `
             </tr>
             <!---->
           </tbody>
-          <tbody data-index="9">
+          <tbody class="ve-table-body ve-table-row-hover ve-table-row-highlight" data-index="9">
             <tr class="ve-table-body-tr" row-key="9">
               <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="b">
                 <!---->
@@ -235,7 +235,7 @@ exports[`veTable virtual scroll > render same row height 1`] = `
             </tr>
             <!---->
           </tbody>
-          <tbody data-index="10">
+          <tbody class="ve-table-body ve-table-row-hover ve-table-row-highlight" data-index="10">
             <tr class="ve-table-body-tr" row-key="10">
               <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="b">
                 <!---->
@@ -255,7 +255,7 @@ exports[`veTable virtual scroll > render same row height 1`] = `
             </tr>
             <!---->
           </tbody>
-          <tbody data-index="11">
+          <tbody class="ve-table-body ve-table-row-hover ve-table-row-highlight" data-index="11">
             <tr class="ve-table-body-tr" row-key="11">
               <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="b">
                 <!---->
@@ -275,7 +275,7 @@ exports[`veTable virtual scroll > render same row height 1`] = `
             </tr>
             <!---->
           </tbody>
-          <tbody data-index="12">
+          <tbody class="ve-table-body ve-table-row-hover ve-table-row-highlight" data-index="12">
             <tr class="ve-table-body-tr" row-key="12">
               <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="b">
                 <!---->
@@ -295,7 +295,7 @@ exports[`veTable virtual scroll > render same row height 1`] = `
             </tr>
             <!---->
           </tbody>
-          <tbody data-index="13">
+          <tbody class="ve-table-body ve-table-row-hover ve-table-row-highlight" data-index="13">
             <tr class="ve-table-body-tr" row-key="13">
               <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="b">
                 <!---->
@@ -315,7 +315,7 @@ exports[`veTable virtual scroll > render same row height 1`] = `
             </tr>
             <!---->
           </tbody>
-          <tbody data-index="14">
+          <tbody class="ve-table-body ve-table-row-hover ve-table-row-highlight" data-index="14">
             <tr class="ve-table-body-tr" row-key="14">
               <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="b">
                 <!---->
@@ -335,7 +335,7 @@ exports[`veTable virtual scroll > render same row height 1`] = `
             </tr>
             <!---->
           </tbody>
-          <tbody data-index="15">
+          <tbody class="ve-table-body ve-table-row-hover ve-table-row-highlight" data-index="15">
             <tr class="ve-table-body-tr" row-key="15">
               <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="b">
                 <!---->
@@ -355,7 +355,7 @@ exports[`veTable virtual scroll > render same row height 1`] = `
             </tr>
             <!---->
           </tbody>
-          <tbody data-index="16">
+          <tbody class="ve-table-body ve-table-row-hover ve-table-row-highlight" data-index="16">
             <tr class="ve-table-body-tr" row-key="16">
               <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="b">
                 <!---->
@@ -375,7 +375,7 @@ exports[`veTable virtual scroll > render same row height 1`] = `
             </tr>
             <!---->
           </tbody>
-          <tbody data-index="17">
+          <tbody class="ve-table-body ve-table-row-hover ve-table-row-highlight" data-index="17">
             <tr class="ve-table-body-tr" row-key="17">
               <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="b">
                 <!---->

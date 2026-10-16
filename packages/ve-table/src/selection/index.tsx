@@ -15,6 +15,7 @@ import {
   isLastColumnByColKey,
   isLastRowByRowKey,
 } from '../util'
+import { queryCell, queryFirstRowCell, queryLastRowCell } from '../util/cell-dom'
 import {
   AUTOFILLING_DIRECTION,
   COLUMN_FIXED_TYPE,
@@ -1412,16 +1413,7 @@ export default defineComponent({
         用作跨页单元格选择，表格大小变化或者存在横向滚动条时，区域选择位置自动校准
         */
     getTableFirstRowCellByColKey(colKey) {
-      let result = null
-
-      const { tableEl } = this
-
-      if (tableEl) {
-        result = tableEl.querySelector(
-          `tbody.ve-table-body tr td[col-key="${colKey}"]`,
-        )
-      }
-      return result
+      return queryFirstRowCell(this.tableEl, colKey)
     },
 
     /*
@@ -1429,30 +1421,12 @@ export default defineComponent({
         用作跨页单元格选择，表格大小变化或者存在横向滚动条时，区域选择位置自动校准
         */
     getTableLastRowCellByColKey(colKey) {
-      let result = null
-
-      const { tableEl } = this
-
-      if (tableEl) {
-        result = tableEl.querySelector(
-          `tbody.ve-table-body tr:last-child td[col-key="${colKey}"]`,
-        )
-      }
-      return result
+      return queryLastRowCell(this.tableEl, colKey)
     },
 
-    // get table el
+    // get table el（普通模式与虚拟滚动模式通用，key 会被转义，找不到返回 null）
     getTableCellEl({ rowKey, colKey }) {
-      let result = null
-
-      const { tableEl } = this
-
-      if (tableEl) {
-        result = tableEl.querySelector(
-          `tbody.ve-table-body tr[row-key="${rowKey}"] td[col-key="${colKey}"]`,
-        )
-      }
-      return result
+      return queryCell(this.tableEl, rowKey, colKey)
     },
 
     // set current cell el
@@ -1489,18 +1463,14 @@ export default defineComponent({
 
     // set auto fill cell el
     setAutofillEndCellEl() {
-      const { cellSelectionData, tableEl } = this
+      const { cellSelectionData } = this
 
       const { rowKey, colKey } = cellSelectionData.autoFillEndCell
 
-      if (tableEl) {
-        const autoFillEndCellEl = tableEl.querySelector(
-          `tbody.ve-table-body tr[row-key="${rowKey}"] td[col-key="${colKey}"]`,
-        )
+      const autoFillEndCellEl = this.getTableCellEl({ rowKey, colKey })
 
-        if (autoFillEndCellEl)
-          this.autoFillEndCellEl = autoFillEndCellEl
-      }
+      if (autoFillEndCellEl)
+        this.autoFillEndCellEl = autoFillEndCellEl
     },
 
     // clear auto fill end cell rect

@@ -3,7 +3,8 @@
  * Spread into defineComponent({ methods: { ...scrollingMethods } })
  */
 import { KEY_CODES } from '@vue3-easytable/common/utils/constant'
-import { COLUMN_FIXED_TYPE, COMPS_CUSTOM_ATTRS } from '../util/constant.js'
+import { queryBodyRow } from '../util/cell-dom'
+import { COLUMN_FIXED_TYPE } from '../util/constant.js'
 import { getNotFixedTotalWidthByColumnKey } from '../util/index.js'
 
 export const scrollingMethods = {
@@ -58,9 +59,8 @@ export const scrollingMethods = {
       scrollTop: containerScrollTop,
     } = tableContainerRef
 
-    const nextRowEl = this.$el.querySelector(
-      `tbody tr[${COMPS_CUSTOM_ATTRS.BODY_ROW_KEY}="${nextRowKey}"]`,
-    ) as HTMLElement | null
+    // key 会被转义；未渲染的行返回 null
+    const nextRowEl = queryBodyRow(this.$el, nextRowKey) as HTMLElement | null
 
     if (nextRowEl) {
       const { offsetTop: trOffsetTop, clientHeight: trClientHeight }

@@ -46,10 +46,10 @@ import { keyboardMethods } from './methods/keyboard'
 import { scrollingMethods } from './methods/scrolling'
 import RowInsertIndicator from './row-insert-indicator'
 import Selection from './selection'
+import { queryBodyRow } from './util/cell-dom'
 // Clipboard utils moved to methods/clipboard.ts
 import {
   COLUMN_FIXED_TYPE,
-  COMPS_CUSTOM_ATTRS,
   COMPS_NAME,
   CONTEXTMENU_TYPES,
   EMIT_EVENTS,
@@ -1986,9 +1986,8 @@ export default defineComponent({
         }
       }
       else {
-        const rowEl = this.$el.querySelector(
-          `tbody tr[${COMPS_CUSTOM_ATTRS.BODY_ROW_KEY}="${rowKey}"]`,
-        )
+        // key 会被转义；未渲染的行返回 null
+        const rowEl = queryBodyRow(this.$el, rowKey)
 
         const scrollTop = rowEl ? rowEl.offsetTop - headerTotalHeight : 0
 
@@ -2187,7 +2186,9 @@ export default defineComponent({
     // body props
     const bodyProps = {
       ref: this.tableBodyRef,
-      class: [clsName('body'), this.tableBodyClass],
+      // 虚拟滚动时 Body 渲染多个 <tbody>（片段根节点），class 无法 fall-through，因此作为 prop 显式传入
+      bodyClass: [clsName('body'), this.tableBodyClass],
+      stripe: this.tableBodyClass[clsName('stripe')],
       tableViewportWidth,
       columnsOptionResetTime: this.columnsOptionResetTime,
       colgroups,

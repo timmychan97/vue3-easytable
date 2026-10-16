@@ -169,3 +169,33 @@ export function getVirtualRenderRange(options: {
     rowStart: (index: number) => starts[index],
   }
 }
+
+/*
+ * @mockCellRects
+ * @desc jsdom 的 getBoundingClientRect 全为 0。这里让 body 单元格返回固定尺寸，
+ *       其他元素返回一个容纳单元格的大矩形，供编辑框 / 选区的定位逻辑使用。
+ *       单元格相对表格的偏移为 CELL_RECT_OFFSET。返回 vi.spyOn 的结果，用完调用 mockRestore()。
+ */
+export const CELL_RECT_OFFSET = { left: 10, top: 20 }
+
+export function mockCellRects() {
+  const rect = (left: number, top: number, width: number, height: number) => ({
+    left,
+    top,
+    width,
+    height,
+    right: left + width,
+    bottom: top + height,
+    x: left,
+    y: top,
+    toJSON() {
+      return this
+    },
+  }) as DOMRect
+
+  return vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(function (this: Element) {
+    if (this.tagName === 'TD' && this.hasAttribute('col-key'))
+      return rect(CELL_RECT_OFFSET.left, CELL_RECT_OFFSET.top, 100, 40)
+    return rect(0, 0, 1000, 500)
+  })
+}

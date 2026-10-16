@@ -35,7 +35,7 @@ exports[`veTable row style > render 1`] = `
             </tr>
           </thead>
           <tbody class="ve-table-body ve-table-stripe ve-table-row-hover ve-table-row-highlight">
-            <tr class="ve-table-body-tr" row-key="0">
+            <tr class="ve-table-body-tr ve-table-body-tr-stripe" row-key="0">
               <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="b">
                 <!---->
                 <!---->
@@ -71,7 +71,7 @@ exports[`veTable row style > render 1`] = `
               </td>
             </tr>
             <!---->
-            <tr class="ve-table-body-tr" row-key="2">
+            <tr class="ve-table-body-tr ve-table-body-tr-stripe" row-key="2">
               <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="b">
                 <!---->
                 <!---->
@@ -107,7 +107,7 @@ exports[`veTable row style > render 1`] = `
               </td>
             </tr>
             <!---->
-            <tr class="ve-table-body-tr" row-key="4">
+            <tr class="ve-table-body-tr ve-table-body-tr-stripe" row-key="4">
               <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="b">
                 <!---->
                 <!---->

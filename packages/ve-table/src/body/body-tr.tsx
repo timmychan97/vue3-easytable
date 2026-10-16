@@ -16,6 +16,11 @@ export default defineComponent({
       type: Number,
       required: true,
     },
+    // 是否开启斑马纹
+    stripe: {
+      type: Boolean,
+      default: false,
+    },
     colgroups: {
       type: Array,
       required: true,
@@ -171,6 +176,8 @@ export default defineComponent({
       result = {
         [clsName('body-tr')]: true,
         [clsName('tr-highlight')]: isHighlight,
+        // 斑马纹按数据行下标（第 1、3、5… 行），与 DOM 位置、展开行、虚拟滚动的 <tbody> 无关
+        [clsName('body-tr-stripe')]: this.stripe && this.rowIndex % 2 === 0,
       }
 
       return result
