@@ -381,6 +381,81 @@ describe('veTable contextmenu', () => {
     })
   })
 
+  // 已左固定的列执行“右固定列至”：菜单项应禁用，且强行执行时不报错、列不变
+  it('header contextmenu right fixed column to on a left fixed column', async () => {
+    const errorHandler = vi.fn()
+
+    const columns = COLUMNS.map(column =>
+      ['a', 'name'].includes(column.key)
+        ? { ...column, fixed: 'left' }
+        : column,
+    )
+
+    const WRAPPER = mount(
+      {
+        render() {
+          return (
+            <div>
+              <ve-table
+                row-key-field-name="rowKey"
+                columns={columns}
+                table-data={cloneDeep(TABLE_DATA)}
+                contextmenu-header-option={{
+                  contextmenus: HEADER_CONTEXTMENUS,
+                }}
+              />
+            </div>
+          )
+        },
+      },
+      { global: { config: { errorHandler } } },
+    )
+
+    const nameThEl = WRAPPER.findAll('.ve-table-header-tr')[0]
+      .findAll('.ve-table-header-th')[1]
+
+    nameThEl.trigger('mousedown', {
+      button: 3,
+    })
+    await later()
+    nameThEl.trigger('contextmenu')
+    await later()
+
+    const contextmenuNodes = document.querySelectorAll(
+      '.ve-contextmenu-node',
+    )
+
+    // CUT, COPY, EMPTY_COLUMN, LEFT_FIXED, CANCEL_LEFT_FIXED, RIGHT_FIXED, CANCEL_RIGHT_FIXED
+    expect(contextmenuNodes.length).toBe(7)
+    expect(contextmenuNodes[3].classList).not.toContain(
+      've-contextmenu-node-disabled',
+    )
+    expect(contextmenuNodes[5].classList).toContain(
+      've-contextmenu-node-disabled',
+    )
+
+    // 绕过禁用状态，直接执行菜单动作
+    const tableVm = WRAPPER.findComponent({ name: 'VeTable' }).vm as any
+    tableVm.contextmenuItemClick('RIGHT_FIXED_COLUMN_TO')
+    await later()
+
+    expect(errorHandler).not.toHaveBeenCalled()
+    expect(Array.isArray(tableVm.cloneColumns)).toBe(true)
+    expect(tableVm.cloneColumns.map(x => x.fixed)).toEqual([
+      'left',
+      'left',
+      undefined,
+      undefined,
+      undefined,
+    ])
+    expect(
+      WRAPPER.findAll('.ve-table-header-tr')[0].findAll('.ve-table-header-th')
+        .length,
+    ).toBe(5)
+
+    WRAPPER.unmount()
+  })
+
   it('body contextmenu beforeShow callback', async () => {
     const mockBeforeShowFn = vi.fn()
 

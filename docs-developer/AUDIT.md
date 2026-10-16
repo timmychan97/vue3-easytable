@@ -133,10 +133,12 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
 
 ## COL — columns (fixed, hide/show, resize)
 
-- [ ] **COL-01** 🔴 🔍 "Left/Right fixed column to" on a column fixed the other way crashes the table
+- [x] ✅ 2026-10-16 · fix/audit-batch1-crash-oneliners **COL-01** 🔴 🔍 "Left/Right fixed column to" on a column fixed the other way crashes the table
   - **Where:** [util/index.ts:1447-1450](../packages/ve-table/src/util/index.ts#L1447-L1450). `setColumnFixed` returns `false`, and the callers `methods/contextmenu.ts:135, 158` assign it to `this.cloneColumns`. The `cloneColumns` watcher (`ve-table.tsx:771`) then runs `initGroupColumns(false)`, which throws `false.forEach is not a function`.
   - **Trigger:** a column with `fixed: 'left'`, right-click its header, choose "Right fixed column to".
   - **Fix:** `return cloneColumns` (or have the callers ignore a falsy result). Also disable the menu item when the direction conflicts (`setHeaderContextmenuOptions`, util ~404-470).
+  - **Done:** `setColumnFixed` now returns the unchanged `cloneColumns` (same reference, so the watcher doesn't fire). `setHeaderContextmenuOptions` disables "Left fixed column to" when the range's right edge column is right-fixed, and "Right fixed column to" when the left edge column is left-fixed (the same edges `setColumnFixed` checks).
+  - **Verified:** `ve-table-contextmenu.spec.tsx` › "header contextmenu right fixed column to on a left fixed column" (the menu node is `ve-contextmenu-node-disabled`; calling `contextmenuItemClick('RIGHT_FIXED_COLUMN_TO')` directly no longer reaches the app `errorHandler` with `cloneColumns.forEach is not a function`, and the columns and header stay intact). `ve-table-util.spec.ts` › `setColumnFixed` (both directions return the same array unchanged) and `setHeaderContextmenuOptions` (disabled per direction, both enabled on an unfixed column, multi-column range uses the same edges).
 
 - [ ] **COL-02** 🟢 🔍 The "don't left-fix the last column" guard is a no-op
   - **Where:** [util/index.ts:1471](../packages/ve-table/src/util/index.ts#L1471). `index < cloneColumns.length` is always true. The RIGHT branch (`index > 0`) is correct.
