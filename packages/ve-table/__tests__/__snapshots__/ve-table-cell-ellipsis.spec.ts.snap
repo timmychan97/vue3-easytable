@@ -42,20 +42,6 @@ exports[`veTable cell ellipsis > render single line ellipsis 1`] = `
             </tr>
           </thead>
           <tbody class="ve-table-body ve-table-row-hover ve-table-row-highlight">
-            <tr style="height: 0px;">
-              <td style="padding: 0px; border: 0px; height: 0px;">
-                <!---->
-              </td>
-              <td style="padding: 0px; border: 0px; height: 0px;">
-                <!---->
-              </td>
-              <td style="padding: 0px; border: 0px; height: 0px;">
-                <!---->
-              </td>
-              <td style="padding: 0px; border: 0px; height: 0px;">
-                <!---->
-              </td>
-            </tr>
             <tr class="ve-table-body-tr">
               <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="a">
                 <!---->
@@ -173,6 +159,30 @@ exports[`veTable cell ellipsis > render single line ellipsis 1`] = `
             <!---->
           </tbody>
           <tfoot class="ve-table-fixed-footer ve-table-footer"></tfoot>
+        </table>
+        <table aria-hidden="true" style="position: absolute; top: 0px; left: 0px; width: 100%; visibility: hidden; pointer-events: none; z-index: -1;">
+          <colgroup>
+            <col style="width: 15%;">
+            <col style="width: 15%;">
+            <col style="width: 30%;">
+            <col style="width: 40%;">
+          </colgroup>
+          <tbody>
+            <tr>
+              <td style="padding: 0px; border: 0px; height: 0px;">
+                <!---->
+              </td>
+              <td style="padding: 0px; border: 0px; height: 0px;">
+                <!---->
+              </td>
+              <td style="padding: 0px; border: 0px; height: 0px;">
+                <!---->
+              </td>
+              <td style="padding: 0px; border: 0px; height: 0px;">
+                <!---->
+              </td>
+            </tr>
+          </tbody>
         </table>
         <div class="ve-table-selection-wrapper">
           <div class="ve-table-selection-fixed-left">
