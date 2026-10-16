@@ -71,15 +71,19 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
 
 ## INFRA — cross-cutting infrastructure
 
-- [ ] **INFRA-01** 🔴 `Hooks` has no `removeHook`, so subscriptions leak and dead instances throw
+- [x] ✅ 2026-10-16 · fix/audit-batch2-lifecycle-leaks · **INFRA-01** 🔴 `Hooks` has no `removeHook`, so subscriptions leak and dead instances throw
   - **Where:** [common/utils/hooks-manager.ts](../packages/common/utils/hooks-manager.ts). Registered and never removed in `selection/index.tsx:246-290`, `editor/index.tsx:193-208`, `column-resizer/index.tsx:88-95` and `row-insert-indicator/index.tsx:396`.
   - **Trigger:** select a cell, toggle `cellSelectionOption.enable` (or `rowInsertOption.enable`) at runtime, then scroll. The unmounted editor's scroll hook runs `autoResize.init(null)`, and `auto-resize.ts:130` (`el.nodeName`) throws. That aborts `triggerHook`'s `forEach`, so the remaining hooks never run. Each toggle also adds another set of closures.
   - **Fix:** make `addHook` return a disposer and call it in each child's `beforeUnmount`. Isolate errors per callback in `triggerHook`.
+  - **Done:** `addHook` returns a disposer and there is a new `removeHook`. `triggerHook` iterates over a copy and wraps each callback in try/catch + `console.error`. `selection` and `editor` keep `hookDisposers` (cleared before re-registering) and dispose them in `beforeUnmount`. `column-resizer` does the same with its one hook. `row-insert-indicator` disposes in `onUnmounted` and skips its `nextTick` registration if it already unmounted.
+  - **Verified:** `ve-table-lifecycle.spec.ts` › "toggling cellSelectionOption.enable removes the old hooks (INFRA-01)" (hook count 24 → 6 after three toggles; triggering scroll / size-change after disabling no longer throws or logs) and "toggling rowInsertOption.enable removes the old scroll hook (INFRA-01)" (6 → 3). `common/__tests__/hooks-manager.spec.ts` covers the disposer, error isolation, and self-disposal during trigger.
 
-- [ ] **INFRA-02** 🔴 🔍 The emitter mixin never unsubscribes, so handlers run once per past mount
+- [x] ✅ 2026-10-16 · fix/audit-batch2-lifecycle-leaks · **INFRA-02** 🔴 🔍 The emitter mixin never unsubscribes, so handlers run once per past mount
   - **Where:** [common/mixins/emitter.ts:30-33](../packages/common/mixins/emitter.ts#L30-L33). `bus.on(key, callback.bind(this))`, and there is no `off` anywhere in the repo.
   - **Trigger:** toggle `showHeader` off and on, then click a sort icon. Both the dead and the live `header/index.tsx` instances handle `SORT_CHANGE`, so the user's `sortOption.sortChange` runs twice, the first time with stale `sortColumns`. That means two fetches, and the stale one can win. `header-checkbox-content` remounts on every columns change (its key includes `columnsOptionResetTime`), so it leaks as well.
   - **Fix:** keep each bound handler and `bus.off` all of them in the mixin's `beforeUnmount`. Long term: MOD-01.
+  - **Done:** `on()` records `{ bus, type, handler }` per instance, and the mixin's `beforeUnmount` `bus.off`s all of them.
+  - **Verified:** `ve-table-lifecycle.spec.ts` › "toggling showHeader does not leave a dead SORT_CHANGE handler (INFRA-02)": after two `showHeader` toggles, `sortChange` was called 3 times before the fix and is now called once, with `{ age: 'asc' }`.
 
 - [ ] **INFRA-03** 🟠 Debounces, timers and rAF are not cancelled on unmount
   - [ ] `ve-table.tsx`: `debouncedBodyCellWidthChange` and `debouncedMeasureCellWidthChange` (created at 858-867) are never cancelled. `unmounted` (1000-1005) destroys the virtualizer and removes the keydown listener, but nothing else. *(Since `442962c`: the rAF timeout, `initVirtualScroll` and `setVirtualPhantomHeight` are gone, and `initTanStackVirtualScroll` null-guards its ref.)*
@@ -631,7 +635,7 @@ Record new decisions here with the next free `D` number and the date. Reference 
 
 - The VeLoading "lock" test asserts only `.ve-loading-fixed` (LOAD-01).
 - `ve-table-cell-selection.spec.ts:599-604` asserts buggy behaviour (SEL-03).
-- No tests for remount or toggle scenarios (toggle `cellSelectionOption.enable`, `showHeader`, `rowInsertOption.enable`), which would catch INFRA-01 and INFRA-02.
+- ~~No tests for remount or toggle scenarios (toggle `cellSelectionOption.enable`, `showHeader`, `rowInsertOption.enable`), which would catch INFRA-01 and INFRA-02.~~ Added in `ve-table-lifecycle.spec.ts` (batch 2).
 - No clipboard codec round-trip tests (CLIP-03 … CLIP-05).
 - No virtual-scroll tests with variable row heights plus edits (VS-03).
 - **The suite has been red since `442962c` (40 failures).** 29 snapshots were never refreshed after the measurement row moved out of `<tbody>`, plus the en-US pagination text changes. The 11 virtual-scroll specs fail because jsdom has no layout: the scroll container measures 0 px, so TanStack yields no items and nothing renders. One (`dynamically turns virtual scrolling on`, :158) also still asserts the removed `.ve-table-virtual-phantom`. Fix: pass TanStack's `initialRect` (or mock `getBoundingClientRect` / `offsetHeight` in the spec), then rewrite the assertions for the spacer-based DOM.

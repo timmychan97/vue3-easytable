@@ -29,7 +29,25 @@ export default (eventBusKey?: string) => defineComponent({
     },
     on(eventName: string, callback: (params: any) => void) {
       const bus = ((eventBusKey && (this as any)[eventBusKey]) || this.eventBus) as EventBus
-      bus.on([this.$options.name, eventName].join(), callback.bind(this))
+      const type = [this.$options.name, eventName].join()
+      const handler = callback.bind(this)
+      bus.on(type, handler)
+
+      // 记录已注册的事件，卸载时统一移除
+      const self = this as any
+      if (!self.busListeners)
+        self.busListeners = []
+      self.busListeners.push({ bus, type, handler })
     },
+  },
+  beforeUnmount() {
+    // 移除本实例注册的所有事件，避免已卸载的实例继续响应（例如 showHeader 切换后排序回调执行多次）
+    const self = this as any
+    if (self.busListeners) {
+      self.busListeners.forEach(({ bus, type, handler }: { bus: EventBus, type: string, handler: (params: any) => void }) => {
+        bus.off(type, handler)
+      })
+      self.busListeners = []
+    }
   },
 })

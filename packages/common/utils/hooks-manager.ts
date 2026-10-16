@@ -2,8 +2,10 @@
 hook system
 
 */
+type HookCallback = (...args: any[]) => void
+
 export default class Hooks {
-  hooks: Record<string, (() => void)[]>
+  hooks: Record<string, HookCallback[]>
   constructor() {
     // ...
 
@@ -27,8 +29,9 @@ export default class Hooks {
    *
    * @param {string} hookName The hook name.
    * @param {Function} callback The listener function to add.
+   * @returns {Function} 注销函数：调用后移除该回调（组件卸载时必须调用，否则已卸载的实例仍会被触发）
    */
-  addHook(hookName: string, callback: () => void) {
+  addHook(hookName: string, callback: HookCallback): () => void {
     // let hooks: Function[]
 
     if (!this.hooks[hookName])
@@ -50,6 +53,24 @@ export default class Hooks {
 
     else
       hooks.push(callback)
+
+    return () => this.removeHook(hookName, callback)
+  }
+
+  /**
+   * Remove listener from plugin hooks system.
+   *
+   * @param {string} hookName The hook name.
+   * @param {Function} callback The listener function to remove.
+   */
+  removeHook(hookName: string, callback: HookCallback) {
+    const hooks = this.hooks[hookName]
+    if (!hooks)
+      return
+
+    const index = hooks.indexOf(callback)
+    if (index > -1)
+      hooks.splice(index, 1)
   }
 
   /**
@@ -64,9 +85,15 @@ export default class Hooks {
     if (hooks && hooks.length) {
     //   const args = Array.prototype.slice.call(arguments)
 
-      hooks.forEach((hook) => {
-        // exclude hookName param
-        hook(...args)
+      // 复制一份再遍历：回调内注销自身时不会跳过后面的回调
+      hooks.slice().forEach((hook) => {
+        // 单个回调出错不应中断其余回调
+        try {
+          hook(...args)
+        }
+        catch (error) {
+          console.error(`[vue3-easytable] hook "${hookName}" callback error:`, error)
+        }
       })
     }
     // else {
