@@ -4,11 +4,7 @@ exports[`veTable virtual scroll > render same row height 1`] = `
 "<div class="vue-table-root">
   <div style="width: 100%;" class="ve-table ve-table-border-around">
     <div class="ve-table-container ve-table-virtual-scroll ve-table-enable-cell-selection" style="max-height: 500px; height: 500px;">
-      <div class="ve-table-virtual-phantom ve-table-virtual-scroll" style="height: 40000px;">
-        <div style="width: 100%;">
-          <!---->
-        </div>
-      </div>
+      <!---->
       <div class="ve-table-content-wrapper">
         <table class="ve-table-content ve-table-border-x">
           <colgroup>
@@ -38,18 +34,8 @@ exports[`veTable virtual scroll > render same row height 1`] = `
               </th>
             </tr>
           </thead>
-          <tbody class="ve-table-body ve-table-row-hover ve-table-row-highlight">
-            <tr style="height: 0px;">
-              <td style="padding: 0px; height: 0px; border: 0px;">
-                <!---->
-              </td>
-              <td style="padding: 0px; height: 0px; border: 0px;">
-                <!---->
-              </td>
-              <td style="padding: 0px; height: 0px; border: 0px;">
-                <!---->
-              </td>
-            </tr>
+          <!---->
+          <tbody data-index="0">
             <tr class="ve-table-body-tr" row-key="0">
               <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="b">
                 <!---->
@@ -68,6 +54,8 @@ exports[`veTable virtual scroll > render same row height 1`] = `
               </td>
             </tr>
             <!---->
+          </tbody>
+          <tbody data-index="1">
             <tr class="ve-table-body-tr" row-key="1">
               <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="b">
                 <!---->
@@ -86,6 +74,8 @@ exports[`veTable virtual scroll > render same row height 1`] = `
               </td>
             </tr>
             <!---->
+          </tbody>
+          <tbody data-index="2">
             <tr class="ve-table-body-tr" row-key="2">
               <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="b">
                 <!---->
@@ -104,6 +94,8 @@ exports[`veTable virtual scroll > render same row height 1`] = `
               </td>
             </tr>
             <!---->
+          </tbody>
+          <tbody data-index="3">
             <tr class="ve-table-body-tr" row-key="3">
               <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="b">
                 <!---->
@@ -122,6 +114,8 @@ exports[`veTable virtual scroll > render same row height 1`] = `
               </td>
             </tr>
             <!---->
+          </tbody>
+          <tbody data-index="4">
             <tr class="ve-table-body-tr" row-key="4">
               <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="b">
                 <!---->
@@ -140,6 +134,8 @@ exports[`veTable virtual scroll > render same row height 1`] = `
               </td>
             </tr>
             <!---->
+          </tbody>
+          <tbody data-index="5">
             <tr class="ve-table-body-tr" row-key="5">
               <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="b">
                 <!---->
@@ -158,6 +154,8 @@ exports[`veTable virtual scroll > render same row height 1`] = `
               </td>
             </tr>
             <!---->
+          </tbody>
+          <tbody data-index="6">
             <tr class="ve-table-body-tr" row-key="6">
               <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="b">
                 <!---->
@@ -176,6 +174,8 @@ exports[`veTable virtual scroll > render same row height 1`] = `
               </td>
             </tr>
             <!---->
+          </tbody>
+          <tbody data-index="7">
             <tr class="ve-table-body-tr" row-key="7">
               <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="b">
                 <!---->
@@ -194,6 +194,8 @@ exports[`veTable virtual scroll > render same row height 1`] = `
               </td>
             </tr>
             <!---->
+          </tbody>
+          <tbody data-index="8">
             <tr class="ve-table-body-tr" row-key="8">
               <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="b">
                 <!---->
@@ -212,6 +214,8 @@ exports[`veTable virtual scroll > render same row height 1`] = `
               </td>
             </tr>
             <!---->
+          </tbody>
+          <tbody data-index="9">
             <tr class="ve-table-body-tr" row-key="9">
               <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="b">
                 <!---->
@@ -230,6 +234,8 @@ exports[`veTable virtual scroll > render same row height 1`] = `
               </td>
             </tr>
             <!---->
+          </tbody>
+          <tbody data-index="10">
             <tr class="ve-table-body-tr" row-key="10">
               <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="b">
                 <!---->
@@ -248,6 +254,8 @@ exports[`veTable virtual scroll > render same row height 1`] = `
               </td>
             </tr>
             <!---->
+          </tbody>
+          <tbody data-index="11">
             <tr class="ve-table-body-tr" row-key="11">
               <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="b">
                 <!---->
@@ -266,6 +274,8 @@ exports[`veTable virtual scroll > render same row height 1`] = `
               </td>
             </tr>
             <!---->
+          </tbody>
+          <tbody data-index="12">
             <tr class="ve-table-body-tr" row-key="12">
               <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="b">
                 <!---->
@@ -284,6 +294,8 @@ exports[`veTable virtual scroll > render same row height 1`] = `
               </td>
             </tr>
             <!---->
+          </tbody>
+          <tbody data-index="13">
             <tr class="ve-table-body-tr" row-key="13">
               <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="b">
                 <!---->
@@ -302,6 +314,8 @@ exports[`veTable virtual scroll > render same row height 1`] = `
               </td>
             </tr>
             <!---->
+          </tbody>
+          <tbody data-index="14">
             <tr class="ve-table-body-tr" row-key="14">
               <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="b">
                 <!---->
@@ -320,6 +334,8 @@ exports[`veTable virtual scroll > render same row height 1`] = `
               </td>
             </tr>
             <!---->
+          </tbody>
+          <tbody data-index="15">
             <tr class="ve-table-body-tr" row-key="15">
               <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="b">
                 <!---->
@@ -338,6 +354,8 @@ exports[`veTable virtual scroll > render same row height 1`] = `
               </td>
             </tr>
             <!---->
+          </tbody>
+          <tbody data-index="16">
             <tr class="ve-table-body-tr" row-key="16">
               <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="b">
                 <!---->
@@ -356,6 +374,8 @@ exports[`veTable virtual scroll > render same row height 1`] = `
               </td>
             </tr>
             <!---->
+          </tbody>
+          <tbody data-index="17">
             <tr class="ve-table-body-tr" row-key="17">
               <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="b">
                 <!---->
@@ -374,152 +394,33 @@ exports[`veTable virtual scroll > render same row height 1`] = `
               </td>
             </tr>
             <!---->
-            <tr class="ve-table-body-tr" row-key="18">
-              <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="b">
-                <!---->
-                <!---->
-                <!---->18
-              </td>
-              <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="c">
-                <!---->
-                <!---->
-                <!---->18
-              </td>
-              <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="d">
-                <!---->
-                <!---->
-                <!---->18
-              </td>
+          </tbody>
+          <tbody aria-hidden="true">
+            <tr>
+              <td colspan="3" style="padding: 0px; border: 0px; height: 39280px;"></td>
             </tr>
-            <!---->
-            <tr class="ve-table-body-tr" row-key="19">
-              <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="b">
-                <!---->
-                <!---->
-                <!---->19
-              </td>
-              <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="c">
-                <!---->
-                <!---->
-                <!---->19
-              </td>
-              <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="d">
-                <!---->
-                <!---->
-                <!---->19
-              </td>
-            </tr>
-            <!---->
-            <tr class="ve-table-body-tr" row-key="20">
-              <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="b">
-                <!---->
-                <!---->
-                <!---->20
-              </td>
-              <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="c">
-                <!---->
-                <!---->
-                <!---->20
-              </td>
-              <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="d">
-                <!---->
-                <!---->
-                <!---->20
-              </td>
-            </tr>
-            <!---->
-            <tr class="ve-table-body-tr" row-key="21">
-              <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="b">
-                <!---->
-                <!---->
-                <!---->21
-              </td>
-              <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="c">
-                <!---->
-                <!---->
-                <!---->21
-              </td>
-              <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="d">
-                <!---->
-                <!---->
-                <!---->21
-              </td>
-            </tr>
-            <!---->
-            <tr class="ve-table-body-tr" row-key="22">
-              <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="b">
-                <!---->
-                <!---->
-                <!---->22
-              </td>
-              <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="c">
-                <!---->
-                <!---->
-                <!---->22
-              </td>
-              <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="d">
-                <!---->
-                <!---->
-                <!---->22
-              </td>
-            </tr>
-            <!---->
-            <tr class="ve-table-body-tr" row-key="23">
-              <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="b">
-                <!---->
-                <!---->
-                <!---->23
-              </td>
-              <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="c">
-                <!---->
-                <!---->
-                <!---->23
-              </td>
-              <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="d">
-                <!---->
-                <!---->
-                <!---->23
-              </td>
-            </tr>
-            <!---->
-            <tr class="ve-table-body-tr" row-key="24">
-              <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="b">
-                <!---->
-                <!---->
-                <!---->24
-              </td>
-              <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="c">
-                <!---->
-                <!---->
-                <!---->24
-              </td>
-              <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="d">
-                <!---->
-                <!---->
-                <!---->24
-              </td>
-            </tr>
-            <!---->
-            <tr class="ve-table-body-tr" row-key="25">
-              <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="b">
-                <!---->
-                <!---->
-                <!---->25
-              </td>
-              <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="c">
-                <!---->
-                <!---->
-                <!---->25
-              </td>
-              <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="d">
-                <!---->
-                <!---->
-                <!---->25
-              </td>
-            </tr>
-            <!---->
           </tbody>
           <tfoot class="ve-table-fixed-footer ve-table-footer"></tfoot>
+        </table>
+        <table aria-hidden="true" style="position: absolute; top: 0px; left: 0px; width: 100%; visibility: hidden; pointer-events: none; z-index: -1;">
+          <colgroup>
+            <col style="width: 200px;">
+            <col style="width: 300px;">
+            <col>
+          </colgroup>
+          <tbody>
+            <tr>
+              <td style="padding: 0px; height: 0px; border: 0px;">
+                <!---->
+              </td>
+              <td style="padding: 0px; height: 0px; border: 0px;">
+                <!---->
+              </td>
+              <td style="padding: 0px; height: 0px; border: 0px;">
+                <!---->
+              </td>
+            </tr>
+          </tbody>
         </table>
         <div class="ve-table-selection-wrapper">
           <div class="ve-table-selection-fixed-left">
@@ -549,10 +450,4 @@ exports[`veTable virtual scroll > render same row height 1`] = `
   </div>
   <!---->
 </div>"
-`;
-
-exports[`veTable virtual scroll > virtual scroll palceholder 1`] = `
-"<tr class="ve-table-body-tr ve-table-body-row-scrolling">
-  <td colspan="1"></td>
-</tr>"
 `;
