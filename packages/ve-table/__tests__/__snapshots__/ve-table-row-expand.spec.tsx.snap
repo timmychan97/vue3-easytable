@@ -2,7 +2,7 @@
 
 exports[`veTable row expand > expandOption expandedRowKeys(controllable attr) 1`] = `
 "<div><button class="button-demo">第3行展开切换</button>
-  <div class="vue-table-root" style="width: 100%;">
+  <div class="vue-table-root" tabindex="0" style="width: 100%;">
     <div style="width: 100%;" class="ve-table ve-table-border-around">
       <div class="ve-table-container ve-table-enable-cell-selection" style="height: 0px;">
         <!---->
@@ -221,7 +221,7 @@ exports[`veTable row expand > expandOption expandedRowKeys(controllable attr) 1`
 `;
 
 exports[`veTable row expand > render 1`] = `
-"<div class="vue-table-root">
+"<div class="vue-table-root" tabindex="0">
   <div style="width: 100%;" class="ve-table ve-table-border-around">
     <div class="ve-table-container ve-table-enable-cell-selection" style="height: 0px;">
       <!---->

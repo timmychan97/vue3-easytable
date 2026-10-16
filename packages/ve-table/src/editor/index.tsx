@@ -6,7 +6,7 @@ import { isEmptyValue } from '@vue3-easytable/common/utils/index.js'
 import { debounce } from 'lodash'
 import { clsName, getFixedTotalWidthByColumnKey } from '../util'
 import { queryCell } from '../util/cell-dom'
-import { COMPS_NAME, EMIT_EVENTS, HOOKS_NAME } from '../util/constant'
+import { COMPS_NAME, EMIT_EVENTS, HOOKS_NAME, KEYBOARD_MODE } from '../util/constant'
 import { INSTANCE_METHODS } from './constant'
 
 export default defineComponent({
@@ -75,6 +75,11 @@ export default defineComponent({
     scrollBarWidth: {
       type: Number,
       required: true,
+    },
+    // 键盘模式（SEL-08）：表格模式下编辑框不抢焦点（焦点停在表格根元素上）
+    keyboardMode: {
+      type: String,
+      default: KEYBOARD_MODE.CELL,
     },
   },
   data() {
@@ -505,6 +510,7 @@ export default defineComponent({
       rawCellValue,
       isCellEditing,
       isEditCellFocus,
+      keyboardMode,
     } = this
 
     const containerProps = {
@@ -543,7 +549,8 @@ export default defineComponent({
         <textarea
           {...textareaProps}
           v-focus={{
-            focus: isEditCellFocus,
+            // 回到单元格导航时，编辑框随重新渲染重新获得焦点
+            focus: isEditCellFocus && keyboardMode === KEYBOARD_MODE.CELL,
           }}
         >
         </textarea>

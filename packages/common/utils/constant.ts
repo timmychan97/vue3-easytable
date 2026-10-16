@@ -3,6 +3,7 @@ export const KEY_CODES = {
   BACK_SPACE: 8,
   TAB: 9,
   ENTER: 13,
+  ESC: 27,
   SHIFT: 16,
   SPACE: 32,
 
