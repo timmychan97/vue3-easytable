@@ -2,9 +2,10 @@
  * Editing methods extracted from ve-table.
  * Spread into defineComponent({ methods: { ...editingMethods } })
  */
-import { isBoolean, isEmptyValue, isFunction } from '@vue3-easytable/common/utils'
+import { isBoolean, isEmptyValue } from '@vue3-easytable/common/utils'
 import { cloneDeep } from 'lodash'
 import { HOOKS_NAME, INSTANCE_METHODS } from '../util/constant.js'
+import { safeCall } from '../util/safe-call.js'
 
 export const editingMethods = {
   // save cell when stop editing
@@ -26,11 +27,17 @@ export const editingMethods = {
     if (isCellEditing) {
       const { rowKey, colKey } = editingCell
 
-      const currentRow = this.tableData.find(
-        x => x[rowKeyFieldName] === rowKey,
-      )
+      try {
+        const currentRow = this.tableData.find(
+          x => x[rowKeyFieldName] === rowKey,
+        )
 
-      if (currentRow) {
+        // 编辑中的行已被移除：无处保存，直接清除编辑状态（SEL-01）
+        if (!currentRow) {
+          this.clearEditingCell()
+          return false
+        }
+
         const currentColumn = colgroups.find(
           x => x.key === colKey,
         )
@@ -42,37 +49,41 @@ export const editingMethods = {
 
         const changeValue = editingCell.row[currentColumn.field]
 
-        if (isFunction(beforeCellValueChange)) {
-          const allowChange = beforeCellValueChange({
+        /*
+        beforeCellValueChange 抛出异常时视为“取消修改”（INFRA-07）：
+        不写入数据、不触发 after 回调，但仍要清除编辑状态
+        */
+        const { value: allowChange, threw } = safeCall(
+          'beforeCellValueChange',
+          beforeCellValueChange,
+          {
             row: cloneDeep(currentRow),
             column: currentColumn,
             changeValue,
-          })
-          if (isBoolean(allowChange) && !allowChange) {
-            this.clearEditingCell()
-            return false
-          }
+          },
+        )
+        if (threw || (isBoolean(allowChange) && !allowChange)) {
+          this.clearEditingCell()
+          return false
         }
 
         currentRow[currentColumn.field] = changeValue
 
-        // 同 afterCellValueChange，未来被移除
-        cellValueChange
-        && cellValueChange({
-          row: currentRow,
-          column: currentColumn,
-          changeValue,
-        })
-
-        afterCellValueChange
-        && afterCellValueChange({
-          row: currentRow,
-          column: currentColumn,
-          changeValue,
-        })
-
-        // celar editing cell
+        // 先清除编辑状态，再调用 after 回调（INFRA-07）
         this.clearEditingCell()
+
+        // 同 afterCellValueChange，未来被移除
+        safeCall('cellValueChange', cellValueChange, {
+          row: currentRow,
+          column: currentColumn,
+          changeValue,
+        })
+
+        safeCall('afterCellValueChange', afterCellValueChange, {
+          row: currentRow,
+          column: currentColumn,
+          changeValue,
+        })
 
         // trigger cell value change hook to refresh selection positions
         // this ensures the selection highlight updates after the cell content changes
@@ -80,9 +91,10 @@ export const editingMethods = {
           this.hooks.triggerHook(HOOKS_NAME.CLIPBOARD_CELL_VALUE_CHANGE)
         })
       }
-
-      // reset status
-      this.enableStopEditing = true
+      finally {
+        // reset status（无论保存、取消还是异常都要恢复）
+        this.enableStopEditing = true
+      }
     }
   },
 

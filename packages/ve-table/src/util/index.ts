@@ -838,6 +838,10 @@ export function isCellInSelectionRange({
     allRowKeys,
   })
 
+  // range 中的行或列已不存在（SEL-01），视为不在选区内
+  if (!colKeys || !rowKeys)
+    return false
+
   if (
     colKeys.includes(cellData.colKey)
     && rowKeys.includes(cellData.rowKey)

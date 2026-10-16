@@ -203,8 +203,11 @@ export default defineComponent({
       else {
         const index = colgroups.findIndex(x => x.key === rightColKey)
         // right col is right fixed and current col is not right fixed
+        // 列已被隐藏 / 移除时 index 为 -1（SEL-01），不能再读 colgroups[index]
         if (
-          colgroups[index + 1].fixed === COLUMN_FIXED_TYPE.RIGHT
+          index > -1
+          && index < colgroups.length - 1
+          && colgroups[index + 1].fixed === COLUMN_FIXED_TYPE.RIGHT
           && colgroups[index].fixed !== COLUMN_FIXED_TYPE.RIGHT
         ) {
           isLastColumn = true
@@ -228,7 +231,8 @@ export default defineComponent({
     // is first selection column
     isFirstSelectionCol() {
       const { colgroups, cellSelectionRangeData } = this
-      return colgroups[0].key === cellSelectionRangeData.leftColKey
+      // 所有列都被隐藏时 colgroups 为空
+      return colgroups[0]?.key === cellSelectionRangeData.leftColKey
     },
     // is first not fixed selection column
     isFirstNotFixedSelectionCol() {
@@ -1182,14 +1186,7 @@ export default defineComponent({
       totalColKeys,
       fixedColKeys,
     }) {
-      const {
-        cornerCellInfo,
-        colgroups,
-        isFirstSelectionRow,
-        isFirstSelectionCol,
-        isFirstNotFixedSelectionCol,
-        showCorner,
-      } = this
+      const { colgroups } = this
 
       let isRender = true
 
@@ -1210,6 +1207,15 @@ export default defineComponent({
 
       if (!isRender)
         return null
+
+      // 在 isRender 判断之后再读取这些计算属性，不渲染时不必计算（SEL-01）
+      const {
+        cornerCellInfo,
+        isFirstSelectionRow,
+        isFirstSelectionCol,
+        isFirstNotFixedSelectionCol,
+        showCorner,
+      } = this
 
       // fixed columns total width
       let fixedColsTotalWidth = 0

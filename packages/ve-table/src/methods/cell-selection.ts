@@ -7,6 +7,7 @@ import { KEY_CODES } from '@vue3-easytable/common/utils/constant'
 import {
   AUTOFILLING_DIRECTION,
   CURRENT_CELL_SELECTION_TYPES,
+  HOOKS_NAME,
   INSTANCE_METHODS,
 } from '../util/constant.js'
 import {
@@ -14,6 +15,7 @@ import {
   getRowKey,
   isCellInSelectionRange,
 } from '../util/index.js'
+import { safeCall } from '../util/safe-call.js'
 
 export const cellSelectionMethods = {
   // cell selection current cell change
@@ -252,29 +254,35 @@ export const cellSelectionMethods = {
       nextNormalEndCell: normalEndCellData,
     }
 
+    let autofillResponse: any = null
+
     if (cellAutofillOption) {
-      const { beforeAutofill, afterAutofill } = cellAutofillOption
+      const { beforeAutofill } = cellAutofillOption
 
       if (isFunction(beforeAutofill)) {
         // before autofill
-        const autofillResponse = cellAutofill({
+        const beforeAutofillResponse = cellAutofill({
           isReplaceData: false,
           ...cellAutofillParams,
         })
-        const callback = beforeAutofill(autofillResponse)
-        if (isBoolean(callback) && !callback)
+        // beforeAutofill 抛出异常时视为“取消填充”（INFRA-07）
+        const { value: callback, threw } = safeCall(
+          'beforeAutofill',
+          beforeAutofill,
+          beforeAutofillResponse,
+        )
+        if (threw || (isBoolean(callback) && !callback))
           return false
       }
 
-      // after autofill
-      const autofillResponse = cellAutofill({
+      // replace data
+      autofillResponse = cellAutofill({
         isReplaceData: true,
         ...cellAutofillParams,
       })
-      if (isFunction(afterAutofill))
-        afterAutofill(autofillResponse)
     }
 
+    // 先更新选区，再调用 afterAutofill（INFRA-07）
     if (!isEmptyValue(currentCellData.rowKey)) {
       this.cellSelectionCurrentCellChange({
         rowKey: currentCellData.rowKey,
@@ -288,6 +296,10 @@ export const cellSelectionMethods = {
         colKey: normalEndCellData.colKey,
       })
     }
+
+    // after autofill
+    if (autofillResponse)
+      safeCall('afterAutofill', cellAutofillOption.afterAutofill, autofillResponse)
   },
 
   // cell selection range data change
@@ -402,5 +414,123 @@ export const cellSelectionMethods = {
    */
   cellSelectionCornerMouseup(this: any, { event: _event }: any) {
     this.isAutofillStarting = false
+  },
+
+  /*
+   * @reconcileCellState
+   * @desc 列（colgroups）或行（allRowKeys）变化后，同步选区与编辑状态（SEL-01）
+   *  - 正在编辑的单元格所在行 / 列已不存在：清除编辑状态（无处保存，直接丢弃）
+   *  - currentCell 所在行 / 列已不存在：清空选区（连同 normalEndCell）
+   *  - normalEndCell 所在行 / 列已不存在：选区收缩为 currentCell
+   *  - 行位置变化：更新 rowIndex，并刷新选区位置
+   *  - 表头 / 行指示器的 key 已不存在：清除指示器
+   *  - range 中仍引用已不存在的 key（选区层未挂载时）：按当前单元格重置
+   */
+  reconcileCellState(this: any) {
+    const { colgroups, allRowKeys, cellSelectionData } = this
+    const { currentCell, normalEndCell, autoFillEndCell } = cellSelectionData
+
+    const hasCol = (colKey: any) => colgroups.some((x: any) => x.key === colKey)
+    const hasRow = (rowKey: any) => allRowKeys.includes(rowKey)
+    const isCellSet = (cell: any) =>
+      !isEmptyValue(cell.rowKey) && !isEmptyValue(cell.colKey)
+    const isCellExist = (cell: any) => hasRow(cell.rowKey) && hasCol(cell.colKey)
+
+    // editing cell
+    if (this.isCellEditing && !isCellExist(this.editingCell)) {
+      this.clearEditingCell()
+      this.editorInputStartValue = ''
+      this.enableStopEditing = true
+    }
+
+    /*
+    表头 / 行指示器（整列、整行选择）引用的 key 已不存在时清除。
+    key 仍存在时不重新应用：方向键移动后指示器并不会被清除，重新应用会把选区拉回去
+    */
+    const { startColKey, endColKey } = this.headerIndicatorColKeys
+    if (
+      (!isEmptyValue(startColKey) || !isEmptyValue(endColKey))
+      && (!hasCol(startColKey) || !hasCol(endColKey))
+    ) {
+      this.clearHeaderIndicatorColKeys()
+    }
+
+    const { startRowKey, endRowKey } = this.bodyIndicatorRowKeys
+    if (
+      (!isEmptyValue(startRowKey) || !isEmptyValue(endRowKey))
+      && (!hasRow(startRowKey) || !hasRow(endRowKey))
+    ) {
+      this.clearBodyIndicatorRowKeys()
+    }
+
+    let isPositionChanged = false
+
+    // current cell
+    if (isCellSet(currentCell)) {
+      if (!isCellExist(currentCell)) {
+        this.clearCellSelectionCurrentCell()
+      }
+      else {
+        const rowIndex = allRowKeys.indexOf(currentCell.rowKey)
+        if (rowIndex !== currentCell.rowIndex) {
+          currentCell.rowIndex = rowIndex
+          isPositionChanged = true
+        }
+      }
+    }
+
+    // normal end cell：没有 currentCell 时 range 也没有意义
+    if (isCellSet(normalEndCell)) {
+      if (!isCellSet(currentCell) || !isCellExist(normalEndCell)) {
+        this.clearCellSelectionNormalEndCell()
+      }
+      else {
+        const rowIndex = allRowKeys.indexOf(normalEndCell.rowKey)
+        if (rowIndex !== normalEndCell.rowIndex) {
+          normalEndCell.rowIndex = rowIndex
+          isPositionChanged = true
+        }
+      }
+    }
+
+    // autofill end cell
+    if (isCellSet(autoFillEndCell) && !isCellExist(autoFillEndCell))
+      this.clearCellSelectionAutofillEndCell()
+
+    /*
+    selection range：通常由选区层根据 currentCell / normalEndCell 重新计算，
+    这里只处理选区层没有同步时仍引用已不存在 key 的情况
+    */
+    const { leftColKey, rightColKey, topRowKey, bottomRowKey }
+      = this.cellSelectionRangeData
+    const isRangeStale
+      = [leftColKey, rightColKey].some(x => !isEmptyValue(x) && !hasCol(x))
+        || [topRowKey, bottomRowKey].some(x => !isEmptyValue(x) && !hasRow(x))
+
+    if (isRangeStale) {
+      if (!isCellSet(currentCell)) {
+        this.cellSelectionRangeDataChange({
+          leftColKey: '',
+          rightColKey: '',
+          topRowKey: '',
+          bottomRowKey: '',
+        })
+      }
+      else if (!isCellSet(normalEndCell)) {
+        this.cellSelectionRangeDataChange({
+          leftColKey: currentCell.colKey,
+          rightColKey: currentCell.colKey,
+          topRowKey: currentCell.rowKey,
+          bottomRowKey: currentCell.rowKey,
+        })
+      }
+    }
+
+    // 行位置变化（如在上方插入行）后，等 DOM 更新再刷新选区位置
+    if (isPositionChanged) {
+      this.$nextTick(() => {
+        this.hooks.triggerHook(HOOKS_NAME.CLIPBOARD_CELL_VALUE_CHANGE)
+      })
+    }
   },
 }
