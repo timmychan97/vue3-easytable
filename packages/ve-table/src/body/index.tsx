@@ -1,6 +1,7 @@
+import type { VNode } from 'vue'
 import emitter from '@vue3-easytable/common/mixins/emitter'
 import { getValByUnit } from '@vue3-easytable/common/utils'
-import { defineComponent } from 'vue'
+import { cloneVNode, defineComponent } from 'vue'
 import {
   clsName,
   getFixedTotalWidthByColumnKey,
@@ -914,16 +915,18 @@ export default defineComponent({
     }
 
     // ── Non-virtual path: render all rows in a single <tbody> ──
-    return (
-      <tbody class={bodyClass}>
-        {actualRenderTableData.map((rowData, rowIndex) => {
-          const trProps = buildTrProps(rowData, rowIndex)
-          return [
-            <BodyTr {...trProps} />,
-            getExpandRowComp({ rowData, rowIndex }),
-          ]
-        })}
-      </tbody>
-    )
+    // RENDER-02：子节点必须是扁平的带 key 数组。若每行返回 [行, 展开行]，Vue 会把它们包成
+    // 无 key 的 Fragment 并按位置匹配，排序或在顶部插入行时所有后移的行都会被重新挂载
+    const rows: VNode[] = []
+    actualRenderTableData.forEach((rowData, rowIndex) => {
+      const trProps = buildTrProps(rowData, rowIndex)
+      rows.push(<BodyTr {...trProps} />)
+
+      const expandRow = getExpandRowComp({ rowData, rowIndex })
+      if (expandRow)
+        rows.push(cloneVNode(expandRow, { key: `${trProps.key}__expand` }))
+    })
+
+    return <tbody class={bodyClass}>{rows}</tbody>
   },
 })

@@ -80,7 +80,6 @@ exports[`veTable footer > render 1`] = `
                 <!---->No.1 Century Avenue, Shanghai
               </td>
             </tr>
-            <!---->
             <tr class="ve-table-body-tr" row-key="1002">
               <td class="ve-table-body-td ve-table-fixed-left ve-table-last-left-fixed-column" style="text-align: center; left: 0px;" rowspan="1" colspan="1" col-key="a">
                 <!---->
@@ -103,7 +102,6 @@ exports[`veTable footer > render 1`] = `
                 <!---->No.1 Century Avenue, Beijing
               </td>
             </tr>
-            <!---->
             <tr class="ve-table-body-tr" row-key="1003">
               <td class="ve-table-body-td ve-table-fixed-left ve-table-last-left-fixed-column" style="text-align: center; left: 0px;" rowspan="1" colspan="1" col-key="a">
                 <!---->
@@ -126,7 +124,6 @@ exports[`veTable footer > render 1`] = `
                 <!---->No.1 Century Avenue, Chongqing
               </td>
             </tr>
-            <!---->
             <tr class="ve-table-body-tr" row-key="1004">
               <td class="ve-table-body-td ve-table-fixed-left ve-table-last-left-fixed-column" style="text-align: center; left: 0px;" rowspan="1" colspan="1" col-key="a">
                 <!---->
@@ -149,7 +146,6 @@ exports[`veTable footer > render 1`] = `
                 <!---->No.1 Century Avenue, Xiamen
               </td>
             </tr>
-            <!---->
             <tr class="ve-table-body-tr" row-key="1005">
               <td class="ve-table-body-td ve-table-fixed-left ve-table-last-left-fixed-column" style="text-align: center; left: 0px;" rowspan="1" colspan="1" col-key="a">
                 <!---->
@@ -172,7 +168,6 @@ exports[`veTable footer > render 1`] = `
                 <!---->No.1 Century Avenue, Shenzhen
               </td>
             </tr>
-            <!---->
           </tbody>
           <tfoot class="ve-table-fixed-footer ve-table-footer">
             <tr class="ve-table-footer-tr">

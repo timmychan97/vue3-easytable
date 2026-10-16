@@ -410,7 +410,7 @@ exports[`veTable virtual scroll > render same row height 1`] = `
           </tbody>
           <tbody aria-hidden="true">
             <tr>
-              <td colspan="3" style="padding: 0px; border: 0px; height: 39280px;"></td>
+              <td colspan="3" style="padding: 0px; height: 39280px; border: 0px;"></td>
             </tr>
           </tbody>
           <tfoot class="ve-table-fixed-footer ve-table-footer"></tfoot>
