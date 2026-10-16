@@ -12,6 +12,7 @@ import type {
 import type { VirtualItem, VirtualScrollInstance } from './virtual-scroll'
 import VueDomResizeObserver from '@vue3-easytable/common/comps/resize-observer'
 import clickoutside from '@vue3-easytable/common/directives/clickoutside'
+import { globalLocale, LocaleInjectionKey } from '@vue3-easytable/common/locale'
 import emitter from '@vue3-easytable/common/mixins/emitter'
 import {
   getValByUnit,
@@ -80,6 +81,11 @@ export default defineComponent({
     'click-outside': clickoutside,
   },
   mixins: [emitter('eventBus')],
+  inject: {
+    // 语言包：最近的 ConfigProvider，否则为全局语言包（右键菜单文案使用）。
+    // ve-table 仍是 Options API（MOD-02），这里用 inject 选项而不是 setup，保持实例结构不变
+    veLocale: { from: LocaleInjectionKey, default: () => globalLocale },
+  },
   props: {
     tableData: {
       required: true,

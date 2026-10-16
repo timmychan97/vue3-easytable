@@ -3,8 +3,8 @@
  * Spread into defineComponent({ methods: { ...contextmenuMethods } })
  */
 
+import { createI18N } from '@vue3-easytable/common/locale'
 import {
-  createLocale,
   isBoolean,
   isEmptyValue,
   isFunction,
@@ -26,12 +26,12 @@ import {
   setHeaderContextmenuOptions,
 } from '../util/index.js'
 
-const t = createLocale(LOCALE_COMP_NAME)
-
 export const contextmenuMethods = {
   // set contextmenu options
   setContextmenuOptions(this: any, column: any) {
     const { contextMenuType } = this
+    // 使用注入的语言包（最近的 ConfigProvider，否则为全局语言包）
+    const t = createI18N(LOCALE_COMP_NAME, () => this.veLocale)
 
     // header contextmenu
     if (contextMenuType === CONTEXTMENU_TYPES.HEADER_CONTEXTMENU) {

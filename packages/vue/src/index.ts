@@ -1,6 +1,7 @@
 import type { LocaleMessageInput } from '@vue3-easytable/common/locale/types'
 
 import type { Plugin } from 'vue'
+import VeConfigProvider from '@vue3-easytable/common/comps/config-provider'
 import VeCheckbox from '@vue3-easytable/ve-checkbox'
 import VeCheckboxGroup from '@vue3-easytable/ve-checkbox-group'
 import VeContextmenu from '@vue3-easytable/ve-contextmenu'
@@ -17,6 +18,7 @@ const version = '0.0.5'
 const components = [
   VeCheckbox,
   VeCheckboxGroup,
+  VeConfigProvider,
   VeContextmenu,
   VeDropdown,
   VeIcon,
@@ -56,6 +58,7 @@ export {
   useVeTable,
   VeCheckbox,
   VeCheckboxGroup,
+  VeConfigProvider,
   VeContextmenu,
   VeDropdown,
   VeIcon,
