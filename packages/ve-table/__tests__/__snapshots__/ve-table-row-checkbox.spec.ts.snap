@@ -79,7 +79,6 @@ exports[`veTable row checkbox > render 1`] = `
                 <!---->No.1 Century Avenue, Shanghai
               </td>
             </tr>
-            <!---->
             <tr class="ve-table-body-tr" row-key="1002">
               <td class="ve-table-body-td" style="text-align: center;" rowspan="1" colspan="1" col-key="a">
                 <!----><label class="ve-checkbox ve-table-checkbox-wrapper" style="display: inline-block;" column="[object Object]"><span class="ve-checkbox-content"><input class="ve-checkbox-input" type="checkbox"><span class="ve-checkbox-inner"></span></span><span class="ve-checkbox-label"><!----></span></label>
@@ -102,7 +101,6 @@ exports[`veTable row checkbox > render 1`] = `
                 <!---->No.1 Century Avenue, Beijing
               </td>
             </tr>
-            <!---->
             <tr class="ve-table-body-tr" row-key="1003">
               <td class="ve-table-body-td" style="text-align: center;" rowspan="1" colspan="1" col-key="a">
                 <!----><label class="ve-checkbox ve-table-checkbox-wrapper" style="display: inline-block;" column="[object Object]"><span class="ve-checkbox-content"><input class="ve-checkbox-input" type="checkbox"><span class="ve-checkbox-inner"></span></span><span class="ve-checkbox-label"><!----></span></label>
@@ -125,7 +123,6 @@ exports[`veTable row checkbox > render 1`] = `
                 <!---->No.1 Century Avenue, Chongqing
               </td>
             </tr>
-            <!---->
             <tr class="ve-table-body-tr" row-key="1004">
               <td class="ve-table-body-td" style="text-align: center;" rowspan="1" colspan="1" col-key="a">
                 <!----><label class="ve-checkbox ve-table-checkbox-wrapper" style="display: inline-block;" column="[object Object]"><span class="ve-checkbox-content"><input class="ve-checkbox-input" type="checkbox"><span class="ve-checkbox-inner"></span></span><span class="ve-checkbox-label"><!----></span></label>
@@ -148,7 +145,6 @@ exports[`veTable row checkbox > render 1`] = `
                 <!---->No.1 Century Avenue, Xiamen
               </td>
             </tr>
-            <!---->
             <tr class="ve-table-body-tr" row-key="1005">
               <td class="ve-table-body-td" style="text-align: center;" rowspan="1" colspan="1" col-key="a">
                 <!----><label class="ve-checkbox ve-table-checkbox-wrapper" style="display: inline-block;" column="[object Object]"><span class="ve-checkbox-content"><input class="ve-checkbox-input" type="checkbox"><span class="ve-checkbox-inner"></span></span><span class="ve-checkbox-label"><!----></span></label>
@@ -171,7 +167,6 @@ exports[`veTable row checkbox > render 1`] = `
                 <!---->No.1 Century Avenue, Shenzhen
               </td>
             </tr>
-            <!---->
           </tbody>
           <tfoot class="ve-table-fixed-footer ve-table-footer"></tfoot>
         </table>

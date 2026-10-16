@@ -36,20 +36,35 @@ export interface VirtualScrollConfig {
   getItemKey: (index: number) => string | number
   /** Called whenever the virtualizer's state changes (items, sizes, scroll). */
   onChange: () => void
-  /** Optional user callback matching the legacy scrolling() API. */
-  onScrolling?: (info: {
-    startRowIndex: number
-    visibleStartIndex: number
-    visibleEndIndex: number
-    visibleAboveCount: number
-    visibleBelowCount: number
-  }) => void
+  /** Optional user callback matching the legacy scrolling() API. `null` clears it in setOptions. */
+  onScrolling?: ScrollingCallback | null
   /**
-   * Pixel offset subtracted from every item's `start` to account for
-   * content above the virtualised rows (e.g. sticky header height).
-   * Maps to TanStack's `scrollMargin`.
+   * 滚动内容中位于第 0 行之前、会随内容一起滚走的高度（例如非固定表头）。
+   * 对应 TanStack 的 `scrollMargin`：第 0 行的 start = scrollMargin。
    */
   scrollMargin?: number
+  /**
+   * 滚动容器顶部 / 底部被粘性元素（固定表头 / 固定表尾）遮住的高度。
+   * 这部分不属于行的可视区，因此从 TanStack 看到的容器高度中减去。
+   * 行坐标不变：scrollTop = 第 i 行的 start 时，第 i 行正好紧贴在固定表头下方。
+   */
+  stickyStart?: number
+  stickyEnd?: number
+}
+
+export interface ScrollingInfo {
+  startRowIndex: number
+  visibleStartIndex: number
+  visibleEndIndex: number
+  visibleAboveCount: number
+  visibleBelowCount: number
+}
+
+export type ScrollingCallback = (info: ScrollingInfo) => void
+
+interface Rect {
+  width: number
+  height: number
 }
 
 export interface VirtualScrollInstance {
@@ -103,47 +118,80 @@ export function createVirtualScroll(config: VirtualScrollConfig): VirtualScrollI
   const {
     count,
     getScrollElement,
-    estimateSize,
     overscan,
-    getItemKey,
     onChange,
-    onScrolling,
     scrollMargin = 0,
   } = config
+
+  // 可在运行时通过 setOptions 修改的配置
+  let currentEstimateSize = config.estimateSize
+  let currentGetItemKey = config.getItemKey
+  let currentOnScrolling: ScrollingCallback | null = config.onScrolling ?? null
+  let stickyStart = config.stickyStart ?? 0
+  let stickyEnd = config.stickyEnd ?? 0
+
+  // TanStack 的 getMeasurements 以 getItemKey 的引用作为缓存依赖之一。
+  // 每次需要重新计算行位置（行 key 顺序变化、预估行高变化）时换一个新的包装函数；
+  // 已测量的行高按 key 缓存在 itemSizeCache 中，不受影响。
+  const wrapGetItemKey = () => (index: number) => currentGetItemKey(index)
+
+  // 容器尺寸：记录原始尺寸与 TanStack 的回调，粘性高度变化时可以重新上报
+  let rawRect: Rect | null = null
+  let emitRect: ((rect: Rect) => void) | null = null
+  // 至少保留 1px，避免表头比容器还高时 TanStack 认为容器尚未布局而不渲染任何行
+  const toViewportRect = (rect: Rect): Rect => ({
+    width: rect.width,
+    height: rect.height > 0 ? Math.max(rect.height - stickyStart - stickyEnd, 1) : 0,
+  })
+
+  const fireScrolling = (instance: Virtualizer<HTMLElement, HTMLElement>) => {
+    if (!currentOnScrolling)
+      return
+    const range = instance.range
+    if (!range)
+      return
+    const items = instance.getVirtualItems()
+    const startRowIndex = items.length > 0 ? items[0].index : 0
+    currentOnScrolling({
+      startRowIndex,
+      visibleStartIndex: range.startIndex,
+      visibleEndIndex: range.endIndex,
+      visibleAboveCount: range.startIndex - startRowIndex,
+      visibleBelowCount: items.length > 0
+        ? items[items.length - 1].index - range.endIndex
+        : 0,
+    })
+  }
+
+  const handleChange = (instance: Virtualizer<HTMLElement, HTMLElement>) => {
+    // Fire the legacy scrolling() callback
+    fireScrolling(instance)
+    // Notify host component to re-render
+    onChange()
+  }
 
   // Build TanStack options
   const virtualizerOptions = {
     count,
     getScrollElement,
-    estimateSize: () => estimateSize,
+    estimateSize: () => currentEstimateSize,
     overscan,
-    getItemKey,
+    getItemKey: wrapGetItemKey(),
     scrollMargin,
-    observeElementRect,
+    observeElementRect: (instance: Virtualizer<HTMLElement, HTMLElement>, cb: (rect: Rect) => void) => {
+      emitRect = cb
+      const unsubscribe = observeElementRect(instance, (rect) => {
+        rawRect = rect
+        cb(toViewportRect(rect))
+      })
+      return () => {
+        emitRect = null
+        unsubscribe?.()
+      }
+    },
     observeElementOffset,
     scrollToFn: elementScroll,
-    onChange: (instance: Virtualizer<HTMLElement, HTMLElement>, _sync: boolean) => {
-      // Fire the legacy scrolling() callback
-      if (onScrolling) {
-        const range = instance.range
-        if (range) {
-          const items = instance.getVirtualItems()
-          const startRowIndex = items.length > 0 ? items[0].index : 0
-          onScrolling({
-            startRowIndex,
-            visibleStartIndex: range.startIndex,
-            visibleEndIndex: range.endIndex,
-            visibleAboveCount: range.startIndex - startRowIndex,
-            visibleBelowCount: items.length > 0
-              ? items[items.length - 1].index - range.endIndex
-              : 0,
-          })
-        }
-      }
-
-      // Notify host component to re-render
-      onChange()
-    },
+    onChange: (instance: Virtualizer<HTMLElement, HTMLElement>, _sync: boolean) => handleChange(instance),
   }
 
   const virtualizer = new Virtualizer<HTMLElement, HTMLElement>(virtualizerOptions)
@@ -154,11 +202,6 @@ export function createVirtualScroll(config: VirtualScrollConfig): VirtualScrollI
   // _willUpdate 才会真正挂载滚动容器：读取容器尺寸（observeElementRect）并监听 scroll（observeElementOffset）。
   // 缺少这一步时 scrollRect 一直是 initialRect（0x0），TanStack 不产出任何行，滚动也不会更新可视区。
   virtualizer._willUpdate()
-
-  // Track the current estimateSize so we can update it
-  let currentEstimateSize = estimateSize
-  let currentOverscan = overscan
-  let currentScrollMargin = scrollMargin
 
   const instance: VirtualScrollInstance = {
     get virtualizer() {
@@ -191,47 +234,41 @@ export function createVirtualScroll(config: VirtualScrollConfig): VirtualScrollI
 
     setOptions(patch) {
       const newOpts: Record<string, any> = {}
+      let remeasure = false
 
-      if (patch.count !== undefined) {
+      if (patch.count !== undefined && patch.count !== virtualizer.options.count) {
         newOpts.count = patch.count
       }
       if (patch.estimateSize !== undefined && patch.estimateSize !== currentEstimateSize) {
         currentEstimateSize = patch.estimateSize
-        newOpts.estimateSize = () => currentEstimateSize
+        // 未测量的行需要按新的预估行高重新排布
+        remeasure = true
       }
-      if (patch.overscan !== undefined && patch.overscan !== currentOverscan) {
-        currentOverscan = patch.overscan
-        newOpts.overscan = currentOverscan
+      if (patch.overscan !== undefined && patch.overscan !== virtualizer.options.overscan) {
+        newOpts.overscan = patch.overscan
       }
       if (patch.getItemKey !== undefined) {
-        newOpts.getItemKey = patch.getItemKey
+        currentGetItemKey = patch.getItemKey
+        remeasure = true
       }
-      if (patch.scrollMargin !== undefined && patch.scrollMargin !== currentScrollMargin) {
-        currentScrollMargin = patch.scrollMargin
-        newOpts.scrollMargin = currentScrollMargin
+      if (patch.scrollMargin !== undefined && patch.scrollMargin !== virtualizer.options.scrollMargin) {
+        newOpts.scrollMargin = patch.scrollMargin
       }
-      if (patch.onScrolling !== undefined) {
-        // Rebuild onChange with the new scrolling callback
-        const newOnScrolling = patch.onScrolling
-        newOpts.onChange = (inst: Virtualizer<HTMLElement, HTMLElement>) => {
-          if (newOnScrolling) {
-            const range = inst.range
-            if (range) {
-              const items = inst.getVirtualItems()
-              const startRowIndex = items.length > 0 ? items[0].index : 0
-              newOnScrolling({
-                startRowIndex,
-                visibleStartIndex: range.startIndex,
-                visibleEndIndex: range.endIndex,
-                visibleAboveCount: range.startIndex - startRowIndex,
-                visibleBelowCount: items.length > 0
-                  ? items[items.length - 1].index - range.endIndex
-                  : 0,
-              })
-            }
-          }
-          onChange()
-        }
+      if ('onScrolling' in patch) {
+        currentOnScrolling = patch.onScrolling ?? null
+      }
+      if (remeasure) {
+        newOpts.getItemKey = wrapGetItemKey()
+      }
+
+      let stickyChanged = false
+      if (patch.stickyStart !== undefined && patch.stickyStart !== stickyStart) {
+        stickyStart = patch.stickyStart
+        stickyChanged = true
+      }
+      if (patch.stickyEnd !== undefined && patch.stickyEnd !== stickyEnd) {
+        stickyEnd = patch.stickyEnd
+        stickyChanged = true
       }
 
       if (Object.keys(newOpts).length > 0) {
@@ -240,7 +277,13 @@ export function createVirtualScroll(config: VirtualScrollConfig): VirtualScrollI
           ...newOpts,
         })
         virtualizer._willUpdate()
+        // TanStack 的 setOptions 不会触发 onChange：主动通知一次，让宿主按新的行数 / 位置重新渲染
+        handleChange(virtualizer)
       }
+
+      // 粘性高度变化：按原始容器尺寸重新上报给 TanStack（会自行判断是否需要通知）
+      if (stickyChanged && rawRect && emitRect)
+        emitRect(toViewportRect(rawRect))
     },
 
     destroy() {
@@ -258,9 +301,10 @@ export function createVirtualScroll(config: VirtualScrollConfig): VirtualScrollI
       const items = virtualizer.getVirtualItems()
       if (items.length === 0)
         return 0
+      // getTotalSize() 不含 scrollMargin，而 item.end 含有，需换算到同一坐标
       const totalSize = virtualizer.getTotalSize()
       const lastItem = items[items.length - 1]
-      return totalSize - lastItem.end
+      return totalSize - (lastItem.end - virtualizer.options.scrollMargin)
     },
   }
 

@@ -80,7 +80,6 @@ exports[`veTable cell ellipsis > render single line ellipsis 1`] = `
                 <!----><span title="No.1 Century Avenue, Shanghai,this is a long text,this is a long text,this is a long text,this is a long text,this is a long text,this is a long text" class="ve-table-body-td-span-ellipsis">No.1 Century Avenue, Shanghai,this is a long text,this is a long text,this is a long text,this is a long text,this is a long text,this is a long text</span>
               </td>
             </tr>
-            <!---->
             <tr class="ve-table-body-tr">
               <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="a">
                 <!---->
@@ -103,7 +102,6 @@ exports[`veTable cell ellipsis > render single line ellipsis 1`] = `
                 <!----><span title="No.1 Century Avenue, Beijing,this is a long text,this is a long text,this is a long text,this is a long text" class="ve-table-body-td-span-ellipsis">No.1 Century Avenue, Beijing,this is a long text,this is a long text,this is a long text,this is a long text</span>
               </td>
             </tr>
-            <!---->
             <tr class="ve-table-body-tr">
               <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="a">
                 <!---->
@@ -126,7 +124,6 @@ exports[`veTable cell ellipsis > render single line ellipsis 1`] = `
                 <!----><span title="No.1 Century Avenue, Chongqing,this is a long text,this is a long text,this is a long text,this is a long text,this is a long text,this is a long text,this is a long text,this is a long text" class="ve-table-body-td-span-ellipsis">No.1 Century Avenue, Chongqing,this is a long text,this is a long text,this is a long text,this is a long text,this is a long text,this is a long text,this is a long text,this is a long text</span>
               </td>
             </tr>
-            <!---->
             <tr class="ve-table-body-tr">
               <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="a">
                 <!---->
@@ -149,7 +146,6 @@ exports[`veTable cell ellipsis > render single line ellipsis 1`] = `
                 <!----><span title="No.1 Century Avenue, Xiamen,this is a long text,this is a long text" class="ve-table-body-td-span-ellipsis">No.1 Century Avenue, Xiamen,this is a long text,this is a long text</span>
               </td>
             </tr>
-            <!---->
             <tr class="ve-table-body-tr">
               <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="a">
                 <!---->
@@ -172,7 +168,6 @@ exports[`veTable cell ellipsis > render single line ellipsis 1`] = `
                 <!----><span title="No.1 Century Avenue, Shenzhen" class="ve-table-body-td-span-ellipsis">No.1 Century Avenue, Shenzhen</span>
               </td>
             </tr>
-            <!---->
           </tbody>
           <tfoot class="ve-table-fixed-footer ve-table-footer"></tfoot>
         </table>

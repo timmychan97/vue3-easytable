@@ -170,7 +170,6 @@ exports[`veTable column fixed > renders normal 1`] = `
                 <!---->10
               </td>
             </tr>
-            <!---->
             <tr class="ve-table-body-tr">
               <td class="ve-table-body-td ve-table-fixed-left" style="text-align: center; left: 0px;" rowspan="1" colspan="1" col-key="a">
                 <!---->
@@ -223,7 +222,6 @@ exports[`veTable column fixed > renders normal 1`] = `
                 <!---->10
               </td>
             </tr>
-            <!---->
             <tr class="ve-table-body-tr">
               <td class="ve-table-body-td ve-table-fixed-left" style="text-align: center; left: 0px;" rowspan="1" colspan="1" col-key="a">
                 <!---->
@@ -276,7 +274,6 @@ exports[`veTable column fixed > renders normal 1`] = `
                 <!---->10
               </td>
             </tr>
-            <!---->
             <tr class="ve-table-body-tr">
               <td class="ve-table-body-td ve-table-fixed-left" style="text-align: center; left: 0px;" rowspan="1" colspan="1" col-key="a">
                 <!---->
@@ -329,7 +326,6 @@ exports[`veTable column fixed > renders normal 1`] = `
                 <!---->10
               </td>
             </tr>
-            <!---->
             <tr class="ve-table-body-tr">
               <td class="ve-table-body-td ve-table-fixed-left" style="text-align: center; left: 0px;" rowspan="1" colspan="1" col-key="a">
                 <!---->
@@ -382,7 +378,6 @@ exports[`veTable column fixed > renders normal 1`] = `
                 <!---->10
               </td>
             </tr>
-            <!---->
           </tbody>
           <tfoot class="ve-table-fixed-footer ve-table-footer"></tfoot>
         </table>

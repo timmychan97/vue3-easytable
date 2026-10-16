@@ -84,7 +84,8 @@ export function clearMockElementMeasurement(key: string) {
 export function mockVirtualScrollLayout(options: {
   containerHeight: number
   containerWidth?: number
-  rowHeight: (index: number) => number
+  // el 为该行的 <tbody>，需要按行 key 而不是下标决定行高时可以读取其中的 row-key
+  rowHeight: (index: number, el: HTMLElement) => number
 }) {
   const { containerHeight, containerWidth = 1000 } = options
   const state = { rowHeight: options.rowHeight }
@@ -100,7 +101,7 @@ export function mockVirtualScrollLayout(options: {
       if (this.classList.contains('ve-table-container'))
         return containerHeight
       if (this.tagName === 'TBODY' && this.hasAttribute('data-index'))
-        return state.rowHeight(Number(this.getAttribute('data-index')))
+        return state.rowHeight(Number(this.getAttribute('data-index')), this)
       return 0
     },
   })
@@ -115,7 +116,7 @@ export function mockVirtualScrollLayout(options: {
 
   return {
     // 允许单个用例切换行高
-    setRowHeight(fn: (index: number) => number) {
+    setRowHeight(fn: (index: number, el: HTMLElement) => number) {
       state.rowHeight = fn
     },
     restore() {

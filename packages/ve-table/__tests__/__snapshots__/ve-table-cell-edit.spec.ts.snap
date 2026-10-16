@@ -80,7 +80,6 @@ exports[`veTable cell edit > cell editor render 1`] = `
                 <!---->No.1 Century Avenue, Shanghai
               </td>
             </tr>
-            <!---->
             <tr class="ve-table-body-tr" row-key="1">
               <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="name">
                 <!---->
@@ -103,7 +102,6 @@ exports[`veTable cell edit > cell editor render 1`] = `
                 <!---->No.1 Century Avenue, Beijing
               </td>
             </tr>
-            <!---->
             <tr class="ve-table-body-tr" row-key="2">
               <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="name">
                 <!---->
@@ -126,7 +124,6 @@ exports[`veTable cell edit > cell editor render 1`] = `
                 <!---->No.1 Century Avenue, Chongqing
               </td>
             </tr>
-            <!---->
             <tr class="ve-table-body-tr" row-key="3">
               <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="name">
                 <!---->
@@ -149,7 +146,6 @@ exports[`veTable cell edit > cell editor render 1`] = `
                 <!---->No.1 Century Avenue, Xiamen
               </td>
             </tr>
-            <!---->
             <tr class="ve-table-body-tr" row-key="4">
               <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="name">
                 <!---->
@@ -172,7 +168,6 @@ exports[`veTable cell edit > cell editor render 1`] = `
                 <!---->No.1 Century Avenue, Shenzhen
               </td>
             </tr>
-            <!---->
           </tbody>
           <tfoot class="ve-table-fixed-footer ve-table-footer"></tfoot>
         </table>

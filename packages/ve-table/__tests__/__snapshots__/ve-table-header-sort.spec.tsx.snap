@@ -93,7 +93,6 @@ exports[`veTable header sort > render multiple field sort 1`] = `
                 <!---->No.1 Century Avenue, Shanghai
               </td>
             </tr>
-            <!---->
             <tr class="ve-table-body-tr">
               <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="a">
                 <!---->
@@ -121,7 +120,6 @@ exports[`veTable header sort > render multiple field sort 1`] = `
                 <!---->No.1 Century Avenue, Beijing
               </td>
             </tr>
-            <!---->
             <tr class="ve-table-body-tr">
               <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="a">
                 <!---->
@@ -149,7 +147,6 @@ exports[`veTable header sort > render multiple field sort 1`] = `
                 <!---->No.1 Century Avenue, Chongqing
               </td>
             </tr>
-            <!---->
             <tr class="ve-table-body-tr">
               <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="a">
                 <!---->
@@ -177,7 +174,6 @@ exports[`veTable header sort > render multiple field sort 1`] = `
                 <!---->No.1 Century Avenue, Xiamen
               </td>
             </tr>
-            <!---->
             <tr class="ve-table-body-tr">
               <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="a">
                 <!---->
@@ -205,7 +201,6 @@ exports[`veTable header sort > render multiple field sort 1`] = `
                 <!---->No.1 Century Avenue, Shenzhen
               </td>
             </tr>
-            <!---->
           </tbody>
           <tfoot class="ve-table-fixed-footer ve-table-footer"></tfoot>
         </table>
@@ -332,7 +327,6 @@ exports[`veTable header sort > render single field sort 1`] = `
                 <!---->No.1 Century Avenue, Shanghai
               </td>
             </tr>
-            <!---->
             <tr class="ve-table-body-tr">
               <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="a">
                 <!---->
@@ -360,7 +354,6 @@ exports[`veTable header sort > render single field sort 1`] = `
                 <!---->No.1 Century Avenue, Beijing
               </td>
             </tr>
-            <!---->
             <tr class="ve-table-body-tr">
               <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="a">
                 <!---->
@@ -388,7 +381,6 @@ exports[`veTable header sort > render single field sort 1`] = `
                 <!---->No.1 Century Avenue, Chongqing
               </td>
             </tr>
-            <!---->
             <tr class="ve-table-body-tr">
               <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="a">
                 <!---->
@@ -416,7 +408,6 @@ exports[`veTable header sort > render single field sort 1`] = `
                 <!---->No.1 Century Avenue, Xiamen
               </td>
             </tr>
-            <!---->
             <tr class="ve-table-body-tr">
               <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="a">
                 <!---->
@@ -444,7 +435,6 @@ exports[`veTable header sort > render single field sort 1`] = `
                 <!---->No.1 Century Avenue, Shenzhen
               </td>
             </tr>
-            <!---->
           </tbody>
           <tfoot class="ve-table-fixed-footer ve-table-footer"></tfoot>
         </table>

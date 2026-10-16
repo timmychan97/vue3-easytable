@@ -137,13 +137,16 @@ export default defineComponent({
       },
     },
   },
-  data() {
-    return {
-      // 原始单元格数据
-      rawCellValue: '',
-    }
-  },
   computed: {
+    /*
+        原始单元格数据
+        RENDER-03：只读取本列字段。之前每个单元格都 deep 监听整行 rowData（行数 × 列数次深度遍历），
+        且 column.field 变化时不会更新
+        */
+    rawCellValue() {
+      const { rowData, column } = this
+      return column ? rowData[column.field] : undefined
+    },
     /*
         current column collection item
         1、Cache the style、class of each column
@@ -157,18 +160,6 @@ export default defineComponent({
     currentRowKey() {
       const { rowData, rowKeyFieldName } = this
       return rowData[rowKeyFieldName]
-    },
-  },
-  watch: {
-    // watch row data
-    rowData: {
-      handler(rowData) {
-        const column = this.column
-        if (column)
-          this.rawCellValue = rowData[column.field]
-      },
-      deep: true,
-      immediate: true,
     },
   },
   methods: {
