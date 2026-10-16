@@ -149,7 +149,8 @@ export default defineComponent({
         this.dropdownChange()
       },
       // dropdown visible change
-      'onDropdownVisibleChange': (visible: boolean) => {
+      // 下拉框触发的事件名为 'on-dropdown-visible-change'，对应的监听 key 为 onOnDropdownVisibleChange
+      'onOnDropdownVisibleChange': (visible: boolean) => {
         this.dropdownVisible = visible
       },
     }

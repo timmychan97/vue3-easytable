@@ -1,5 +1,5 @@
 import veSelect from '@/ve-select'
-import { wrapMount as mount } from '@test-utils'
+import { later, wrapMount as mount } from '@test-utils'
 
 describe('veSelect', () => {
   // select items
@@ -102,6 +102,31 @@ describe('veSelect', () => {
       (wrapper.emitted('on-select-change')![0][0] as any[]).find(x => x.selected)
         .label,
     ).toBe('Orange')
+    wrapper.unmount()
+  })
+
+  // 下拉框展开/收起时，箭头图标的 class 应随之切换
+  it('toggles the arrow icon class with the dropdown visibility', async () => {
+    const wrapper = mount(veSelect, {
+      propsData: {
+        modelValue: SELECT_ITEMS,
+      },
+    })
+
+    const icon = () => wrapper.find('.ve-select-toggle-icon')
+
+    expect(icon().classes()).not.toContain('ve-select-show')
+
+    wrapper.find('.ve-dropdown-dt-selected').trigger('click')
+    await later()
+
+    expect(icon().classes()).toContain('ve-select-show')
+
+    wrapper.find('.ve-dropdown-dt-selected').trigger('click')
+    // 等待下拉框 150ms 的隐藏定时器执行完毕
+    await later(200)
+
+    expect(icon().classes()).not.toContain('ve-select-show')
     wrapper.unmount()
   })
 })

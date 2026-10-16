@@ -482,9 +482,10 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
   - **Trigger:** tick a filter item, then click outside without confirming. The user's column config is changed permanently.
   - **Fix:** `this.internalOptions = (this.modelValue ?? []).map(x => ({ ...x }))`.
 
-- [ ] **DD-05** 🟠 🔍 VeSelect's open/closed arrow never toggles
+- [x] ✅ 2026-10-16 · fix/audit-batch1-crash-oneliners **DD-05** 🟠 🔍 VeSelect's open/closed arrow never toggles
   - **Where:** [ve-select/src/index.tsx:152](../packages/ve-select/src/index.tsx#L152). It listens with `onDropdownVisibleChange`, but the dropdown emits `'on-dropdown-visible-change'`, whose handler key is `onOnDropdownVisibleChange`.
   - **Fix:** rename the listener.
+  - **Verified:** `ve-select.spec.tsx` › "toggles the arrow icon class with the dropdown visibility" (`ve-select-show` is added on open and removed on close; it was never added before the fix).
 
 - [ ] **DD-06** 🟢 A `popperAppendTo` selector that matches nothing throws
   - **Where:** `ve-dropdown/src/index.tsx:532` (`this.popperAppendToEl!.tagName`)
