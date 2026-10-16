@@ -118,6 +118,7 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
     - `beforeCopy`: `methods/clipboard.ts:48-69`. It runs after `preventDefault`, so nothing is copied.
     - `beforeCellValueChange` / `afterCellValueChange`: `methods/editing.ts:45-75`. The editing state is never cleared, every later stop re-throws, and the after-callbacks re-fire.
   - **Fix:** a small `safeCall(fn, ...args)` that logs through `console.error` and continues, plus `try/finally` around internal cleanup. Clear internal state before calling the "after" callbacks.
+  - **Progress (2026-10-16, `fix/audit-batch5-clipboard-codec`), clipboard sites:** every clipboard callback in `methods/clipboard.ts` (`beforeCopy`/`afterCopy`, `beforePaste`/`afterPaste`, `beforeCut`/`afterCut`, `beforeDelete`/`afterDelete`) now goes through `safeCall`. `afterPaste` runs last, after the data, the selection update and the `CLIPBOARD_CELL_VALUE_CHANGE` hook. **Decision for a throwing `before*`:** it cancels the operation exactly like returning `false`. The range is validated first (CLIP-01) and an invalid range never calls `preventDefault`. Once the range is valid, `preventDefault` is called before the `before*` callback and is **kept** when the callback cancels: the native action would only act on the hidden editor textarea (copy its selected text, cut it, or paste into it), and since no `setData` happens, a cancelled copy or cut leaves the user's clipboard untouched. The order is documented at the top of `methods/clipboard.ts`. Verified by `ve-table-clipboard.spec.ts` › "throwing user callbacks (INFRA-07)" (8 tests; before the fix each callback's error escaped `editorCopy`/`editorPaste`/`editorCut`/`deleteCellSelectionRangeValue`, and a throwing `afterPaste` skipped the selection update and the hook). The editing and autofill sites are handled in batch 3b.
 
 - [ ] **INFRA-08** 🟠 Optional user callbacks are called without existence guards
   - **Where:**
@@ -248,30 +249,40 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
 
 ## CLIP — clipboard
 
-- [ ] **CLIP-01** 🔴 Clipboard handlers continue with `-1` indices, after `preventDefault`
+- [x] ✅ 2026-10-16 · fix/audit-batch5-clipboard-codec · **CLIP-01** 🔴 Clipboard handlers continue with `-1` indices, after `preventDefault`
   - **Where:** `util/clipboard.ts:230` (`startRowIndex = -1`), `:244` (`colgroups[-1].key`), `:282` (`Object.assign(tableData[-1], …)`); `methods/clipboard.ts:48` (`editorCopy` calls `preventDefault()` before validating; same in `editorPaste` :97 and `editorCut` :172).
   - **Trigger:** a stale range (SEL-01), or the edit textarea still focused after the selection is cleared. Paste throws a TypeError, and copy overwrites the user's clipboard with `""`.
   - **Fix:** in `onBeforePaste`, `onBeforeCopy`, `onBeforeCut` and `onBeforeDelete`, return `null` if any index is `-1`. Callers bail out **before** `preventDefault`.
+  - **Done:** `onBeforeCopy` / `onBeforeCut` / `onBeforeDelete` share one `getRangeResponse` (`util/clipboard/handlers.ts`, built on `getSelectionRangeIndexes` / `getSelectionRangeKeys`), which returns `null` when the range is missing or any of the four indexes is `-1`. `onBeforePaste` returns `null` when the range is missing or its top-left key (the paste anchor) is gone. `editorCopy`, `editorPaste`, `editorCut` and `deleteCellSelectionRangeValue` return before `preventDefault` and before the `before*` callback. The guards stand on their own, independent of SEL-01. Worse than described: a stale **top** row made delete (and cut) clear rows `0 … bottom`, because the `rowIndex >= -1` check matched every row.
+  - **Verified:** `ve-table-clipboard.spec.ts` › "clipboard handlers" (each `onBefore*` with a stale top/bottom row, left/right column, empty keys, or no range) and "a stale or missing selection (CLIP-01)": copy and cut no longer call `preventDefault` or `setData` (before: `preventDefault` + an empty write), paste no longer throws (`TypeError: Cannot convert undefined or null to object`), delete no longer clears data (before: rows 1–3 were emptied), and copy with no selection at all leaves the native copy alone.
 
-- [ ] **CLIP-02** 🟠 Pasting a non-text clipboard (an image or file) wipes the selected cell
+- [x] ✅ 2026-10-16 · fix/audit-batch5-clipboard-codec · **CLIP-02** 🟠 Pasting a non-text clipboard (an image or file) wipes the selected cell
   - **Where:** `util/clipboard.ts:13-14, 218`. `getData('text/plain')` returns `''`, `decodeSpreadsheetStr('')` returns `[['']]`, and `editorPaste` (`methods/clipboard.ts:118`) writes `''`.
   - **Fix:** `if (!pastedData) return null`.
+  - **Done:** as proposed, in `onBeforePaste`. `editorPaste` then returns without `preventDefault` and without calling `beforePaste`. `decodeSpreadsheetStr('')` now returns `[]` (CLIP-03), and `editorPaste` also bails out on an empty result.
+  - **Verified:** `ve-table-clipboard.spec.ts` › "pasting a clipboard without text (an image) leaves the cell and the native paste alone" (before: the cell became `''`) and "onBeforePaste › returns null when the clipboard has no text".
 
-- [ ] **CLIP-03** 🟠 Copy/paste does not round-trip
+- [x] ✅ 2026-10-16 · fix/audit-batch5-clipboard-codec · **CLIP-03** 🟠 Copy/paste does not round-trip
   - **Where:** `clipboard.ts:115-121` (encode), `85-88`, `131` (decode)
   - **Issues:**
     - The encoder quotes only on `\n`, so values with `\t` or `\r` split into extra cells or rows.
     - Leading quotes are lost: `"a"` pastes back as `a`.
     - No trailing newline is written, but the decoder always drops a final empty row, so copying A1:A2 with A2 empty pastes only A1.
   - **Fix:** quote when `/[\t\r\n"]/.test(val)`, and end every row with `\n` (as Excel does). Add round-trip unit tests (MOD-04).
+  - **Done:** `util/clipboard/tsv-codec.ts` was rewritten as a small index-based parser. The encoder quotes when `/[\t\r\n"]/` matches, doubles `"`, writes `null`/`undefined` as empty cells and ends every row with `\n`. The decoder treats a final line break as the end of the last row, not as an extra empty row: `a\n\n` → `[['a'], ['']]`, `a` and `a\n` → `[['a']]`, and `''` → `[]`. Line breaks `\n`, `\r\n`, `\r` (and the old `\n\r`) are accepted.
+  - **Verified:** `ve-table-tsv-codec.spec.ts` (encode, decode and 15 round-trip cases: tab, CR, CRLF, LF, quotes, a value wrapped in quotes, a leading quote only, empty trailing cells, an empty trailing/first row, a single empty cell, ragged rows, `null`/numbers). Before the fix 6 round-trip cases failed (e.g. `[['a\tb','c']]` → `[['a','b','c']]`, `[['"a"']]` → `[['a']]`, `[['a'],['']]` → `[['a']]`). End to end: `ve-table-clipboard.spec.ts` › "copy then paste round-trips an empty last row and special characters" (before: `tab\there` pasted as two cells).
 
-- [ ] **CLIP-04** 🟢 An unbalanced leading quote swallows the rest of the clipboard
+- [x] ✅ 2026-10-16 · fix/audit-batch5-clipboard-codec · **CLIP-04** 🟢 An unbalanced leading quote swallows the rest of the clipboard
   - **Where:** `clipboard.ts:44-64`. Text like `"12 inch\tfoo\nbar` all lands in one cell.
   - **Fix:** if the closing quote is never found, fall back to treating the quote as a literal.
+  - **Done:** a value is only parsed as quoted when its closing quote is found **and** is followed by a tab, a line break or the end of the text. Otherwise the cell is read literally (quote included) up to the next separator, so `"a" b` also stays `"a" b` (it used to become `a b`).
+  - **Verified:** `ve-table-tsv-codec.spec.ts` › "treats an unbalanced leading quote as a literal character" (before: `[['12 inch\tfoo\nbar']]`, now `[['"12 inch', 'foo'], ['bar']]`) and "treats a leading quote as literal when the closing quote is not followed by a separator".
 
-- [ ] **CLIP-05** 🟢 A ragged paste drops columns
+- [x] ✅ 2026-10-16 · fix/audit-batch5-clipboard-codec · **CLIP-05** 🟢 A ragged paste drops columns
   - **Where:** `clipboard.ts:226-229`. The column count comes from row 0 only, so `"a\nb\tc"` drops `c`.
   - **Fix:** use the maximum row length.
+  - **Done:** `onBeforePaste` takes the longest row (with `reduce`, not `Math.max(...rows)`, so a very large paste can't overflow the argument list). Cells missing from shorter rows are left unchanged.
+  - **Verified:** `ve-table-clipboard.spec.ts` › "onBeforePaste › uses the longest row for the column count" (before: `endColIndex` 0 and `c` dropped) and "pastes every column of a ragged block".
 
 - [ ] **CLIP-06** 🟢 Contextmenu copy and cut use the deprecated `execCommand` and fail silently
   - **Where:** `methods/contextmenu.ts:122, 127, 227, 232`. The return value is ignored, and there is no contextmenu paste.
@@ -662,10 +673,13 @@ These are structural changes. Several of them remove whole bug classes above (no
 - [ ] **MOD-03** Split `util/index.ts` (1.5k lines) into:
   - `columns/`: init-group-columns, column-fixed, col-keys
   - `selection-range/range.ts`: this also removes the four copies of the index/keys logic in the clipboard `onBefore*` functions
+    - *Progress (`fix/audit-batch5-clipboard-codec`):* the three identical copies in `onBeforeCopy` / `onBeforeCut` / `onBeforeDelete` are now one `getRangeResponse` in `util/clipboard/handlers.ts`, built on `getSelectionRangeIndexes` / `getSelectionRangeKeys`. `onBeforePaste` keeps its own anchor-based logic.
   - `autofill/cell-autofill.ts`
   - `contextmenu/options.ts`
   - `core.ts`: `clsName`, `getRowKey`, `getEmitEventName` …
-- [ ] **MOD-04** Split `clipboard.ts` into `tsv-codec.ts` (pure encode/decode with round-trip unit tests) and `handlers.ts` (`onBefore*`/`onAfter*`). [CLIP-02 … CLIP-05]
+- [x] ✅ 2026-10-16 · fix/audit-batch5-clipboard-codec · **MOD-04** Split `clipboard.ts` into `tsv-codec.ts` (pure encode/decode with round-trip unit tests) and `handlers.ts` (`onBefore*`/`onAfter*`). [CLIP-02 … CLIP-05]
+  - **Done:** `util/clipboard/` now holds `tsv-codec.ts` (pure `decodeSpreadsheetStr` / `encodeToSpreadsheetStr`), `handlers.ts` (`onBefore*` / `onAfter*`, plus the private `getRangeResponse`, `clearRangeValues` and clipboard read/write helpers) and `index.ts` (re-exports both). The move was its own commit with no behaviour change; `methods/clipboard.ts` imports from `../util/clipboard/index.js`.
+  - **Verified:** the full suite passed unchanged after the move commit; the codec is covered by `ve-table-tsv-codec.spec.ts` (CLIP-03, CLIP-04).
 - [ ] **MOD-05** Split `selection/index.tsx` into:
   - `geometry.ts`: pure rect → border boxes and autofill direction
   - `SelectionBorders.tsx`
@@ -707,14 +721,14 @@ Record new decisions here with the next free `D` number and the date. Reference 
 - `ve-table-cell-selection.spec.ts:599-604` asserts buggy behaviour (SEL-03).
 - ~~No tests for remount or toggle scenarios (toggle `cellSelectionOption.enable`, `showHeader`, `rowInsertOption.enable`), which would catch INFRA-01 and INFRA-02.~~ Added in `ve-table-lifecycle.spec.ts` (batch 2), together with fake-timer unmount tests in `ve-dropdown.spec.tsx`, `ve-contextmenu.spec.tsx` and `ve-checkbox.spec.ts` ("lifecycle and timers" blocks).
 - The shared `wrapMount` helper (`tests/utils/index.ts`) mounts with `attachTo: 'body'`, and VTU never removes that container, so every mount leaves one `div` in `body`. Body-leak tests have to mount without `attachTo` (the batch 2 tests do).
-- No clipboard codec round-trip tests (CLIP-03 … CLIP-05).
+- ~~No clipboard codec round-trip tests (CLIP-03 … CLIP-05).~~ Closed 2026-10-16 by `ve-table-tsv-codec.spec.ts` (encode, decode, round trip) and `ve-table-clipboard.spec.ts` (handlers and the table's copy/cut/paste/delete), in `fix/audit-batch5-clipboard-codec`.
 - No virtual-scroll tests with variable row heights plus edits (VS-03).
 - **The suite has been red since `442962c` (40 failures).** 29 snapshots were never refreshed after the measurement row moved out of `<tbody>`, plus the en-US pagination text changes. The 11 virtual-scroll specs fail because jsdom has no layout: the scroll container measures 0 px, so TanStack yields no items and nothing renders. One (`dynamically turns virtual scrolling on`, :158) also still asserts the removed `.ve-table-virtual-phantom`. Fix: pass TanStack's `initialRect` (or mock `getBoundingClientRect` / `offsetHeight` in the spec), then rewrite the assertions for the spacer-based DOM.
   *Done in `fix/audit-batch0-regressions`.* The 29 snapshots were refreshed after checking that each diff contained only those two changes. The `render by update method` locale snapshot was the exception: its diff was the I18N-04 bug itself, so it was kept and fixed with I18N-04. The virtual-scroll specs failed mainly because of **VS-07** (the adapter never attached to the container, so no rows rendered in a real browser either). The specs now stub the layout in the tests only (`mockVirtualScrollLayout`, so production code is unchanged), assert real row ranges, spacers and scrolling, and no longer reference `.ve-table-virtual-phantom`.
 - No test checks that virtual-scroll rows carry the body classes, or that selection and editor cell lookups work in virtual mode (VS-05). *Added in `fix/audit-batch0-regressions`* (see VS-05). `tests/utils` now has `mockVirtualScrollLayout`, `getVirtualRenderRange` and `mockCellRects` for jsdom layout-dependent tests.
 - `ve-locale.spec.tsx:51` still overrides the old `pagination.goto` key, so it passes without testing anything (I18N-04). *Fixed in `fix/audit-batch0-regressions`: it overrides `分页.前往` and asserts the label; separate tests cover the old keys.*
 - `ve-loading.spec.tsx`: "render normal", "fullscreen prop" and the fullscreen part of "lock prop" never `destroy()` their loaders. Since LOAD-01, "fullscreen prop" (`lock: true` + `show()`) leaves `ve-loading-parent-lock` on `body` for the rest of the file. Harmless under jsdom, but the new parent-class tests use their own target element for this reason.
-- Still open from `REFACTOR_PLAN.md`: `ve-table-row-insert.spec.ts`, `ve-table-clipboard.spec.ts`, `ve-table-autofill.spec.ts`.
+- Still open from `REFACTOR_PLAN.md`: `ve-table-row-insert.spec.ts`, ~~`ve-table-clipboard.spec.ts`~~ (added in `fix/audit-batch5-clipboard-codec`), `ve-table-autofill.spec.ts`.
 
 ---
 
@@ -722,6 +736,7 @@ Record new decisions here with the next free `D` number and the date. Reference 
 
 Newest first. One line per change: date · IDs · what happened · commit/PR.
 
+- **2026-10-16** · MOD-04, CLIP-01, CLIP-02, CLIP-03, CLIP-04, CLIP-05 ✅ · INFRA-07, MOD-03 progress · Batch 5 (clipboard codec). `util/clipboard.ts` split into `util/clipboard/{tsv-codec,handlers,index}.ts` (pure move commit first). The codec quotes on `\t`/`\r`/`\n`/`"`, ends every row with `\n`, keeps an empty last row, and reads an unbalanced or unterminated leading quote literally. `onBefore*` return `null` for a missing or stale range and for a paste without text, and the callers bail out before `preventDefault` (a stale top row used to make delete/cut clear rows `0 … bottom`). Ragged pastes use the longest row. All eight clipboard callbacks go through `safeCall`; a throwing `before*` cancels like `false` (keeping `preventDefault`), and `afterPaste` runs after the selection update and the hook. New `ve-table-tsv-codec.spec.ts` and `ve-table-clipboard.spec.ts` (73 tests, 50 failed before the fix). Suite 46 files · 420 tests all pass, eslint clean, tsc 461 → 456. · `fix/audit-batch5-clipboard-codec`
 - **2026-10-16** · I18N-01, MOD-11 ✅ · I18N-02 progress · I18N-04 remark closed · ConfigProvider fixed and exported (D3). It renders its slot, always provides a computed merged on top of the outer locale (nearest provider, else the global `VeLocale`), normalizes old English keys, and never mutates user objects. `useLocale` no longer writes to the injected ref. `createI18N`/`useI18N` resolve through `injectLocale()`, used by pagination, the header filter and the ve-table contextmenu. Exported as `VeConfigProvider` and registered by `useVeTable()`. Docs page in en/nb/zh. 11 new tests (written first); the docs demos were checked in headless Chromium. Suite 43 files · 344 tests all pass, eslint clean, tsc 461 (unchanged). · `fix/audit-i18n01-config-provider`
 - **2026-10-16** · Progress, Baseline · Merged batches 0, 1 and 2 into `refactor/all`. Only AUDIT.md conflicted; the stale `debouncedBodyCellWidthChange.cancel()` from INFRA-03 was dropped because COL-07 removed that debounce. Recounted Progress: 82 findings (+VS-07, +MENU-06), 21 done, 2 won't fix. Merged tree: 42 files · 333 tests all pass, eslint clean, tsc 461 (new ceiling).
 - **2026-10-16** · VS-05, INFRA-04, I18N-04, COL-07 ✅ · D5 · VS-07 added and ✅ · EDIT-03, INS-01 progress · Batch 0 (regressions from the merge): the suite is green again. COL-07 was confirmed in headless Chromium: without `scrollWidth` the real table uses auto layout, so the empty hidden table mis-measured both auto and fixed-width columns. The measurement row is back in the real table, in its own hidden `<tbody>`, and the dead `bodyCellWidthChange` was removed. I18N-04 (D5): the Chinese keys stay, the old English keys are accepted through an alias map with a one-time deprecation warning, `LocaleMessage` is typed precisely and checked with `satisfies`, and the docs and `MIGRATION.md` are updated. 29 stale snapshots were refreshed after checking each diff. The virtual-scroll specs were rewritten for the spacer DOM with a test-only layout stub. New **VS-07** 🔴: the TanStack adapter never called `_willUpdate()`, so virtual tables rendered no rows in real browsers (reproduced in headless Chromium, then fixed). VS-05: body classes are now a prop on every row `<tbody>`, stripe uses a data-index class, and the border-around last-row rule was fixed; verified in tests and Chromium. INFRA-04: a shared, escaped `util/cell-dom.ts` is used at every lookup site. · `fix/audit-batch0-regressions`
