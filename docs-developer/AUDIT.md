@@ -198,6 +198,16 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
     - `filter.filterConfirm` / `filterReset` (`header-filter-content.tsx`): only the two calls changed.
   - **Verified:** `ve-table-callback-guards.spec.tsx` › "more throwing callbacks go through safeCall (INFRA-13)" (16 tests). Failed before: "a throwing sortChange is logged and the sort still changes" (the error reached the app `errorHandler`), "a throwing bodyCellClass is logged and the body still renders" and "a throwing eventCustomOption.* is logged and the table still renders" (×6; the render threw), "a truthy eventCustomOption.* that is not a function is ignored" (×6; `… is not a function`), "a throwing cell event handler is logged and the table still handles the click" (the error escaped and `BODY_CELL_CLICK` was not dispatched), "throwing filterConfirm / filterReset are logged". `ve-table-bind-custom-events.spec.ts` covers `getCustomEvents` directly.
 
+- [x] ✅ 2026-10-19 · fix/audit-small-nontable · **INFRA-14** 🟢 lint-staged's automatic backup uses the git stash stack, which every worktree shares (found in wave 2)
+  - **Where:** `.husky/pre-commit` (`npx --no-install lint-staged`), root `package.json` › `lint-staged` (12.5.0).
+  - **Trigger:** commits from several worktrees at the same time. Each run stores a "lint-staged automatic backup" stash entry, and later finds it again *by that message* (`getBackupStash` takes the first matching line of `git stash list`) to apply it on failure and drop it at the end. With concurrent runs, one session can apply or drop another session's entry.
+  - **Done:** the hook runs `lint-staged --no-stash` (supported by 12.x: "disable the backup stash, and do not revert in case of errors"). A Chinese comment in the hook explains why, and how to recover.
+  - **Trade-off:** without the backup there is no automatic revert when a task fails. Partially staged files are still handled: lint-staged hides their unstaged hunks in `<git-dir>/lint-staged_unstaged.patch` (per worktree) and restores them after the tasks succeed. When a task fails, it skips the restore, so those unstaged hunks are missing from the working tree until `git apply <git-dir>/lint-staged_unstaged.patch`. The next lint-staged run overwrites that file. Fixes from `eslint --fix` are staged even when the commit is then rejected. Neither matters for a commit of fully staged files, which is the normal case here.
+  - **Verified:**
+    - In a throwaway repo (its own stash) with a partially staged file: a passing task left `git stash list` empty, staged the task's change and restored the unstaged hunk. A failing task (`false`) also left the stash empty, but the unstaged hunk was only in `.git/lint-staged_unstaged.patch` (the trade-off above).
+    - In this worktree, a staged probe with a `debugger` statement: `git commit` was rejected by the hook (`no-debugger`, "Skipping backup because `--no-stash` was used").
+    - Every commit on this branch went through the updated hook: eslint ran on the staged files and printed the "Skipping backup" warning.
+
 ---
 
 ## COL — columns (fixed, hide/show, resize)

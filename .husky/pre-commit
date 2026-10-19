@@ -1,4 +1,8 @@
 #!/bin/sh
 . "$(dirname "$0")/_/husky.sh"
 
-npx --no-install lint-staged
+# --no-stash：不创建 "lint-staged automatic backup" stash。stash 栈由所有 worktree 共享，
+# 多个 worktree 同时提交时，lint-staged 会按名称找到并 apply/drop 别人的备份（INFRA-14）。
+# 代价：任务失败时不会自动回滚。部分暂存的文件，其未暂存的修改会留在
+# "$(git rev-parse --git-dir)/lint-staged_unstaged.patch"，用 git apply 恢复。
+npx --no-install lint-staged --no-stash
