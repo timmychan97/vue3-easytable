@@ -1,4 +1,6 @@
-import type { ColgroupData } from '../ve-table-types'
+import type { JSX } from 'vue/jsx-runtime'
+import type { ColKey } from '../util/core'
+import type { ColgroupData, RowHeight } from '../ve-table-types'
 import { getValByUnit, isEmptyArray, isEmptyValue } from '@vue3-easytable/common/utils'
 import { ICON_NAMES } from '@vue3-easytable/common/utils/constant'
 import VeIcon from '@vue3-easytable/ve-icon'
@@ -35,7 +37,7 @@ export default defineComponent({
       required: true,
     },
     headerRows: {
-      type: Array,
+      type: Array as PropType<RowHeight[]>,
       default() {
         return []
       },
@@ -164,7 +166,7 @@ export default defineComponent({
         const isIndicatorActive = !isEmptyValue(headerIndicatorColKeys.startColKey)
 
         if (!isEmptyValue(leftColKey)) {
-          let indicatorColKeys = []
+          let indicatorColKeys: ColKey[] = []
           if (leftColKey === rightColKey) {
             indicatorColKeys = [leftColKey]
           }
@@ -221,7 +223,7 @@ export default defineComponent({
          * @param {string} align - 居中方式
          * @param {number} rowIndex - 当前行号
          */
-    getTheadThStyle({ align }, rowIndex) {
+    getTheadThStyle({ align }: { align?: string }, rowIndex: number) {
       const headerRows = this.headerRows
 
       const result: Record<string, any> = {
@@ -244,9 +246,7 @@ export default defineComponent({
             0,
           )
         }
-        rowHeight = getValByUnit(rowHeight)
-
-        result.top = rowHeight
+        result.top = getValByUnit(rowHeight)
       }
 
       return result
@@ -254,7 +254,7 @@ export default defineComponent({
 
     // get chcekbox content
     getCheckboxContent() {
-      let result = null
+      let result: JSX.Element | null = null
 
       const { checkboxOption } = this
 
@@ -294,7 +294,7 @@ export default defineComponent({
 
     // get sort content
     getSortContent() {
-      let result = null
+      let result: JSX.Element | null = null
 
       const { sortColumns, isSortableCloumn, groupColumnItem } = this
 
@@ -341,7 +341,7 @@ export default defineComponent({
 
     // get filter content
     getFilterContent() {
-      let result = null
+      let result: JSX.Element | null = null
 
       const { groupColumnItem } = this
 
@@ -357,7 +357,7 @@ export default defineComponent({
 
     // get filter custom content
     getFilterCustomContent() {
-      let result = null
+      let result: JSX.Element | null = null
 
       const { groupColumnItem } = this
 

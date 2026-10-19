@@ -1,4 +1,4 @@
-import type { ColgroupData } from '../ve-table-types'
+import type { ColgroupData, RowHeight } from '../ve-table-types'
 import VueDomResizeObserver from '@vue3-easytable/common/comps/resize-observer'
 import { bindCustomEvents, getCustomEvents } from '../features/custom-events/bindCustomEvents'
 import { injectTableContext } from '../features/table-context'
@@ -20,7 +20,7 @@ export default defineComponent({
       required: true,
     },
     headerRows: {
-      type: Array,
+      type: Array as PropType<RowHeight[]>,
       default() {
         return []
       },
