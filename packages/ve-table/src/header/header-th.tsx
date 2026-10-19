@@ -1,5 +1,5 @@
 import emitter from '@vue3-easytable/common/mixins/emitter'
-import { getValByUnit, isEmptyValue } from '@vue3-easytable/common/utils'
+import { getValByUnit, isEmptyArray, isEmptyValue } from '@vue3-easytable/common/utils'
 import { ICON_NAMES } from '@vue3-easytable/common/utils/constant'
 import VeIcon from '@vue3-easytable/ve-icon'
 import { h } from 'vue'
@@ -10,7 +10,7 @@ import {
   getColKeysByHeaderColumn,
   getColKeysByRangeColKeys,
 } from '../util'
-import { COLUMN_TYPES, COMPS_NAME, EMIT_EVENTS } from '../util/constant'
+import { COLUMN_TYPES, COMPS_CUSTOM_ATTRS, COMPS_NAME, EMIT_EVENTS } from '../util/constant'
 import { safeCall } from '../util/safe-call'
 import HeaderCheckboxContent from './header-checkbox-content'
 import HeaderFilterContent from './header-filter-content'
@@ -425,6 +425,8 @@ export default defineComponent({
       class: getTheadThClass(),
       rowspan: groupColumnItem._rowspan,
       colspan: groupColumnItem._colspan,
+      // RENDER-09：叶子列的表头单元格与 body 单元格一样带 col-key；分组表头单元格对应多列，不加
+      [COMPS_CUSTOM_ATTRS.BODY_COLUMN_KEY]: isEmptyArray(groupColumnItem.children) ? groupColumnItem.key : undefined,
       ...events,
     }
 

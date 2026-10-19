@@ -15,25 +15,25 @@ exports[`veTable cell edit > cell editor render 1`] = `
           </colgroup>
           <thead class="ve-table-fixed-header ve-table-header">
             <tr class="ve-table-header-tr">
-              <th style="text-align: left; top: 0px;" class="ve-table-header-th" rowspan="1" colspan="1">
+              <th style="text-align: left; top: 0px;" class="ve-table-header-th" rowspan="1" colspan="1" col-key="name">
                 <!---->Name
                 <!---->
                 <!---->
                 <!---->
               </th>
-              <th style="text-align: left; top: 0px;" class="ve-table-header-th" rowspan="1" colspan="1">
+              <th style="text-align: left; top: 0px;" class="ve-table-header-th" rowspan="1" colspan="1" col-key="date">
                 <!---->Date
                 <!---->
                 <!---->
                 <!---->
               </th>
-              <th style="text-align: center; top: 0px;" class="ve-table-header-th" rowspan="1" colspan="1">
+              <th style="text-align: center; top: 0px;" class="ve-table-header-th" rowspan="1" colspan="1" col-key="hobby">
                 <!---->Hobby
                 <!---->
                 <!---->
                 <!---->
               </th>
-              <th style="text-align: left; top: 0px;" class="ve-table-header-th ve-table-last-column" rowspan="1" colspan="1">
+              <th style="text-align: left; top: 0px;" class="ve-table-header-th ve-table-last-column" rowspan="1" colspan="1" col-key="address">
                 <!---->Address
                 <!---->
                 <!---->

@@ -15,24 +15,24 @@ exports[`veTable row checkbox > render 1`] = `
           </colgroup>
           <thead class="ve-table-fixed-header ve-table-header">
             <tr class="ve-table-header-tr">
-              <th style="text-align: center; top: 0px;" class="ve-table-header-th" rowspan="1" colspan="1"><label class="ve-checkbox ve-table-checkbox-wrapper" style="display: inline-block;"><span class="ve-checkbox-content"><input class="ve-checkbox-input" type="checkbox"><span class="ve-checkbox-inner"></span></span><span class="ve-checkbox-label"><!----></span></label>
+              <th style="text-align: center; top: 0px;" class="ve-table-header-th" rowspan="1" colspan="1" col-key="a"><label class="ve-checkbox ve-table-checkbox-wrapper" style="display: inline-block;"><span class="ve-checkbox-content"><input class="ve-checkbox-input" type="checkbox"><span class="ve-checkbox-inner"></span></span><span class="ve-checkbox-label"><!----></span></label>
                 <!---->
                 <!---->
                 <!---->
               </th>
-              <th style="text-align: left; top: 0px;" class="ve-table-header-th" rowspan="1" colspan="1">
+              <th style="text-align: left; top: 0px;" class="ve-table-header-th" rowspan="1" colspan="1" col-key="b">
                 <!---->Name
                 <!---->
                 <!---->
                 <!---->
               </th>
-              <th style="text-align: left; top: 0px;" class="ve-table-header-th" rowspan="1" colspan="1">
+              <th style="text-align: left; top: 0px;" class="ve-table-header-th" rowspan="1" colspan="1" col-key="c">
                 <!---->Hobby
                 <!---->
                 <!---->
                 <!---->
               </th>
-              <th style="text-align: left; top: 0px;" class="ve-table-header-th ve-table-last-column" rowspan="1" colspan="1">
+              <th style="text-align: left; top: 0px;" class="ve-table-header-th ve-table-last-column" rowspan="1" colspan="1" col-key="d">
                 <!---->Address
                 <!---->
                 <!---->

@@ -16,29 +16,29 @@ exports[`veTable header sort > render multiple field sort 1`] = `
           </colgroup>
           <thead class="ve-table-fixed-header ve-table-header">
             <tr class="ve-table-header-tr">
-              <th style="text-align: left; top: 0px;" class="ve-table-header-th" rowspan="1" colspan="1">
+              <th style="text-align: left; top: 0px;" class="ve-table-header-th" rowspan="1" colspan="1" col-key="a">
                 <!---->Name
                 <!---->
                 <!---->
                 <!---->
               </th>
-              <th style="text-align: center; top: 0px;" class="ve-table-header-th ve-table-sortable-column" rowspan="1" colspan="1">
+              <th style="text-align: center; top: 0px;" class="ve-table-header-th ve-table-sortable-column" rowspan="1" colspan="1" col-key="b">
                 <!---->Age<span class="ve-table-sort"><i class="ve-icon iconfont-vet icon-vet-sort-top-arrow ve-table-sort-icon ve-table-sort-icon-top"></i><i class="ve-icon iconfont-vet icon-vet-sort-bottom-arrow ve-table-sort-icon ve-table-sort-icon-bottom"></i></span>
                 <!---->
                 <!---->
               </th>
-              <th style="text-align: center; top: 0px;" class="ve-table-header-th ve-table-sortable-column" rowspan="1" colspan="1">
+              <th style="text-align: center; top: 0px;" class="ve-table-header-th ve-table-sortable-column" rowspan="1" colspan="1" col-key="c">
                 <!---->Weight(kg)<span class="ve-table-sort"><i class="ve-icon iconfont-vet icon-vet-sort-top-arrow ve-table-sort-icon ve-table-sort-icon-top active"></i><i class="ve-icon iconfont-vet icon-vet-sort-bottom-arrow ve-table-sort-icon ve-table-sort-icon-bottom"></i></span>
                 <!---->
                 <!---->
               </th>
-              <th style="text-align: center; top: 0px;" class="ve-table-header-th" rowspan="1" colspan="1">
+              <th style="text-align: center; top: 0px;" class="ve-table-header-th" rowspan="1" colspan="1" col-key="d">
                 <!---->Hobby
                 <!---->
                 <!---->
                 <!---->
               </th>
-              <th style="text-align: left; top: 0px;" class="ve-table-header-th ve-table-last-column" rowspan="1" colspan="1">
+              <th style="text-align: left; top: 0px;" class="ve-table-header-th ve-table-last-column" rowspan="1" colspan="1" col-key="e">
                 <!---->Address
                 <!---->
                 <!---->
@@ -250,29 +250,29 @@ exports[`veTable header sort > render single field sort 1`] = `
           </colgroup>
           <thead class="ve-table-fixed-header ve-table-header">
             <tr class="ve-table-header-tr">
-              <th style="text-align: left; top: 0px;" class="ve-table-header-th" rowspan="1" colspan="1">
+              <th style="text-align: left; top: 0px;" class="ve-table-header-th" rowspan="1" colspan="1" col-key="a">
                 <!---->Name
                 <!---->
                 <!---->
                 <!---->
               </th>
-              <th style="text-align: center; top: 0px;" class="ve-table-header-th ve-table-sortable-column" rowspan="1" colspan="1">
+              <th style="text-align: center; top: 0px;" class="ve-table-header-th ve-table-sortable-column" rowspan="1" colspan="1" col-key="b">
                 <!---->Age<span class="ve-table-sort"><i class="ve-icon iconfont-vet icon-vet-sort-top-arrow ve-table-sort-icon ve-table-sort-icon-top"></i><i class="ve-icon iconfont-vet icon-vet-sort-bottom-arrow ve-table-sort-icon ve-table-sort-icon-bottom"></i></span>
                 <!---->
                 <!---->
               </th>
-              <th style="text-align: center; top: 0px;" class="ve-table-header-th ve-table-sortable-column" rowspan="1" colspan="1">
+              <th style="text-align: center; top: 0px;" class="ve-table-header-th ve-table-sortable-column" rowspan="1" colspan="1" col-key="c">
                 <!---->Weight(kg)<span class="ve-table-sort"><i class="ve-icon iconfont-vet icon-vet-sort-top-arrow ve-table-sort-icon ve-table-sort-icon-top active"></i><i class="ve-icon iconfont-vet icon-vet-sort-bottom-arrow ve-table-sort-icon ve-table-sort-icon-bottom"></i></span>
                 <!---->
                 <!---->
               </th>
-              <th style="text-align: center; top: 0px;" class="ve-table-header-th" rowspan="1" colspan="1">
+              <th style="text-align: center; top: 0px;" class="ve-table-header-th" rowspan="1" colspan="1" col-key="d">
                 <!---->Hobby
                 <!---->
                 <!---->
                 <!---->
               </th>
-              <th style="text-align: left; top: 0px;" class="ve-table-header-th ve-table-last-column" rowspan="1" colspan="1">
+              <th style="text-align: left; top: 0px;" class="ve-table-header-th ve-table-last-column" rowspan="1" colspan="1" col-key="e">
                 <!---->Address
                 <!---->
                 <!---->

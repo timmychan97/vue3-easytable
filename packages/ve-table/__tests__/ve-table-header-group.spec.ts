@@ -112,6 +112,35 @@ describe('veTable header group', () => {
     expect(wrapper.html()).toMatchSnapshot()
   })
 
+  // RENDER-09：叶子列的表头单元格有 col-key（与 body 单元格相同），分组表头单元格没有
+  it('only leaf header cells get the col-key attribute', () => {
+    const wrapper = mount(veTable, {
+      propsData: {
+        columns: TABLE_COLUMNS,
+        tableData: TABLE_DATA,
+        rowKeyFieldName: 'rowkey',
+      },
+    })
+
+    const colKeys = wrapper.findAll('.ve-table-header-th').map(th => [th.text(), th.attributes('col-key')])
+    expect(colKeys).toEqual([
+      ['col1', 'a'],
+      ['col2-col3', undefined],
+      ['col4-col5-col6', undefined],
+      ['col2', 'b'],
+      ['col3', 'c'],
+      ['col4-col5', undefined],
+      ['col6', 'f'],
+      ['col4', 'd'],
+      ['col5', 'e'],
+    ])
+    // 与 body 单元格的 col-key 一致
+    const bodyColKeys = wrapper.find('.ve-table-body-tr').findAll('.ve-table-body-td').map(td => td.attributes('col-key'))
+    expect(bodyColKeys).toEqual(['a', 'b', 'c', 'd', 'e', 'f'])
+
+    wrapper.unmount()
+  })
+
   it('row last column', () => {
     const wrapper = mount(veTable, {
       propsData: {
