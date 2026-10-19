@@ -189,11 +189,10 @@ export default defineComponent({
       },
     },
     // popper append to element
+    // 不传时在挂载后使用 document.body（不能在默认值里访问 document，否则 SSR 导入会崩溃）
     popperAppendTo: {
-      type: [String, HTMLElement],
-      default() {
-        return document.body
-      },
+      type: [String, Object] as PropType<string | HTMLElement>,
+      default: undefined,
     },
   },
   setup: setupLocale,

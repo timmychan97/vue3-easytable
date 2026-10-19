@@ -10,7 +10,8 @@ export default defineComponent({
       required: true,
     },
     tableContainerEl: {
-      type: HTMLDivElement,
+      // SSR：不能在模块顶层引用 HTMLDivElement（Node 中不存在）
+      type: Object as PropType<HTMLDivElement | null>,
       default: null,
     },
     hooks: {

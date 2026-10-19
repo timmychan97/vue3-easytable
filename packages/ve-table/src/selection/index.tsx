@@ -31,7 +31,8 @@ export default defineComponent({
   mixins: [emitter()],
   props: {
     tableEl: {
-      type: HTMLTableElement,
+      // SSR：不能在模块顶层引用 HTMLTableElement（Node 中不存在）
+      type: Object as PropType<HTMLTableElement | null>,
       default: null,
     },
     allRowKeys: {

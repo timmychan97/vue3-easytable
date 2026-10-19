@@ -108,11 +108,10 @@ export default defineComponent({
       default: 5,
     },
     // popper append to element
+    // 不传时在挂载后使用 document.body（不能在默认值里访问 document，否则 SSR 导入会崩溃）
     popperAppendTo: {
-      type: [String, HTMLElement],
-      default() {
-        return document.body
-      },
+      type: [String, Object] as PropType<string | HTMLElement>,
+      default: undefined,
     },
     /*
         before visible change
@@ -188,25 +187,9 @@ export default defineComponent({
     modelValue() {
       this.init()
     },
-    visible: {
-      async handler(visible) {
-        const { isControlled, showDropDown, hideDropDown } = this
-        // deal after mounted hook
-        await nextTick()
-        nextTick(() => {
-          // 组件可能已在等待期间卸载
-          if (this.$.isUnmounted)
-            return
-          if (isControlled) {
-            if (visible)
-              showDropDown()
-
-            else
-              hideDropDown()
-          }
-        })
-      },
-      immediate: true,
+    // 初始值在 mounted 中处理：不能用 immediate，否则 SSR 渲染时也会执行并访问 document
+    visible(visible: boolean) {
+      this.syncControlledVisible(visible)
     },
   },
 
@@ -215,6 +198,7 @@ export default defineComponent({
   },
   mounted() {
     this.addRootElementToElement()
+    this.syncControlledVisible(this.visible)
 
     this.$nextTick(() => {
       const targetEl
@@ -282,6 +266,24 @@ export default defineComponent({
       }
 
       this.hideDropDown()
+    },
+
+    // 受控模式：根据 visible 显示或隐藏（只在挂载后调用）
+    async syncControlledVisible(visible: boolean) {
+      if (!this.isControlled)
+        return
+      // 等待 addRootElementToElement 在 nextTick 中创建容器
+      await nextTick()
+      nextTick(() => {
+        // 组件可能已在等待期间卸载
+        if (this.$.isUnmounted)
+          return
+        if (visible)
+          this.showDropDown()
+
+        else
+          this.hideDropDown()
+      })
     },
 
     showDropDown() {
@@ -525,6 +527,25 @@ export default defineComponent({
       return clsName(getRandomId())
     },
 
+    // 解析弹出层的挂载目标：字符串按选择器查找，元素直接使用，其余情况（未传、找不到）使用 document.body
+    resolvePopperAppendTo(popperAppendTo: string | HTMLElement | undefined): HTMLElement {
+      if (typeof popperAppendTo === 'string' && popperAppendTo.length > 0) {
+        const el = document.querySelector<HTMLElement>(popperAppendTo)
+        if (el)
+          return el
+
+        console.warn(
+          `[${COMPS_NAME.VE_DROPDOWN}] popperAppendTo "${popperAppendTo}" does not match any element; falling back to document.body.`,
+        )
+        return document.body
+      }
+
+      if (popperAppendTo && typeof (popperAppendTo as HTMLElement).appendChild === 'function')
+        return popperAppendTo as HTMLElement
+
+      return document.body
+    },
+
     /*
         add root element to element
         如果不指定则添加到 body
@@ -552,20 +573,10 @@ export default defineComponent({
 
           containerEl.setAttribute('id', this.rootId)
 
-          if (
-            typeof popperAppendTo === 'string'
-            && popperAppendTo.length > 0
-          ) {
-            this.popperAppendToEl
-                            = document.querySelector<HTMLElement>(popperAppendTo)
-          }
-          else {
-            this.popperAppendToEl = popperAppendTo as HTMLElement
-          }
+          this.popperAppendToEl = this.resolvePopperAppendTo(popperAppendTo)
+          this.appendToElTagName = this.popperAppendToEl.tagName
 
-          this.appendToElTagName = this.popperAppendToEl!.tagName
-
-          this.popperAppendToEl?.appendChild(containerEl)
+          this.popperAppendToEl.appendChild(containerEl)
         })
       }
     },

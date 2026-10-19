@@ -22,12 +22,14 @@ export default defineComponent({
     },
     // Table container element reference
     tableContainerEl: {
-      type: HTMLElement,
+      // SSR：不能在模块顶层引用 HTMLElement（Node 中不存在）
+      type: Object as PropType<HTMLElement | null>,
       default: null,
     },
     // Table element reference
     tableEl: {
-      type: HTMLTableElement,
+      // SSR：不能在模块顶层引用 HTMLTableElement（Node 中不存在）
+      type: Object as PropType<HTMLTableElement | null>,
       default: null,
     },
     // All row keys

@@ -603,4 +603,50 @@ describe('veDropdown', () => {
       expect(hideSpy).not.toHaveBeenCalled()
     })
   })
+
+  describe('popperAppendTo (DD-06, INFRA-05)', () => {
+    it('appends the container to body by default', async () => {
+      const wrapper = mount(veDropdown, {
+        props: { modelValue: DROPDOWN_ITEMS },
+        slots: { default: `<div class="btn">click me</div>` },
+      })
+      await later()
+
+      expect(document.getElementById((wrapper.vm as any).rootId)!.parentElement).toBe(document.body)
+      wrapper.unmount()
+    })
+
+    it('accepts an element', async () => {
+      const target = document.createElement('section')
+      document.body.appendChild(target)
+      const wrapper = mount(veDropdown, {
+        props: { modelValue: DROPDOWN_ITEMS, popperAppendTo: target },
+        slots: { default: `<div class="btn">click me</div>` },
+      })
+      await later()
+
+      expect(document.getElementById((wrapper.vm as any).rootId)!.parentElement).toBe(target)
+      wrapper.unmount()
+      target.remove()
+    })
+
+    it('falls back to body and warns when the selector matches nothing (DD-06)', async () => {
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+      const wrapper = mount(veDropdown, {
+        props: { modelValue: DROPDOWN_ITEMS, popperAppendTo: '#no-such-element' },
+        slots: { default: `<div class="btn">click me</div>` },
+      })
+      await later()
+
+      expect(document.getElementById((wrapper.vm as any).rootId)!.parentElement).toBe(document.body)
+      expect(warn).toHaveBeenCalledWith(expect.stringContaining('#no-such-element'))
+
+      // 仍然可以正常打开
+      wrapper.find('.btn').trigger('click')
+      await later()
+      expect(wrapper.emitted('on-dropdown-visible-change')).toEqual([[true]])
+      wrapper.unmount()
+      warn.mockRestore()
+    })
+  })
 })

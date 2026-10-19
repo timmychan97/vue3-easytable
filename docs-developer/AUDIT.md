@@ -101,10 +101,20 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
   - **Done (with VS-05):** `ve-table/src/util/cell-dom.ts`. The row key is escaped with `CSS.escape`, plus a fallback for environments without `CSS` such as jsdom. The column key is compared against the `col-key` attribute of the row's direct cells, so it is never put into a selector. Every helper returns `null` (or `[]`) for a missing root, row or cell, and ignores rows of tables nested inside expand rows. All six call sites now use it, and each one null-checks the result: `rowToVisible` and `scrollToRowKey` (`queryBodyRow`), selection `getTableCellEl` / `getTableFirstRowCellByColKey` / `getTableLastRowCellByColKey` / `setAutofillEndCellEl`, and editor `setCellEl`.
   - **Verified:** `ve-table-cell-dom.spec.ts`: the helpers in both normal and virtual DOM with keys containing `"`, `\` and `]`, unknown keys, null roots and a nested table; plus `selection and editor work with row keys that contain quotes`, which threw `SyntaxError: … is not a valid selector` (from `rowToVisible` and selection) before the fix.
 
-- [ ] **INFRA-05** 🔴 Importing the library during SSR crashes
+- [x] ✅ 2026-10-19 · fix/audit-batch7-dropdown-pagination-ssr · **INFRA-05** 🔴 Importing the library during SSR crashes
   - **Where:** prop declarations `type: [String, HTMLElement]` in `ve-dropdown/src/index.tsx:112`, `ve-select/src/index.tsx:57`, `ve-pagination/src/index.tsx:185` and `ve-contextmenu/src/index.tsx:53`. Also the `default() { return document.body }` defaults and the contextmenu's `immediate` options watcher.
   - **Trigger:** Nuxt or any SSR import. `HTMLElement` is undefined in Node, so the module throws at import time.
   - **Fix:** `type: [String, Object] as PropType<string | HTMLElement>`. Resolve `document.body` lazily in `mounted`, and do all DOM work in `mounted` or later.
+  - **Done:** `popperAppendTo` (dropdown, select, pagination) and `eventTarget` (contextmenu) are now `[String, Object] as PropType<string | HTMLElement>`. `popperAppendTo` no longer defaults to `document.body`. Instead, the dropdown resolves it in `resolvePopperAppendTo()` after mount, and an unset value means `document.body`. Three more files referenced DOM classes at module level, in prop types: `HTMLTableElement`, `HTMLElement` and `HTMLDivElement` in ve-table `selection`, `row-insert-indicator` and `column-resizer`. These are now `Object as PropType<…>`. Two places touched the DOM during render:
+    - VeTable calls `getScrollbarWidth()` while rendering. It now returns 0 when there is no `document`.
+    - The dropdown's controlled-`visible` watcher was `immediate`, so it ran during SSR setup and called `document.querySelector` two ticks later. It is now a plain watcher, and `mounted` calls the same logic (`syncControlledVisible`) for the initial value.
+  - **Not covered:** rendering `VeContextmenu` during SSR still throws, and so does a VeTable with `contextmenuBodyOption` / `contextmenuHeaderOption`. The contextmenu's `options` and `eventTarget` watchers are `immediate`, and they touch `document` during setup. This is left to MENU-02, which reworks that registration. The SSR spec has an `it.todo('veContextmenu')` for it.
+  - **Verified:** new `packages/vue/__tests__/ssr.spec.ts` runs with `// @vitest-environment node`, so there is no DOM. It imports the library entry and then each package on its own. Then it calls `renderToString` on:
+    - VeDropdown: uncontrolled, with a string `popperAppendTo`, and controlled (visible and hidden)
+    - VeSelect, VePagination, VeCheckbox, VeRadio, VeIcon and VeConfigProvider
+    - a plain VeTable, a VeTable with header filters, and a VeTable with most features on (virtual scroll, fixed columns, checkbox, expand, sort, edit, cell selection, autofill, column resize, footer)
+
+    Before the fix, the file failed to load with `ReferenceError: HTMLElement is not defined` at `ve-contextmenu/src/index.tsx:53`. With that fixed, it failed on `HTMLDivElement` in `column-resizer`. After that, VeTable failed with `document is not defined` in `getScrollbarWidth`, and the controlled dropdowns left `document is not defined` unhandled rejections. `ve-dropdown.spec.tsx` › "appends the container to body by default" and "accepts an element" also cover this.
 
 - [ ] **INFRA-06** 🟢 `VeTable` declares no `emits`
   - **Where:** `ve-table.tsx` (e.g. `on-row-insert` in `handleRowInsert`, ~2111)
@@ -631,9 +641,11 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
   - **Fix:** rename the listener.
   - **Verified:** `ve-select.spec.tsx` › "toggles the arrow icon class with the dropdown visibility" (`ve-select-show` is added on open and removed on close; it was never added before the fix).
 
-- [ ] **DD-06** 🟢 A `popperAppendTo` selector that matches nothing throws
+- [x] ✅ 2026-10-19 · fix/audit-batch7-dropdown-pagination-ssr · **DD-06** 🟢 A `popperAppendTo` selector that matches nothing throws
   - **Where:** `ve-dropdown/src/index.tsx:532` (`this.popperAppendToEl!.tagName`)
   - **Fix:** fall back to `document.body` and warn.
+  - **Done:** new `resolvePopperAppendTo()`. If the selector matches nothing, it logs a `console.warn` that names the selector and falls back to `document.body`. The lazy default from INFRA-05 goes through the same function.
+  - **Verified:** `ve-dropdown.spec.tsx` › "falls back to body and warns when the selector matches nothing (DD-06)". Before the fix, no container was created and there was an unhandled `TypeError: Cannot read properties of null (reading 'tagName')`. Now the container is in `body`, the warning names the selector, and the dropdown still opens.
 
 ---
 
