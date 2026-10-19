@@ -1,6 +1,8 @@
 import emitter from '@vue3-easytable/common/mixins/emitter'
+import { markRaw } from 'vue'
 import { clsName } from '../util'
 import { COMPS_NAME, EMIT_EVENTS } from '../util/constant'
+import { safeCall } from '../util/safe-call'
 import HeaderTr from './header-tr'
 
 export default defineComponent({
@@ -88,6 +90,8 @@ export default defineComponent({
             不要使用computed代替，属性动态添加会造成响应式问题
             */
       sortColumns: {},
+      // COL-08：上一次看到的列排序配置（key -> { field, sortBy }），只用于比较，不需要响应式
+      sortConfigsByKey: markRaw(new Map<string, { field: string, sortBy: string }>()),
     }
   },
   computed: {
@@ -130,19 +134,33 @@ export default defineComponent({
         sortColumns,
       )
 
-      // invoke
-      if (typeof sortChange === 'function')
-        sortChange(sortColumns)
+      // invoke（INFRA-13：抛出异常时只记录，排序状态已经更新）
+      safeCall('sortOption.sortChange', sortChange, sortColumns)
     },
 
-    // init sort columns
+    /*
+     * init sort columns
+     * COL-08：列重新生成（隐藏/显示列、右键固定列、columns 变化）时，按列 key 保留当前排序状态。
+     * 只有新出现的列，或配置的 sortBy 与上次不同的列，才使用配置值。
+     * 之前每次都按配置的 sortBy 重建，表头图标会退回配置值，而数据仍按用户的选择排序。
+     */
     initSortColumns() {
-      const { colgroups } = this
+      const { colgroups, sortColumns: prevSortColumns } = this
+      const prevConfigs = this.sortConfigsByKey
+      const nextConfigs = markRaw(new Map<string, { field: string, sortBy: string }>())
       const sortColumns = {}
-      colgroups.forEach((item) => {
-        if (typeof item.sortBy === 'string')
-          sortColumns[item.field] = item.sortBy
+
+      colgroups.forEach((item: any) => {
+        if (typeof item.sortBy !== 'string')
+          return
+
+        const prev = prevConfigs.get(item.key)
+        const isSameConfig = prev && prev.sortBy === item.sortBy && prev.field in prevSortColumns
+        sortColumns[item.field] = isSameConfig ? prevSortColumns[prev.field] : item.sortBy
+        nextConfigs.set(item.key, { field: item.field, sortBy: item.sortBy })
       })
+
+      this.sortConfigsByKey = nextConfigs
       this.sortColumns = sortColumns
     },
   },

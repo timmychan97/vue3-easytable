@@ -274,4 +274,131 @@ describe('veTable column state', () => {
       wrapper.unmount()
     })
   })
+
+  // COL-08：重新生成列（隐藏/显示列、右键固定列、columns 变化）后，表头排序状态不能退回配置值
+  describe('sort state across column rebuilds (COL-08)', () => {
+    const createSortColumns = (): any[] => {
+      const columns = createColumns()
+      columns[1].sortBy = ''
+      columns[2].sortBy = 'asc'
+      return columns
+    }
+
+    // 每个可排序列的表头状态：'asc' | 'desc' | ''
+    const sortStateOf = (wrapper: any) =>
+      Object.fromEntries(
+        wrapper
+          .findAll('.ve-table-header-th')
+          .filter((th: any) => th.find('.ve-table-sort').exists())
+          .map((th: any) => {
+            const asc = th.find('.ve-table-sort-icon-top').classes().includes('active')
+            const desc = th.find('.ve-table-sort-icon-bottom').classes().includes('active')
+            return [th.text(), asc ? 'asc' : desc ? 'desc' : '']
+          }),
+      )
+
+    const clickSort = async (wrapper: any, title: string) => {
+      const th = wrapper.findAll('.ve-table-header-th').find((x: any) => x.text() === title)
+      await th.find('.ve-table-sort').trigger('click')
+      await later()
+    }
+
+    it('keeps the sort after hiding and showing a column', async () => {
+      const sortChange = vi.fn()
+      const wrapper = mountTable({ columns: createSortColumns(), sortOption: { sortChange } })
+      await later()
+      const vm = wrapper.vm as any
+
+      await clickSort(wrapper, 'B')
+      expect(sortStateOf(wrapper)).toEqual({ B: 'asc', C: '' })
+
+      vm.hideColumnsByKeys(['d'])
+      await later()
+      expect(sortStateOf(wrapper)).toEqual({ B: 'asc', C: '' })
+
+      vm.showColumnsByKeys(['d'])
+      await later()
+      expect(sortStateOf(wrapper)).toEqual({ B: 'asc', C: '' })
+
+      // 下一次点击从保留的状态继续
+      await clickSort(wrapper, 'B')
+      expect(sortStateOf(wrapper)).toEqual({ B: 'desc', C: '' })
+      expect(sortChange.mock.calls.at(-1)[0]).toEqual({ b: 'desc', c: '' })
+
+      wrapper.unmount()
+    })
+
+    it('keeps the sort after fixing a column from the contextmenu', async () => {
+      const wrapper = mountTable({
+        columns: createSortColumns(),
+        contextmenuHeaderOption: { contextmenus: [] },
+      })
+      await later()
+      const vm = wrapper.vm as any
+
+      await clickSort(wrapper, 'B')
+      await clickSort(wrapper, 'B')
+      expect(sortStateOf(wrapper)).toEqual({ B: 'desc', C: '' })
+
+      await headerMenuAction(vm, 'a', 'LEFT_FIXED_COLUMN_TO')
+      expect(fixedOf(vm).a).toBe('left')
+      expect(sortStateOf(wrapper)).toEqual({ B: 'desc', C: '' })
+
+      wrapper.unmount()
+    })
+
+    it('keeps the sort when columns change without a new sortBy', async () => {
+      const wrapper = mountTable({ columns: createSortColumns() })
+      await later()
+
+      await clickSort(wrapper, 'B')
+      expect(sortStateOf(wrapper)).toEqual({ B: 'asc', C: '' })
+
+      const columns = createSortColumns()
+      columns[0].title = 'A2'
+      await wrapper.setProps({ columns })
+      await later()
+      expect(sortStateOf(wrapper)).toEqual({ B: 'asc', C: '' })
+
+      wrapper.unmount()
+    })
+
+    it('applies a sortBy that the columns change sets', async () => {
+      const wrapper = mountTable({ columns: createSortColumns() })
+      await later()
+
+      await clickSort(wrapper, 'B')
+      expect(sortStateOf(wrapper)).toEqual({ B: 'asc', C: '' })
+
+      const columns = createSortColumns()
+      columns[1].sortBy = 'desc'
+      columns[2].sortBy = ''
+      await wrapper.setProps({ columns })
+      await later()
+      expect(sortStateOf(wrapper)).toEqual({ B: 'desc', C: '' })
+
+      wrapper.unmount()
+    })
+
+    it('uses the configured sortBy of a column shown for the first time', async () => {
+      const columns = createSortColumns()
+      columns[3].sortBy = 'desc'
+      const wrapper = mountTable({
+        columns,
+        sortOption: { multipleSort: true },
+        columnHiddenOption: { defaultHiddenColumnKeys: ['d'] },
+      })
+      await later()
+      const vm = wrapper.vm as any
+
+      await clickSort(wrapper, 'B')
+      expect(sortStateOf(wrapper)).toEqual({ B: 'asc', C: 'asc' })
+
+      vm.showColumnsByKeys(['d'])
+      await later()
+      expect(sortStateOf(wrapper)).toEqual({ B: 'asc', C: 'asc', D: 'desc' })
+
+      wrapper.unmount()
+    })
+  })
 })

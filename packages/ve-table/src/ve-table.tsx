@@ -39,6 +39,7 @@ import Body from './body'
 import Colgroup from './colgroup'
 import ColumnResizer from './column-resizer'
 import EditInput from './editor'
+import { FIXED_COLUMNS_KEY, useFixedColumns } from './features/fixed-columns/useFixedColumns'
 import { createRowState, ROW_STATE_KEY } from './features/row-state'
 import Footer from './footer'
 import Header from './header'
@@ -112,6 +113,8 @@ export default defineComponent({
         rowKeyFieldName: () => this.rowKeyFieldName,
         allRowKeys: () => this.allRowKeys,
       }),
+      // 固定列的样式与 class（MOD-06）：按 colgroups 计算一次，表头、表体、表尾共享
+      [FIXED_COLUMNS_KEY as symbol]: useFixedColumns(() => this.colgroups),
     }
   },
   props: {
@@ -1031,8 +1034,8 @@ export default defineComponent({
     // create hook instance
     this.hooks = new Hooks()
     // receive sort change
-    this.on(EMIT_EVENTS.SORT_CHANGE, (params) => {
-      this.updateColgroupsBySortChange(params)
+    this.on(EMIT_EVENTS.SORT_CHANGE, () => {
+      this.updateColgroupsBySortChange()
     })
 
     // receive multiple header row height change
@@ -1208,22 +1211,16 @@ export default defineComponent({
       this.hooks.triggerHook(HOOKS_NAME.TABLE_CELL_WIDTH_CHANGE)
     },
 
-    // update colgroups by sort change
-    updateColgroupsBySortChange(sortColumns) {
+    // sort change
+    // COL-08：排序状态只保存在表头（header/index.tsx 的 sortColumns），不再写回 colgroups[].sortBy，
+    // 这样 colgroups[].sortBy 始终是配置值，表头可以据此区分“列重新生成”和“配置变化”
+    updateColgroupsBySortChange() {
       // clear cell selection when sorting to avoid stale selection state
       this.clearCellSelectionCurrentCell()
       this.clearCellSelectionNormalEndCell()
 
       // stop editing cell if active
       this[INSTANCE_METHODS.STOP_EDITING_CELL]()
-
-      this.colgroups = this.colgroups.map((item) => {
-        // update colgroups by sort columns
-        if (item.field && Object.keys(sortColumns).includes(item.field))
-          item.sortBy = sortColumns[item.field]
-
-        return item
-      })
     },
 
     // init column width by column resize

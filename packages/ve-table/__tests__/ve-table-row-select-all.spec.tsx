@@ -148,4 +148,85 @@ describe('veTable select all keeps keys outside the current data (ROW-07)', () =
 
     wrapper.unmount()
   })
+
+  /*
+   * ROW-08（决定：保持 D7 的规则并写进文档）：从 tableData 删除已选中的行后，它的 key 仍然保留在已选 key 中。
+   * 非受控模式无法区分“删除的行”和“其他页的行”；需要清除时使用受控的 selectedRowKeys，删除行时一并移除 key。
+   */
+  describe('keys of removed rows (ROW-08)', () => {
+    it('uncontrolled: a removed row\'s key stays selected, like another page\'s key', async () => {
+      const selectedRowChange = vi.fn()
+      const wrapper = mount(veTable, {
+        props: {
+          columns: COLUMNS,
+          tableData: pageData(1),
+          rowKeyFieldName: 'rowKey',
+          checkboxOption: { selectedRowChange },
+        },
+      })
+      await later()
+
+      await clickRowCheckbox(wrapper, 1, true)
+      await wrapper.setProps({ tableData: pageData(1).filter(row => row.rowKey !== 1002) })
+      await later()
+
+      await clickRowCheckbox(wrapper, 0, true)
+      expect(selectedRowChange).toHaveBeenLastCalledWith(
+        expect.objectContaining({ isSelected: true, selectedRowKeys: [1002, 1001] }),
+      )
+
+      // 同一个 key 的行再次出现时仍是勾选状态
+      await wrapper.setProps({ tableData: pageData(1) })
+      await later()
+      expect(checkedRows(wrapper)).toEqual([1001, 1002])
+
+      wrapper.unmount()
+    })
+
+    it('controlled: removing the key together with the row clears it', async () => {
+      const wrapper = mount({
+        components: { veTable },
+        template: `
+          <ve-table
+            :columns="columns"
+            :table-data="tableData"
+            :checkbox-option="checkboxOption"
+            row-key-field-name="rowKey"
+          />
+        `,
+        data() {
+          return {
+            columns: COLUMNS,
+            tableData: pageData(1),
+            checkboxOption: {
+              selectedRowKeys: [1001, 1002],
+              selectedRowChange: ({ selectedRowKeys }) => {
+                ;(this as any).checkboxOption.selectedRowKeys = selectedRowKeys
+              },
+            },
+          }
+        },
+        methods: {
+          // 文档中推荐的写法：删除行时同时移除它的 key
+          removeRow(rowKey: number) {
+            const vm = this as any
+            vm.tableData = vm.tableData.filter(row => row.rowKey !== rowKey)
+            vm.checkboxOption.selectedRowKeys = vm.checkboxOption.selectedRowKeys.filter(key => key !== rowKey)
+          },
+        },
+      })
+      await later()
+      const vm = wrapper.vm as any
+
+      vm.removeRow(1002)
+      await later()
+      vm.tableData = pageData(1)
+      await later()
+
+      expect(checkedRows(wrapper)).toEqual([1001])
+      expect(vm.checkboxOption.selectedRowKeys).toEqual([1001])
+
+      wrapper.unmount()
+    })
+  })
 })

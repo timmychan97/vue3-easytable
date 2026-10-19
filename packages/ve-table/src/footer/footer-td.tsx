@@ -1,9 +1,12 @@
 import emitter from '@vue3-easytable/common/mixins/emitter'
 import { getValByUnit } from '@vue3-easytable/common/utils/index.js'
 import { h } from 'vue'
-import { clsName, getFixedTotalWidthByColumnKey } from '../util'
+import { bindCustomEvents, getCustomEvents } from '../features/custom-events/bindCustomEvents'
+import { injectFixedColumns } from '../features/fixed-columns/useFixedColumns'
+import { clsName } from '../util'
 
 import { COMPS_NAME } from '../util/constant'
+import { safeCall } from '../util/safe-call'
 
 export default defineComponent({
   name: COMPS_NAME.VE_TABLE_BODY_TD,
@@ -70,49 +73,15 @@ export default defineComponent({
       default: true,
     },
   },
+  setup() {
+    return {
+      fixedColumns: injectFixedColumns(),
+    }
+  },
   computed: {
-    // is last left fixed column
-    isLastLeftFixedColumn() {
-      let result = false
-
-      const { colgroups, column } = this
-
-      const { fixed } = column
-
-      if (fixed === 'left') {
-        // 按 key 比较：没有 field 的列（如复选框列、序号列）field 都是 undefined（COL-06）
-        const { key } = column
-        const leftFixedColumns = colgroups.filter(
-          x => x.fixed === 'left',
-        )
-        const index = leftFixedColumns.findIndex(
-          x => x.key === key,
-        )
-
-        if (index === leftFixedColumns.length - 1)
-          result = true
-      }
-      return result
-    },
-    // is first right fixed column
-    isfirstRightFixedColumn() {
-      let result = false
-
-      const { colgroups, column } = this
-
-      const { fixed } = column
-
-      if (fixed === 'right') {
-        // 按 key 比较（COL-06）
-        const { key } = column
-        const rightFixedColumns = colgroups.filter(
-          x => x.fixed === 'right',
-        )
-
-        if (rightFixedColumns[0].key === key)
-          result = true
-      }
-      return result
+    // 固定列的样式与 class（MOD-06，表格级计算一次）
+    fixedInfo() {
+      return this.fixedColumns.getColumnFixedInfo(this.column.key)
     },
   },
   methods: {
@@ -135,29 +104,23 @@ export default defineComponent({
         rowKeyFieldName,
       } = this
 
-      // column fixed
-      if (fixed) {
-        result[clsName('fixed-left')] = fixed === 'left'
-        result[clsName('fixed-right')] = fixed === 'right'
-        result[clsName('last-left-fixed-column')]
-                    = this.isLastLeftFixedColumn
-        result[clsName('first-right-fixed-column')]
-                    = this.isfirstRightFixedColumn
-      }
+      // column fixed：fixed-left、fixed-right、last-left-fixed-column、first-right-fixed-column（MOD-06）
+      if (fixed)
+        Object.assign(result, this.fixedInfo.class)
 
       // cell style option
-      if (
-        cellStyleOption
-        && typeof cellStyleOption.footerCellClass === 'function'
-      ) {
-        const customClass = cellStyleOption.footerCellClass({
+      // INFRA-13：渲染时调用，抛出异常时只记录，不中断渲染
+      const { value: customClass } = safeCall(
+        'cellStyleOption.footerCellClass',
+        cellStyleOption?.footerCellClass,
+        {
           row: rowData,
           column,
           rowIndex,
-        })
-        if (customClass)
-          result[customClass] = true
-      }
+        },
+      )
+      if (customClass)
+        result[customClass as string] = true
       // cell selection option
       if (cellSelectionData) {
         const { rowKey, colKey } = cellSelectionData.currentCell
@@ -175,38 +138,16 @@ export default defineComponent({
     /*
          * @getBodyTdStyle
          * @desc  get body td style
-         * @param {any} key - column key
          * @param {string} align - 居中方式
-         * @param {bool} fixed - 固定方式
          */
-    getBodyTdStyle({ key, align, fixed }) {
-      const result = {}
+    getBodyTdStyle({ align }) {
+      const { rowIndex, footerRows } = this
 
-      const { colgroups, rowIndex, footerRows } = this
-
-      // text align
-      result['text-align'] = align || 'center'
-
-      // fixed left total width or right total width
-      if (fixed) {
-        let totalWidth = 0
-        // column index
-        const columnIndex = colgroups.findIndex(x => x.key === key)
-        if (
-          (fixed === 'left' && columnIndex > 0)
-          || (fixed === 'right' && columnIndex < colgroups.length - 1)
-        ) {
-          totalWidth = getFixedTotalWidthByColumnKey({
-            colgroups,
-            colKey: key,
-            fixed,
-          })
-
-          totalWidth = getValByUnit(totalWidth)
-        }
-
-        result.left = fixed === 'left' ? totalWidth : ''
-        result.right = fixed === 'right' ? totalWidth : ''
+      const result: Record<string, any> = {
+        // text align
+        'text-align': align || 'center',
+        // fixed left total width or right total width（MOD-06）
+        ...this.fixedInfo.style,
       }
 
       // footer rows th fixed bottom
@@ -282,42 +223,6 @@ export default defineComponent({
 
       return { rowspan, colspan }
     },
-    // cell click
-    cellClick(e, fn) {
-      fn && fn(e)
-    },
-    // dblclick
-    cellDblclick(e, fn) {
-      fn && fn(e)
-    },
-    // contextmenu
-    cellContextmenu(e, fn) {
-      fn && fn(e)
-    },
-    // mouseenter
-    cellMouseenter(e, fn) {
-      fn && fn(e)
-    },
-    // mouseleave
-    cellMouseleave(e, fn) {
-      fn && fn(e)
-    },
-    // mousemove
-    cellMousemove(e, fn) {
-      fn && fn(e)
-    },
-    // mouseover
-    cellMouseover(e, fn) {
-      fn && fn(e)
-    },
-    // mousedown
-    cellMousedown(e, fn) {
-      fn && fn(e)
-    },
-    // mouseup
-    cellMouseup(e, fn) {
-      fn && fn(e)
-    },
   },
   render() {
     const { column, rowData, rowIndex, eventCustomOption } = this
@@ -326,56 +231,12 @@ export default defineComponent({
     if (!rowspan || !colspan)
       return null
 
-    // custom on cell event
-    let customEvents = {}
-    if (eventCustomOption) {
-      const { footerCellEvents } = eventCustomOption
-      customEvents = footerCellEvents
-        ? footerCellEvents({ row: rowData, column, rowIndex })
-        : {}
-    }
-
-    const {
-      click,
-      dblclick,
-      contextmenu,
-      mouseenter,
-      mouseleave,
-      mousemove,
-      mouseover,
-      mousedown,
-      mouseup,
-    } = customEvents
-
-    const events = {
-      onClick: (e) => {
-        this.cellClick(e, click)
-      },
-      onDblclick: (e) => {
-        this.cellDblclick(e, dblclick)
-      },
-      onContextmenu: (e) => {
-        this.cellContextmenu(e, contextmenu)
-      },
-      onMouseenter: (e) => {
-        this.cellMouseenter(e, mouseenter)
-      },
-      onMouseleave: (e) => {
-        this.cellMouseleave(e, mouseleave)
-      },
-      onMousemove: (e) => {
-        this.cellMousemove(e, mousemove)
-      },
-      onMouseover: (e) => {
-        this.cellMouseover(e, mouseover)
-      },
-      onMousedown: (e) => {
-        this.cellMousedown(e, mousedown)
-      },
-      onMouseup: (e) => {
-        this.cellMouseup(e, mouseup)
-      },
-    }
+    // custom on cell event（MOD-07, INFRA-13）
+    const events = bindCustomEvents(
+      getCustomEvents(eventCustomOption, 'footerCellEvents', { row: rowData, column, rowIndex }),
+      {},
+      'eventCustomOption.footerCellEvents',
+    )
 
     // td props
     const tdProps = {

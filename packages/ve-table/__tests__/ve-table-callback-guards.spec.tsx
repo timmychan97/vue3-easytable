@@ -119,6 +119,149 @@ describe('veTable optional and throwing user callbacks', () => {
     })
   })
 
+  // INFRA-13：排序、单元格 class、自定义事件工厂和事件、筛选回调抛出异常时只记录，不影响渲染和表格内部处理
+  describe('more throwing callbacks go through safeCall (INFRA-13)', () => {
+    const COLUMNS = [
+      { field: 'name', key: 'a', title: 'Name' },
+      { field: 'age', key: 'b', title: 'Age', sortBy: '' },
+    ]
+    const FOOTER_DATA = [{ rowKey: 'f1', name: 'sum', age: 63 }]
+
+    function boom(name: string) {
+      return () => {
+        throw new Error(`${name} boom`)
+      }
+    }
+
+    function loggedNames(consoleError: any) {
+      return consoleError.mock.calls.map((call: any[]) => String(call[0]))
+    }
+
+    it('a throwing sortChange is logged and the sort still changes', async () => {
+      const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+      const wrapper = mountTable({ columns: COLUMNS, sortOption: { sortChange: boom('sortChange') } })
+
+      await wrapper.find('.ve-table-sort').trigger('click')
+      await later()
+
+      expect(vueErrors).toEqual([])
+      expect(loggedNames(consoleError).some((x: string) => x.includes('sortOption.sortChange'))).toBe(true)
+      expect(wrapper.find('.ve-table-sort-icon-top').classes()).toContain('active')
+
+      wrapper.unmount()
+    })
+
+    it('a throwing bodyCellClass is logged and the body still renders', () => {
+      const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+      const wrapper = mountTable({
+        columns: COLUMNS,
+        cellStyleOption: { bodyCellClass: boom('bodyCellClass') },
+      })
+
+      expect(vueErrors).toEqual([])
+      expect(wrapper.findAll('.ve-table-body-td').length).toBe(6)
+      expect(loggedNames(consoleError).some((x: string) => x.includes('cellStyleOption.bodyCellClass'))).toBe(true)
+
+      wrapper.unmount()
+    })
+
+    const FACTORIES = [
+      'bodyRowEvents',
+      'bodyCellEvents',
+      'headerRowEvents',
+      'headerCellEvents',
+      'footerRowEvents',
+      'footerCellEvents',
+    ]
+
+    it.each(FACTORIES)('a throwing eventCustomOption.%s is logged and the table still renders', (name) => {
+      const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+      const wrapper = mountTable({
+        columns: COLUMNS,
+        footerData: FOOTER_DATA,
+        eventCustomOption: { [name]: boom(name) },
+      })
+
+      expect(vueErrors).toEqual([])
+      expect(wrapper.findAll('.ve-table-header-th').length).toBe(2)
+      expect(wrapper.findAll('.ve-table-body-td').length).toBe(6)
+      expect(wrapper.findAll('.ve-table-footer-td').length).toBe(2)
+      expect(loggedNames(consoleError).some((x: string) => x.includes(`eventCustomOption.${name}`))).toBe(true)
+
+      wrapper.unmount()
+    })
+
+    it.each(FACTORIES)('a truthy eventCustomOption.%s that is not a function is ignored', (name) => {
+      const wrapper = mountTable({
+        columns: COLUMNS,
+        footerData: FOOTER_DATA,
+        eventCustomOption: { [name]: { click: () => {} } },
+      })
+
+      expect(vueErrors).toEqual([])
+      expect(wrapper.findAll('.ve-table-body-td').length).toBe(6)
+      expect(wrapper.findAll('.ve-table-footer-td').length).toBe(2)
+
+      wrapper.unmount()
+    })
+
+    it('a throwing cell event handler is logged and the table still handles the click', async () => {
+      const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+      const wrapper = mountTable({
+        columns: COLUMNS,
+        eventCustomOption: { bodyCellEvents: () => ({ click: boom('click') }) },
+      })
+      const bodyCellClick = vi.fn()
+      ;(wrapper.vm as any).bodyCellClick = bodyCellClick
+
+      await wrapper.find('.ve-table-body-td').trigger('click')
+      await later()
+
+      expect(vueErrors).toEqual([])
+      expect(bodyCellClick).toHaveBeenCalledTimes(1)
+      expect(loggedNames(consoleError).some((x: string) => x.includes('bodyCellEvents.click'))).toBe(true)
+
+      wrapper.unmount()
+    })
+
+    it('throwing filterConfirm / filterReset are logged', async () => {
+      const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+      const wrapper = mountTable({
+        columns: [
+          {
+            field: 'name',
+            key: 'a',
+            title: 'Name',
+            filter: {
+              filterList: [
+                { value: 0, label: 'John', selected: false },
+                { value: 1, label: 'Dickerson', selected: false },
+              ],
+              filterConfirm: boom('filterConfirm'),
+              filterReset: boom('filterReset'),
+            },
+          },
+        ],
+      })
+
+      wrapper.findAll('.ve-dropdown-items-li')[0].trigger('click')
+      await later()
+      // confirm
+      wrapper.findAll('.ve-dropdown-operation-item')[1].trigger('click')
+      await later()
+      // reset
+      wrapper.findAll('.ve-dropdown-operation-item')[0].trigger('click')
+      await later()
+
+      expect(vueErrors).toEqual([])
+      const names = loggedNames(consoleError)
+      expect(names.some((x: string) => x.includes('filter.filterConfirm'))).toBe(true)
+      expect(names.some((x: string) => x.includes('filter.filterReset'))).toBe(true)
+
+      wrapper.unmount()
+    })
+  })
+
   describe('throwing callbacks go through safeCall (INFRA-11)', () => {
     const EDIT_COLUMNS = [
       { field: 'name', key: 'name', title: 'Name', edit: true },

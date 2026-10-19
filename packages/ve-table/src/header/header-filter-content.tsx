@@ -6,6 +6,7 @@ import VeIcon from '@vue3-easytable/ve-icon'
 import { defineComponent, h } from 'vue'
 import { clsName, getEmitEventName } from '../util'
 import { COMPS_NAME, EMIT_EVENTS, LOCALE_COMP_NAME } from '../util/constant'
+import { safeCall } from '../util/safe-call'
 
 export default defineComponent({
   name: COMPS_NAME.VE_TABLE_HEADER_FILTER_CONTENT,
@@ -41,13 +42,12 @@ export default defineComponent({
          * @param {Array} val - filter list
          */
     filterConfirm() {
-      const { filterConfirm } = this.column.filter
-      filterConfirm && filterConfirm(this.filterList)
+      // INFRA-13：抛出异常时只记录
+      safeCall('filter.filterConfirm', this.column.filter.filterConfirm, this.filterList)
     },
     // filter reset
     filterReset() {
-      const { filterReset } = this.column.filter
-      filterReset && filterReset(this.filterList)
+      safeCall('filter.filterReset', this.column.filter.filterReset, this.filterList)
     },
     // getIcon
     // RENDER-01：filterIcon 接收真正的 h
