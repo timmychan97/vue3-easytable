@@ -1,3 +1,4 @@
+import type { JSX } from 'vue/jsx-runtime'
 import { isBoolean, isFunction } from '@vue3-easytable/common/utils'
 import { ICON_NAMES } from '@vue3-easytable/common/utils/constant'
 import VeDropdown from '@vue3-easytable/ve-dropdown'
@@ -42,7 +43,7 @@ export default defineComponent({
     // get custom content
     // RENDER-01：作为插槽函数调用时参数是插槽 props，不是 h；这里始终传入真正的 h
     getCustomContent() {
-      let result = null
+      let result: JSX.Element | null = null
 
       const { render } = this.column.filterCustom
       if (isFunction(render)) {

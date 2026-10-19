@@ -1,4 +1,4 @@
-import type { ColgroupData } from '../ve-table-types'
+import type { ColgroupData, RowHeight } from '../ve-table-types'
 import type { HeaderFilterState } from './header-filter-content'
 import { isEmptyValue } from '@vue3-easytable/common/utils'
 import { markRaw } from 'vue'
@@ -52,7 +52,7 @@ export default defineComponent({
       },
     },
     headerRows: {
-      type: Array,
+      type: Array as PropType<RowHeight[]>,
       default() {
         return []
       },
