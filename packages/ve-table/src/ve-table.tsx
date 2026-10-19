@@ -85,6 +85,12 @@ export default defineComponent({
     'click-outside': clickoutside,
   },
   mixins: [emitter('eventBus')],
+  /*
+   * INFRA-06：声明组件对外触发的全部事件（this.$emit）。
+   * 未声明时监听器会作为属性透传到根元素上。内部组件之间的通信走 eventBus（dispatch / on），不在此列。
+   * - on-row-insert：行插入（rowInsertOption），参数 { insertRowIndex }
+   */
+  emits: [EMIT_EVENTS.ROW_INSERT],
   inject: {
     // 语言包：最近的 ConfigProvider，否则为全局语言包（右键菜单文案使用）。
     // ve-table 仍是 Options API（MOD-02），这里用 inject 选项而不是 setup，保持实例结构不变

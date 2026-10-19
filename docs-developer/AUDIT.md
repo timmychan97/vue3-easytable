@@ -106,10 +106,12 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
   - **Trigger:** Nuxt or any SSR import. `HTMLElement` is undefined in Node, so the module throws at import time.
   - **Fix:** `type: [String, Object] as PropType<string | HTMLElement>`. Resolve `document.body` lazily in `mounted`, and do all DOM work in `mounted` or later.
 
-- [ ] **INFRA-06** 🟢 `VeTable` declares no `emits`
+- [x] ✅ 2026-10-19 · fix/audit-batch7-render-rows · **INFRA-06** 🟢 `VeTable` declares no `emits`
   - **Where:** `ve-table.tsx` (e.g. `on-row-insert` in `handleRowInsert`, ~2111)
   - **Effect:** listeners also fall through as attributes onto the root `<div>`, and there is no typing.
   - **Fix:** declare `emits` for every emitted event.
+  - **Done:** `emits: [EMIT_EVENTS.ROW_INSERT]`. A grep of `$emit` / `emit(` in `ve-table.tsx`, `methods/*`, `features/*` and `util/*` finds only `on-row-insert`; all other table-internal events go through the mitt event bus (`dispatch` / `on`), not `$emit`. The array form keeps `$emit(EMIT_EVENTS.…)` type-checking (the `EMIT_EVENTS` values are typed `string`, so a typed object form would need literal keys). No snapshot changed: a fallthrough `onOnRowInsert` was bound as a DOM listener, not rendered as an attribute.
+  - **Verified:** `ve-table-emits.spec.ts` › "declares every emitted event" and "the on-row-insert listener is an emit listener, not a fallthrough attribute" (before: `emits` was empty and `$attrs` contained `onOnRowInsert`; the listener still fires exactly once).
 
 - [x] ✅ 2026-10-16 · fix/audit-batch3b-state-reconcile + fix/audit-batch5-clipboard-codec · **INFRA-07** 🟠 A throwing user callback leaves internal state half-updated
   - **Where:**
