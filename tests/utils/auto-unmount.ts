@@ -1,4 +1,3 @@
-import type { VueWrapper } from '@vue/test-utils'
 import { config } from '@vue/test-utils'
 import { afterAll, afterEach, beforeEach } from 'vitest'
 
@@ -16,8 +15,10 @@ import { afterAll, afterEach, beforeEach } from 'vitest'
  * 回调在已关闭的 window 上运行，抛出 "Cannot read properties of null (reading '_location')"。
  */
 
-type RootWrapper = VueWrapper<any> & {
+// VueWrapper 的 __app 是私有字段，这里只描述用到的部分
+interface RootWrapper {
   __app: { _container?: Element | null } | null
+  unmount: () => void
 }
 
 let inTest = false
@@ -66,7 +67,7 @@ function unmountAll(wrappers: Set<RootWrapper>) {
 export function enableAutoUnmount() {
   config.plugins.VueWrapper.install((wrapper) => {
     // 只有 mount 返回的根 wrapper 带有 __app；findComponent 等返回的子 wrapper 为 null
-    const root = wrapper as RootWrapper
+    const root = wrapper as unknown as RootWrapper
     if (root.__app)
       track(root)
     return {}

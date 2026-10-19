@@ -1,3 +1,4 @@
+import type { MockInstance } from 'vitest'
 import clickoutside from '@/common/directives/clickoutside'
 import eventsOutside from '@/common/directives/events-outside'
 import { mount } from '@vue/test-utils'
@@ -32,7 +33,7 @@ function collectListenerErrors() {
 }
 
 describe('directives (INFRA-09)', () => {
-  let consoleError: ReturnType<typeof vi.spyOn>
+  let consoleError: MockInstance<any[], any>
 
   beforeEach(() => {
     consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
