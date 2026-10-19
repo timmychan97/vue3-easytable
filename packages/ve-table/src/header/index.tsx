@@ -1,5 +1,5 @@
-import emitter from '@vue3-easytable/common/mixins/emitter'
 import { markRaw } from 'vue'
+import { useTableContext } from '../features/table-context'
 import { clsName } from '../util'
 import { COMPS_NAME, EMIT_EVENTS } from '../util/constant'
 import { safeCall } from '../util/safe-call'
@@ -7,7 +7,6 @@ import HeaderTr from './header-tr'
 
 export default defineComponent({
   name: COMPS_NAME.VE_TABLE_THADER,
-  mixins: [emitter()],
   props: {
     columnsOptionResetTime: {
       type: Number,
@@ -83,6 +82,12 @@ export default defineComponent({
       },
     },
   },
+  setup() {
+    return {
+      // 表格上下文（MOD-01）：接收表头单元格的排序点击，通知表格排序变化
+      tableEvents: useTableContext(),
+    }
+  },
   data() {
     return {
       /*
@@ -128,11 +133,7 @@ export default defineComponent({
         }
       }
 
-      this.dispatch(
-        COMPS_NAME.VE_TABLE,
-        EMIT_EVENTS.SORT_CHANGE,
-        sortColumns,
-      )
+      this.tableEvents.emit(EMIT_EVENTS.SORT_CHANGE, sortColumns)
 
       // invoke（INFRA-13：抛出异常时只记录，排序状态已经更新）
       safeCall('sortOption.sortChange', sortChange, sortColumns)
@@ -165,8 +166,8 @@ export default defineComponent({
     },
   },
   mounted() {
-    // receive sort change
-    this.on(EMIT_EVENTS.SORT_CHANGE, (params) => {
+    // receive sort change（卸载时自动注销，INFRA-02）
+    this.tableEvents.on(EMIT_EVENTS.COLUMN_SORT_CHANGE, (params) => {
       this.sortChange(params)
     })
   },

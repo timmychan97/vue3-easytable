@@ -1,4 +1,3 @@
-import emitter from '@vue3-easytable/common/mixins/emitter'
 import { getValByUnit } from '@vue3-easytable/common/utils/index.js'
 import { h } from 'vue'
 import { bindCustomEvents, getCustomEvents } from '../features/custom-events/bindCustomEvents'
@@ -10,7 +9,6 @@ import { safeCall } from '../util/safe-call'
 
 export default defineComponent({
   name: COMPS_NAME.VE_TABLE_BODY_TD,
-  mixins: [emitter()],
   props: {
     rowData: {
       type: Object,

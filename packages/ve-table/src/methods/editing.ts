@@ -88,7 +88,7 @@ export const editingMethods = {
         // trigger cell value change hook to refresh selection positions
         // this ensures the selection highlight updates after the cell content changes
         this.$nextTick(() => {
-          this.hooks.triggerHook(HOOKS_NAME.CLIPBOARD_CELL_VALUE_CHANGE)
+          this.tableContext.emit(HOOKS_NAME.CLIPBOARD_CELL_VALUE_CHANGE)
         })
       }
       finally {

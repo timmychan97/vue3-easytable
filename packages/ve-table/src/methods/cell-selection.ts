@@ -676,7 +676,7 @@ export const cellSelectionMethods = {
     // 行位置变化（如在上方插入行）后，等 DOM 更新再刷新选区位置
     if (isPositionChanged) {
       this.$nextTick(() => {
-        this.hooks.triggerHook(HOOKS_NAME.CLIPBOARD_CELL_VALUE_CHANGE)
+        this.tableContext.emit(HOOKS_NAME.CLIPBOARD_CELL_VALUE_CHANGE)
       })
     }
   },

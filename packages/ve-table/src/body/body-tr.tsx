@@ -1,13 +1,12 @@
-import emitter from '@vue3-easytable/common/mixins/emitter'
 import { isEmptyValue } from '@vue3-easytable/common/utils'
 import { bindCustomEvents, getCustomEvents } from '../features/custom-events/bindCustomEvents'
+import { injectTableContext } from '../features/table-context'
 import { clsName, getEmitEventName } from '../util'
 import { COMPS_CUSTOM_ATTRS, COMPS_NAME, EMIT_EVENTS } from '../util/constant'
 import BodyTd from './body-td'
 
 export default defineComponent({
   name: COMPS_NAME.VE_TABLE_BODY_TR,
-  mixins: [emitter()],
   props: {
     rowData: {
       type: Object,
@@ -141,6 +140,12 @@ export default defineComponent({
       },
     },
   },
+  setup() {
+    return {
+      // 表格上下文（MOD-01）：只发出事件，不注册监听器
+      tableContext: injectTableContext(),
+    }
+  },
   computed: {
     // current row key
     currentRowKey() {
@@ -176,14 +181,10 @@ export default defineComponent({
     rowClick() {
       const { rowData, rowIndex } = this
 
-      this.dispatch(
-        COMPS_NAME.VE_TABLE_BODY,
-        EMIT_EVENTS.BODY_ROW_CLICK,
-        {
-          rowData,
-          rowIndex,
-        },
-      )
+      this.tableContext.emit(EMIT_EVENTS.BODY_ROW_CLICK, {
+        rowData,
+        rowIndex,
+      })
     },
   },
 

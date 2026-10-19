@@ -1,4 +1,5 @@
 import { isNumber } from '@vue3-easytable/common/utils'
+import { useTableContext } from '../features/table-context'
 import { clsName } from '../util'
 import { COMPS_NAME, HOOKS_NAME } from '../util/constant'
 
@@ -13,10 +14,6 @@ export default defineComponent({
       // SSR：不能在模块顶层引用 HTMLDivElement（Node 中不存在）
       type: Object as PropType<HTMLDivElement | null>,
       default: null,
-    },
-    hooks: {
-      type: Object,
-      required: true,
     },
     colgroups: {
       type: Array,
@@ -50,6 +47,12 @@ export default defineComponent({
       },
     },
   },
+  setup() {
+    return {
+      // 表格上下文（MOD-01）：订阅表头 mousemove，卸载时自动注销
+      tableEvents: useTableContext(),
+    }
+  },
   data() {
     return {
       // column resizer start x
@@ -66,7 +69,7 @@ export default defineComponent({
         left: 0,
         height: 0,
       },
-      // 表头 mousemove hook 的注销函数
+      // 表头 mousemove 订阅的注销函数（重新订阅前先注销）
       removeHeaderCellMousemoveHook: null as (() => void) | null,
     }
   },
@@ -89,11 +92,11 @@ export default defineComponent({
     parentRendered: {
       handler(val) {
         if (val) {
-          // 先注销旧的 hook，避免重复注册
+          // 先注销旧的订阅，避免重复注册
           if (this.removeHeaderCellMousemoveHook)
             this.removeHeaderCellMousemoveHook()
           // header cell mousemove
-          this.removeHeaderCellMousemoveHook = this.hooks.addHook(
+          this.removeHeaderCellMousemoveHook = this.tableEvents.on(
             HOOKS_NAME.HEADER_CELL_MOUSEMOVE,
             ({ event, column }) => {
               if (column.disableResizing)
@@ -302,11 +305,7 @@ export default defineComponent({
   },
 
   beforeUnmount() {
-    // 卸载后不再响应表头 mousemove hook
-    if (this.removeHeaderCellMousemoveHook) {
-      this.removeHeaderCellMousemoveHook()
-      this.removeHeaderCellMousemoveHook = null
-    }
+    // 表头 mousemove 订阅由表格上下文在组件卸载时自动注销（INFRA-01）
     // 拖动过程中卸载：移除 document / window 上的拖动监听（包括禁止文本选择的监听）
     this.removeDragListeners()
     if (this.isColumnResizing)

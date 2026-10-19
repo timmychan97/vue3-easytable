@@ -219,7 +219,7 @@ export const clipboardMethods = {
     })
 
     // clipboard cell value change
-    this.hooks.triggerHook(HOOKS_NAME.CLIPBOARD_CELL_VALUE_CHANGE)
+    this.tableContext.emit(HOOKS_NAME.CLIPBOARD_CELL_VALUE_CHANGE)
 
     // 内部状态已更新完毕，after 回调抛出异常不会留下“改了一半”的状态（INFRA-07）
     cellValueCallbacks.fireAfter(applied)
@@ -254,7 +254,7 @@ export const clipboardMethods = {
     })
 
     // 单元格内容已清空，刷新选区位置（CLIP-08）
-    this.hooks.triggerHook(HOOKS_NAME.CLIPBOARD_CELL_VALUE_CHANGE)
+    this.tableContext.emit(HOOKS_NAME.CLIPBOARD_CELL_VALUE_CHANGE)
 
     fireAfter(applied)
     safeCall('afterCut', option.afterCut, response)
@@ -306,7 +306,7 @@ export const clipboardMethods = {
               editableOnly,
               canChange,
             })
-            this.hooks.triggerHook(HOOKS_NAME.CLIPBOARD_CELL_VALUE_CHANGE)
+            this.tableContext.emit(HOOKS_NAME.CLIPBOARD_CELL_VALUE_CHANGE)
             fireAfter(applied)
           }
         }
@@ -383,7 +383,7 @@ export const clipboardMethods = {
     })
 
     // 单元格内容已清空，刷新选区位置（CLIP-08）
-    this.hooks.triggerHook(HOOKS_NAME.CLIPBOARD_CELL_VALUE_CHANGE)
+    this.tableContext.emit(HOOKS_NAME.CLIPBOARD_CELL_VALUE_CHANGE)
 
     fireAfter(applied)
     safeCall('afterDelete', afterDeleteCallback, response)

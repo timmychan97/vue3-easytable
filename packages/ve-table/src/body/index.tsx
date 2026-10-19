@@ -1,7 +1,7 @@
 import type { VNode } from 'vue'
-import emitter from '@vue3-easytable/common/mixins/emitter'
 import { cloneVNode, defineComponent } from 'vue'
 import { injectRowState } from '../features/row-state'
+import { useTableContext } from '../features/table-context'
 import {
   COLUMN_TYPES,
   COMPS_NAME,
@@ -14,7 +14,6 @@ import ExpandTr from './expand-tr'
 
 export default defineComponent({
   name: COMPS_NAME.VE_TABLE_BODY,
-  mixins: [emitter()],
   // 虚拟滚动时根节点是片段，未声明的监听器无法 fall-through（会告警），因此显式声明
   emits: [EMIT_EVENTS.HIGHLIGHT_ROW_CHANGE],
   props: {
@@ -175,6 +174,8 @@ export default defineComponent({
     const { expand } = injectRowState()
     return {
       rowExpand: expand,
+      // 表格上下文（MOD-01）：接收行点击，卸载时自动注销
+      tableEvents: useTableContext(),
     }
   },
   computed: {
@@ -190,7 +191,7 @@ export default defineComponent({
   },
   mounted() {
     // recieve tr click
-    this.on(EMIT_EVENTS.BODY_ROW_CLICK, (params) => {
+    this.tableEvents.on(EMIT_EVENTS.BODY_ROW_CLICK, (params) => {
       this.rowClick(params)
     })
   },

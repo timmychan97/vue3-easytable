@@ -1,11 +1,12 @@
 /*
 选区单元格的位置跟踪（MOD-05）
 - 跟踪当前单元格、结束单元格、填充结束单元格对应的 DOM 元素，并计算它们相对于表格的矩形
-- 表格渲染完成后注册表格 hooks（滚动、尺寸变化、列宽变化、剪贴板修改单元格），重新注册前先注销旧的
+- 表格渲染完成后订阅表格事件（滚动、尺寸变化、列宽变化、剪贴板修改单元格），重新订阅前先注销旧的
 - 滚动、尺寸变化时的防抖
-- 卸载时注销 hooks 并取消未执行的防抖调用
+- 卸载时取消未执行的防抖调用（订阅由表格上下文随组件卸载自动注销，MOD-01）
 */
 import type { ComputedRef } from 'vue'
+import type { TableEventScope } from '../features/table-context'
 import type { CellRect, SelectionCell } from './geometry'
 import { isEmptyValue } from '@vue3-easytable/common/utils/index'
 import { debounce } from 'lodash'
@@ -17,7 +18,6 @@ import { createEmptyCellRect, getCellRectInTable } from './geometry'
 export interface SelectionPositionsProps {
   tableEl: HTMLTableElement | null
   allRowKeys: any[]
-  hooks: any
   parentRendered: boolean
   cellSelectionData: {
     currentCell: SelectionCell
@@ -33,6 +33,8 @@ export interface SelectionPositionsOptions {
   isSelectionVisible: ComputedRef<boolean>
   // 当前单元格或结束单元格变化后调用（在位置更新之后）
   onSelectionCellChange: () => void
+  // 表格上下文的订阅作用域（选区组件 setup 中创建）
+  tableEvents: TableEventScope
 }
 
 type CellRectType = 'currentCell' | 'normalEndCell' | 'autoFillEndCell'
@@ -43,7 +45,7 @@ function isCellSet(cell: SelectionCell) {
 
 export function useSelectionPositions(
   props: SelectionPositionsProps,
-  { isSelectionVisible, onSelectionCellChange }: SelectionPositionsOptions,
+  { isSelectionVisible, onSelectionCellChange, tableEvents }: SelectionPositionsOptions,
 ) {
   // 单元格元素（DOM 元素不需要深层响应）
   const currentCellEl = shallowRef<HTMLElement | null>(null)
@@ -57,7 +59,7 @@ export function useSelectionPositions(
     autoFillEndCellRect: createEmptyCellRect(),
   })
 
-  // 已注册 hooks 的注销函数
+  // 已订阅的表格事件的注销函数
   let hookDisposers: (() => void)[] = []
 
   /* ---------------- 单元格元素 ---------------- */
@@ -296,19 +298,18 @@ export function useSelectionPositions(
   const debounceResetCellPositions = debounce(resetCellPositions, 210)
   const debounceSetCellEls = debounce(setCellEls, 200)
 
-  /* ---------------- hooks ---------------- */
+  /* ---------------- 表格事件 ---------------- */
 
-  // 移除已注册的所有 hooks
+  // 注销已订阅的所有表格事件
   function removeHooks() {
     hookDisposers.forEach(dispose => dispose())
     hookDisposers = []
   }
 
   function addHooks() {
-    const { hooks } = props
     hookDisposers = [
       // table container scroll
-      hooks.addHook(HOOKS_NAME.TABLE_CONTAINER_SCROLL, () => {
+      tableEvents.on(HOOKS_NAME.TABLE_CONTAINER_SCROLL, () => {
         setCellEls()
         debounceSetCellEls()
 
@@ -316,17 +317,17 @@ export function useSelectionPositions(
         debounceResetCellPositions()
       }),
       // table size change
-      hooks.addHook(HOOKS_NAME.TABLE_SIZE_CHANGE, () => {
+      tableEvents.on(HOOKS_NAME.TABLE_SIZE_CHANGE, () => {
         debounceResetCellPositions()
       }),
       // table td width change
-      hooks.addHook(HOOKS_NAME.TABLE_CELL_WIDTH_CHANGE, () => {
+      tableEvents.on(HOOKS_NAME.TABLE_CELL_WIDTH_CHANGE, () => {
         nextTick(() => {
           resetCellPositions()
         })
       }),
       // clipboard cell value change
-      hooks.addHook(HOOKS_NAME.CLIPBOARD_CELL_VALUE_CHANGE, () => {
+      tableEvents.on(HOOKS_NAME.CLIPBOARD_CELL_VALUE_CHANGE, () => {
         nextTick(() => {
           // 插入 / 删除行后单元格元素可能已变化，先重新查找再计算位置
           setCurrentCellEl()
@@ -341,7 +342,7 @@ export function useSelectionPositions(
     () => props.parentRendered,
     (val) => {
       if (val) {
-        // 先注销旧的 hooks，避免重复注册
+        // 先注销旧的订阅，避免重复注册
         removeHooks()
         addHooks()
       }
@@ -396,9 +397,7 @@ export function useSelectionPositions(
   )
 
   onBeforeUnmount(() => {
-    // 卸载后不再响应表格 hooks（否则已卸载实例仍会被滚动等事件触发）
-    removeHooks()
-    // 取消未执行的防抖调用
+    // 订阅由表格上下文在组件卸载时自动注销（INFRA-01）；这里取消未执行的防抖调用
     debounceResetCellPositions.cancel()
     debounceSetCellEls.cancel()
   })

@@ -1,8 +1,8 @@
-import emitter from '@vue3-easytable/common/mixins/emitter'
 import { getTextContentOfVNode, isBoolean, isEmptyValue, isNumber } from '@vue3-easytable/common/utils/index'
 import { h } from 'vue'
 import { bindCustomEvents, getCustomEvents } from '../features/custom-events/bindCustomEvents'
 import { injectFixedColumns } from '../features/fixed-columns/useFixedColumns'
+import { injectTableContext } from '../features/table-context'
 import { clsName, getRowKeysByRangeRowKeys } from '../util'
 
 import {
@@ -19,7 +19,6 @@ import ExpandTrIcon from './expand-tr-icon'
 
 export default defineComponent({
   name: COMPS_NAME.VE_TABLE_BODY_TD,
-  mixins: [emitter()],
   props: {
     rowData: {
       type: Object,
@@ -140,6 +139,8 @@ export default defineComponent({
   setup() {
     return {
       fixedColumns: injectFixedColumns(),
+      // 表格上下文（MOD-01）：只发出事件，不注册监听器
+      tableContext: injectTableContext(),
     }
   },
   computed: {
@@ -386,7 +387,7 @@ export default defineComponent({
     dispatchCellEvent(eventName, event) {
       const { column, rowData } = this
 
-      this.dispatch(COMPS_NAME.VE_TABLE, eventName, {
+      this.tableContext.emit(eventName, {
         event,
         rowData,
         column,

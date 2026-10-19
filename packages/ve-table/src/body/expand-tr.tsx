@@ -1,10 +1,8 @@
-import emitter from '@vue3-easytable/common/mixins/emitter'
 import { clsName } from '../util'
 import { COMPS_NAME } from '../util/constant'
 
 export default defineComponent({
   name: COMPS_NAME.VE_TABLE_EXPAND_TR,
-  mixins: [emitter()],
   props: {
     tableViewportWidth: {
       type: Number,

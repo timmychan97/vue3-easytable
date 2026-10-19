@@ -1,5 +1,5 @@
 import veTable from '@/ve-table'
-import { HOOKS_NAME } from '@/ve-table/src/util/constant'
+import { EMIT_EVENTS, HOOKS_NAME } from '@/ve-table/src/util/constant'
 import { later, wrapMount as mount } from '@test-utils'
 import { afterEach, expect, vi } from 'vitest'
 
@@ -20,10 +20,9 @@ describe('veTable lifecycle (remount / toggle)', () => {
     { field: 'hobby', key: 'c', title: 'Hobby', width: 100 },
   ]
 
-  // 统计所有已注册 hook 回调的数量
-  function countHooks(wrapper: any) {
-    const hooks = wrapper.vm.hooks.hooks as Record<string, unknown[]>
-    return Object.values(hooks).reduce((sum, list) => sum + list.length, 0)
+  // 统计表格上下文中所有已注册的监听器数量（MOD-01：包括原 hooks 与原事件总线的监听器）
+  function countListeners(wrapper: any) {
+    return wrapper.vm.tableContext.listenerCount() as number
   }
 
   // jsdom 没有布局，所有 rect 都是 0；这里给出非零尺寸，让编辑器真正去定位 textarea
@@ -66,7 +65,7 @@ describe('veTable lifecycle (remount / toggle)', () => {
     wrapper.findAll('.ve-table-body-tr')[1].findAll('.ve-table-body-td')[1].trigger('mousedown')
     await later()
 
-    const initialCount = countHooks(wrapper)
+    const initialCount = countListeners(wrapper)
     expect(initialCount).toBeGreaterThan(0)
 
     for (let i = 0; i < 3; i++) {
@@ -77,16 +76,18 @@ describe('veTable lifecycle (remount / toggle)', () => {
     }
 
     // 回调数量不应随 toggle 增长
-    expect(countHooks(wrapper)).toBe(initialCount)
+    expect(countListeners(wrapper)).toBe(initialCount)
 
     // 关闭后触发滚动 hook：已卸载的编辑器 / 选区不应再执行
     await wrapper.setProps({ cellSelectionOption: { enable: false } })
     await later()
+    // 选区的 4 个订阅（滚动、尺寸、列宽、剪贴板）与编辑器的 2 个订阅（滚动、尺寸）随组件卸载注销
+    expect(countListeners(wrapper)).toBe(initialCount - 6)
 
     const containerEl = wrapper.find('.ve-table-container').element
     expect(() => {
-      (wrapper.vm as any).hooks.triggerHook(HOOKS_NAME.TABLE_CONTAINER_SCROLL, containerEl)
-      ;(wrapper.vm as any).hooks.triggerHook(HOOKS_NAME.TABLE_SIZE_CHANGE)
+      (wrapper.vm as any).tableContext.emit(HOOKS_NAME.TABLE_CONTAINER_SCROLL, containerEl)
+      ;(wrapper.vm as any).tableContext.emit(HOOKS_NAME.TABLE_SIZE_CHANGE)
     }).not.toThrow()
     expect(errorSpy).not.toHaveBeenCalled()
 
@@ -104,7 +105,7 @@ describe('veTable lifecycle (remount / toggle)', () => {
     })
     await later()
 
-    const scrollHooks = () => ((wrapper.vm as any).hooks.hooks[HOOKS_NAME.TABLE_CONTAINER_SCROLL] ?? []).length
+    const scrollHooks = () => (wrapper.vm as any).tableContext.listenerCount(HOOKS_NAME.TABLE_CONTAINER_SCROLL) as number
     const initialCount = scrollHooks()
     expect(initialCount).toBeGreaterThan(0)
 
@@ -145,6 +146,9 @@ describe('veTable lifecycle (remount / toggle)', () => {
       await later()
     }
 
+    // 只剩当前表头的一个监听器（MOD-01：表头卸载时自动注销）
+    expect((wrapper.vm as any).tableContext.listenerCount(EMIT_EVENTS.COLUMN_SORT_CHANGE)).toBe(1)
+
     wrapper.findAll('.ve-table-header-tr th')[1].find('.ve-table-sort').trigger('click')
     await later()
 
@@ -169,12 +173,12 @@ describe('veTable lifecycle (remount / toggle)', () => {
     // 两个 0ms 防抖：宽度测量回调
     vm.measureCellSizeChange({ key: 'a', width: 120 })
     vm.debouncedBodyCellWidthChange?.(new Map([['a', 120]]))
-    const triggerHookSpy = vi.spyOn(vm.hooks, 'triggerHook')
+    const emitSpy = vi.spyOn(vm.tableContext, 'emit')
 
     wrapper.unmount()
 
     expect(() => vi.advanceTimersByTime(100)).not.toThrow()
-    expect(triggerHookSpy).not.toHaveBeenCalled()
+    expect(emitSpy).not.toHaveBeenCalled()
   })
 
   it('pending selection debounces do not run after unmount (INFRA-03)', async () => {
@@ -196,7 +200,7 @@ describe('veTable lifecycle (remount / toggle)', () => {
     vi.useFakeTimers()
     // 滚动 hook 会排两个防抖：debounceSetCellEls(200ms) 与 debounceResetCellPositions(210ms)
     const containerEl = wrapper.find('.ve-table-container').element
-    ;(wrapper.vm as any).hooks.triggerHook(HOOKS_NAME.TABLE_CONTAINER_SCROLL, containerEl)
+    ;(wrapper.vm as any).tableContext.emit(HOOKS_NAME.TABLE_CONTAINER_SCROLL, containerEl)
 
     await wrapper.setProps({ cellSelectionOption: { enable: false } })
     expect(wrapper.findComponent({ name: 'VeTableSelection' }).exists()).toBe(false)
@@ -279,7 +283,7 @@ describe('veTable lifecycle (remount / toggle)', () => {
     vi.useFakeTimers()
     // 滚动 hook 会排两个防抖：debounceSetCellEl(200ms) 与 debounceSetTextareaPosition(210ms)
     const containerEl = wrapper.find('.ve-table-container').element
-    ;(wrapper.vm as any).hooks.triggerHook(HOOKS_NAME.TABLE_CONTAINER_SCROLL, containerEl)
+    ;(wrapper.vm as any).tableContext.emit(HOOKS_NAME.TABLE_CONTAINER_SCROLL, containerEl)
     // 切换当前单元格会在 nextTick 后排一个聚焦用的 setTimeout
     wrapper.findAll('.ve-table-body-tr')[2].findAll('.ve-table-body-td')[1].trigger('mousedown')
     await nextTick()

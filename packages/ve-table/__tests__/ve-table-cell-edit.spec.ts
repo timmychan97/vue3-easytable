@@ -2153,8 +2153,11 @@ describe('veTable cell edit', () => {
 
     const cellEditor = wrapper.findComponent({ name: 'VeTableEditInput' })
 
-    cellEditor.vm.hooks.triggerHook(HOOKS_NAME.TABLE_SIZE_CHANGE)
-    cellEditor.vm.hooks.triggerHook(HOOKS_NAME.TABLE_CONTAINER_SCROLL, {
+    // MOD-01：表格事件经表格上下文分发（之前是编辑器 hooks prop 上的 triggerHook）
+    const { tableContext } = wrapper.vm as any
+    expect(cellEditor.exists()).toBe(true)
+    tableContext.emit(HOOKS_NAME.TABLE_SIZE_CHANGE)
+    tableContext.emit(HOOKS_NAME.TABLE_CONTAINER_SCROLL, {
       scrollLeft: 1000,
     })
 

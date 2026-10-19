@@ -1,9 +1,9 @@
 import focus from '@vue3-easytable/common/directives/focus.js'
-import emitter from '@vue3-easytable/common/mixins/emitter'
 import { autoResize } from '@vue3-easytable/common/utils/auto-resize'
 import { getCaretPosition, setCaretPosition } from '@vue3-easytable/common/utils/dom'
 import { isEmptyValue } from '@vue3-easytable/common/utils/index.js'
 import { debounce } from 'lodash'
+import { useTableContext } from '../features/table-context'
 import { clsName, getFixedTotalWidthByColumnKey } from '../util'
 import { queryCell } from '../util/cell-dom'
 import { COMPS_NAME, EMIT_EVENTS, HOOKS_NAME, KEYBOARD_MODE } from '../util/constant'
@@ -14,14 +14,9 @@ export default defineComponent({
   directives: {
     focus,
   },
-  mixins: [emitter()],
   props: {
     parentRendered: {
       type: Boolean,
-      required: true,
-    },
-    hooks: {
-      type: Object,
       required: true,
     },
     // start input value every time
@@ -82,6 +77,12 @@ export default defineComponent({
       default: KEYBOARD_MODE.CELL,
     },
   },
+  setup() {
+    return {
+      // 表格上下文（MOD-01）：订阅表格滚动、尺寸变化，卸载时自动注销
+      tableEvents: useTableContext(),
+    }
+  },
   data() {
     return {
       textareaInputRef: 'textareaInputRef',
@@ -104,7 +105,7 @@ export default defineComponent({
       autoResize: null,
       // is edit cell focus
       isEditCellFocus: false,
-      // 已注册 hooks 的注销函数
+      // 已订阅的表格事件的注销函数（重新订阅前先注销）
       hookDisposers: [] as (() => void)[],
       // 聚焦定时器（卸载时需要清除）
       focusTimer: null as ReturnType<typeof setTimeout> | null,
@@ -199,12 +200,12 @@ export default defineComponent({
           // fixed #471
           this.setTableEl()
 
-          // 先注销旧的 hooks，避免重复注册
+          // 先注销旧的订阅，避免重复注册
           this.removeHooks()
-          // 保存注销函数，在 beforeUnmount 中统一移除
+          // 组件卸载时由表格上下文自动注销
           this.hookDisposers = [
             // add table container scroll hook
-            this.hooks.addHook(
+            this.tableEvents.on(
               HOOKS_NAME.TABLE_CONTAINER_SCROLL,
               () => {
                 if (this.displayTextarea) {
@@ -217,7 +218,7 @@ export default defineComponent({
               },
             ),
             // add table size change hook
-            this.hooks.addHook(HOOKS_NAME.TABLE_SIZE_CHANGE, () => {
+            this.tableEvents.on(HOOKS_NAME.TABLE_SIZE_CHANGE, () => {
               this.setTextareaPosition()
             }),
           ]
@@ -481,7 +482,7 @@ export default defineComponent({
       }
     },
 
-    // 移除本组件注册的所有 hooks
+    // 注销本组件订阅的所有表格事件
     removeHooks() {
       this.hookDisposers.forEach(dispose => dispose())
       this.hookDisposers = []
@@ -505,8 +506,7 @@ export default defineComponent({
     this.autoResize = autoResize()
   },
   beforeUnmount() {
-    // 卸载后不再响应表格 hooks（否则已卸载实例仍会被滚动等事件触发）
-    this.removeHooks()
+    // 订阅由表格上下文在组件卸载时自动注销（INFRA-01）
     // 取消未执行的防抖调用与聚焦定时器（否则卸载后会对已销毁的 textarea 定位并报错）
     ;(this.debounceSetTextareaPosition as unknown as ReturnType<typeof debounce>).cancel()
     ;(this.debounceSetCellEl as unknown as ReturnType<typeof debounce>).cancel()

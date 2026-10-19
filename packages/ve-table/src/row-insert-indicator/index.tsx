@@ -1,7 +1,7 @@
 import type { ColgroupData } from '../ve-table-types'
-import emitter from '@vue3-easytable/common/mixins/emitter'
 import { caf, raf } from '@vue3-easytable/common/utils/animation-frame'
 import { computed, defineComponent, nextTick, onUnmounted, ref, watch } from 'vue'
+import { useTableContext } from '../features/table-context'
 import { clsName } from '../util'
 import { queryBodyRows } from '../util/cell-dom'
 import { COMPS_NAME, EMIT_EVENTS, HOOKS_NAME } from '../util/constant'
@@ -10,16 +10,10 @@ import { COMPS_NAME, EMIT_EVENTS, HOOKS_NAME } from '../util/constant'
 // Displays a horizontal line and add button when hovering near row boundaries
 export default defineComponent({
   name: COMPS_NAME.VE_TABLE_ROW_INSERT_INDICATOR,
-  mixins: [emitter()],
   props: {
     // Parent rendered flag
     parentRendered: {
       type: Boolean,
-      required: true,
-    },
-    // Hooks instance for table events
-    hooks: {
-      type: Object,
       required: true,
     },
     // Table container element reference
@@ -60,6 +54,9 @@ export default defineComponent({
   emits: [EMIT_EVENTS.ROW_INSERT],
 
   setup(props, { emit }) {
+    // 表格上下文（MOD-01）：订阅表格滚动，卸载时自动注销
+    const tableEvents = useTableContext()
+
     // State
     const isVisible = ref(false)
     const indicatorTop = ref(0)
@@ -436,7 +433,7 @@ export default defineComponent({
 
     // 组件是否已卸载（nextTick 回调可能在卸载之后才执行）
     let isUnmounted = false
-    // scroll hook 的注销函数
+    // 滚动订阅的注销函数（重新订阅前先注销）
     let removeScrollHook: (() => void) | null = null
 
     // Watch for parent rendered
@@ -450,9 +447,9 @@ export default defineComponent({
 
             setupEventListeners()
 
-            // Add scroll hook
+            // 订阅表格滚动
             removeScrollHook?.()
-            removeScrollHook = props.hooks.addHook(HOOKS_NAME.TABLE_CONTAINER_SCROLL, handleScroll)
+            removeScrollHook = tableEvents.on(HOOKS_NAME.TABLE_CONTAINER_SCROLL, handleScroll)
           })
         }
       },
@@ -476,9 +473,7 @@ export default defineComponent({
     // Cleanup on unmount
     onUnmounted(() => {
       isUnmounted = true
-      // 卸载后不再响应表格滚动 hook
-      removeScrollHook?.()
-      removeScrollHook = null
+      // 滚动订阅由表格上下文在组件卸载时自动注销（INFRA-01）
       removeEventListeners()
       clearHideTimeout()
       // INS-02：卸载后不再执行已排队的帧
