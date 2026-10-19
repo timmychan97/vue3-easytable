@@ -1,5 +1,4 @@
 import type { ComponentPublicInstance } from 'vue'
-import type { KeyboardMode } from './util/constant.js'
 import type {
   ContextmenuOption,
   EditorInstance,
@@ -30,6 +29,7 @@ import { useColumnMeasure } from './features/columns/useColumnMeasure'
 import { useColumns } from './features/columns/useColumns'
 import { useEditing } from './features/editing/useEditing'
 import { FIXED_COLUMNS_KEY, useFixedColumns } from './features/fixed-columns/useFixedColumns'
+import { useKeyboard } from './features/keyboard/useKeyboard'
 import { useTableLayout } from './features/layout/useTableLayout'
 import { createRowState, ROW_STATE_KEY } from './features/row-state'
 import { useScrolling } from './features/scrolling/useScrolling'
@@ -38,7 +38,6 @@ import { useVirtualScroll } from './features/virtual-scroll/useVirtualScroll'
 import Footer from './footer'
 import Header from './header'
 import { contextmenuMethods } from './methods/contextmenu'
-import { keyboardMethods } from './methods/keyboard'
 import RowInsertIndicator from './row-insert-indicator'
 import Selection from './selection'
 // Clipboard utils moved to methods/clipboard.ts
@@ -205,6 +204,19 @@ export default defineComponent({
       tableContext,
     })
 
+    // 键盘：单元格导航、编辑快捷键、表格模式（SEL-08）
+    const keyboard = useKeyboard({
+      rootElement: tableRootRef,
+      editor: editInputRef,
+      colgroups: columns.colgroups,
+      allRowKeys,
+      state: selectionState,
+      selection,
+      editing,
+      clipboard,
+      scrolling,
+    })
+
     function refreshScrollBarStatusAfterRender() {
       nextTick(() => scrolling.setScrollBarStatus())
     }
@@ -225,6 +237,7 @@ export default defineComponent({
       ...selectionDrag,
       ...autofill,
       ...clipboard,
+      ...keyboard,
       tableRootRef,
       tableContainerWrapperRef,
       tableContainerRef,
@@ -240,9 +253,6 @@ export default defineComponent({
   data() {
     return {
       parentRendered: false,
-
-      // 键盘模式（SEL-08）：单元格导航 / 表格（焦点在根元素上，Tab 交给浏览器）
-      keyboardMode: KEYBOARD_MODE.TABLE as KeyboardMode,
 
       // Highlight
       highlightRowKey: '' as string | number,
@@ -401,20 +411,6 @@ export default defineComponent({
       }
     },
   },
-  watch: {
-    // SEL-08：活动单元格变化（点击、API、键盘）时进入单元格导航（编辑框会获得焦点），清空时回到表格模式。
-    // 只监听 key，rowIndex 因排序等变化时不切换模式
-    'cellSelectionData.currentCell.rowKey': {
-      handler() {
-        this.syncKeyboardModeByCurrentCell()
-      },
-    },
-    'cellSelectionData.currentCell.colKey': {
-      handler() {
-        this.syncKeyboardModeByCurrentCell()
-      },
-    },
-  },
   mounted() {
     this.parentRendered = true
 
@@ -444,13 +440,6 @@ export default defineComponent({
       [EMIT_EVENTS.HEADER_CELL_MOUSEMOVE]: params => this.headerCellMousemove(params),
       [EMIT_EVENTS.HEADER_CELL_MOUSELEAVE]: params => this.headerCellMouseleave(params),
     })
-
-    // add key down event listener
-    document.addEventListener('keydown', this.dealKeydownEvent)
-  },
-  unmounted() {
-    // remove key down event listener
-    document.removeEventListener('keydown', this.dealKeydownEvent)
   },
 
   methods: {
@@ -1044,7 +1033,6 @@ export default defineComponent({
 
     // ── Extracted method modules (override any inline stubs above) ──
     ...contextmenuMethods,
-    ...keyboardMethods,
   },
   render() {
     const {

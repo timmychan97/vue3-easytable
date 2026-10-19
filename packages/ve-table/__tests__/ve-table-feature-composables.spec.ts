@@ -6,6 +6,7 @@ import { useSelectionDrag } from '@/ve-table/src/features/cell-selection/useSele
 import { useClipboard } from '@/ve-table/src/features/clipboard/useClipboard'
 import { useColumns } from '@/ve-table/src/features/columns/useColumns'
 import { useEditing } from '@/ve-table/src/features/editing/useEditing'
+import { useKeyboard } from '@/ve-table/src/features/keyboard/useKeyboard'
 import { useTableLayout } from '@/ve-table/src/features/layout/useTableLayout'
 import { useScrolling } from '@/ve-table/src/features/scrolling/useScrolling'
 import { createTableContext } from '@/ve-table/src/features/table-context'
@@ -717,5 +718,94 @@ describe('useClipboard', () => {
     expect(event.preventDefault).toHaveBeenCalled()
     expect(event.clipboardData.setData).toHaveBeenCalledWith('text/plain', 'y\t2\n')
     stop()
+  })
+})
+
+describe('useKeyboard', () => {
+  function setup() {
+    const root = document.createElement('div')
+    root.tabIndex = 0
+    document.body.appendChild(root)
+    const props = reactive({ cellSelectionOption: null, rowKeyFieldName: 'id' }) as any
+    const colgroups = ref<any[]>([{ key: 'op', operationColumn: true }, { key: 'a' }, { key: 'b', edit: true }])
+    const allRowKeys = computed(() => ['r0', 'r1'])
+    const calls: any[] = []
+    const { result, wrapper } = withSetup(() => {
+      const state = useCellSelectionState({ props, colgroups, allRowKeys })
+      const keyboard = useKeyboard({
+        rootElement: shallowRef(root),
+        editor: shallowRef(null),
+        colgroups,
+        allRowKeys,
+        state,
+        selection: {
+          setCellSelection: ({ rowKey, colKey }: any) => state.cellSelectionCurrentCellChange({ rowKey, colKey }),
+        },
+        editing: {
+          enableStopEditing: ref(true),
+          isCellEditing: computed(() => false),
+          startEditingCell: (params: any) => { calls.push(['start', params]) },
+          stopEditingCell: () => { calls.push(['stop']) },
+          discardEditingCell: () => { calls.push(['discard']) },
+        },
+        clipboard: { deleteCellSelectionRangeValue: () => { calls.push(['delete']) } },
+        scrolling: {
+          columnToVisible: () => {},
+          rowToVisible: (_keyCode: number, rowKey: any) => state.cellSelectionCurrentCellChange({
+            rowKey,
+            colKey: state.cellSelectionData.value.currentCell.colKey,
+          }),
+        },
+      })
+      return { state, keyboard }
+    })
+    const press = (key: string, keyCode: number, target: EventTarget = root) => {
+      target.dispatchEvent(new KeyboardEvent('keydown', { key, keyCode, bubbles: true, cancelable: true } as any))
+    }
+    const cleanup = () => {
+      wrapper.unmount()
+      root.remove()
+    }
+    return { ...result, root, calls, press, cleanup }
+  }
+
+  it('resumes cell navigation from the table root, moves with the arrow keys and leaves with Esc (SEL-08)', async () => {
+    const { state, keyboard, root, calls, press, cleanup } = setup()
+    expect(keyboard.keyboardMode.value).toBe('table')
+
+    // 表格模式下在根元素上按 Enter：选中第一个非操作列单元格
+    press('Enter', 13)
+    expect(state.cellSelectionData.value.currentCell).toMatchObject({ rowKey: 'r0', colKey: 'a' })
+    expect(keyboard.keyboardMode.value).toBe('cell')
+
+    press('ArrowRight', 39)
+    press('ArrowDown', 40)
+    expect(state.cellSelectionData.value.currentCell).toMatchObject({ rowKey: 'r1', colKey: 'b' })
+    expect(calls).toEqual([['stop'], ['stop']])
+
+    press('Delete', 46)
+    expect(calls[2]).toEqual(['delete'])
+
+    press('Escape', 27)
+    expect(keyboard.keyboardMode.value).toBe('table')
+    expect(document.activeElement).toBe(root)
+    cleanup()
+  })
+
+  it('ignores keys from outside the table and from widgets inside cells (SEL-02, SEL-10)', () => {
+    const { state, keyboard, root, calls, press, cleanup } = setup()
+    keyboard.resumeCellKeyboardMode()
+    const outside = document.createElement('input')
+    document.body.appendChild(outside)
+    const widget = document.createElement('input')
+    root.appendChild(widget)
+
+    press('Delete', 46, outside)
+    press('Delete', 46, widget)
+    expect(calls).toEqual([])
+    expect(state.cellSelectionData.value.currentCell.rowKey).toBe('r0')
+
+    outside.remove()
+    cleanup()
   })
 })
