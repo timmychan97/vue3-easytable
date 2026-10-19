@@ -438,4 +438,104 @@ describe('veTable header sort', () => {
       weight: '',
     })
   })
+
+  // COL-12：排序状态按列 key 保存；同一个 field 的多列、没有 field 的列各自排序
+  describe('sort state by column key (COL-12)', () => {
+    function mountSort(columns: any[], sortOption: Record<string, any> = {}) {
+      return mount(veTable, {
+        props: {
+          columns,
+          tableData: TABLE_DATA,
+          sortOption,
+          rowKeyFieldName: 'name',
+        },
+      })
+    }
+
+    // 每个可排序表头单元格的状态：'asc' | 'desc' | ''
+    function sortStates(wrapper: any) {
+      return wrapper.findAll('.ve-table-header-th')
+        .filter((th: any) => th.find('.ve-table-sort').exists())
+        .map((th: any) => {
+          if (th.find('.ve-table-sort-icon-top').classes().includes('active'))
+            return 'asc'
+          if (th.find('.ve-table-sort-icon-bottom').classes().includes('active'))
+            return 'desc'
+          return ''
+        })
+    }
+
+    async function clickSort(wrapper: any, index: number) {
+      await wrapper.findAll('.ve-table-sort')[index].trigger('click')
+      await later()
+    }
+
+    it('two columns with the same field sort independently', async () => {
+      const sortChange = vi.fn()
+      const wrapper = mountSort([
+        { field: 'name', key: 'a', title: 'Name' },
+        { field: 'age', key: 'b', title: 'Age', sortBy: '' },
+        { field: 'age', key: 'c', title: 'Age again', sortBy: '' },
+      ], { sortChange })
+
+      await clickSort(wrapper, 0)
+
+      expect(sortStates(wrapper)).toEqual(['asc', ''])
+      // payload 仍按 field：同一个 field 取有排序方向的列
+      expect(sortChange).toHaveBeenLastCalledWith({ age: 'asc' })
+
+      await clickSort(wrapper, 1)
+
+      // 单列排序：点击另一列会清除前一列
+      expect(sortStates(wrapper)).toEqual(['', 'asc'])
+      expect(sortChange).toHaveBeenLastCalledWith({ age: 'asc' })
+
+      wrapper.unmount()
+    })
+
+    it('the configured sortBy of columns with the same field is kept per column', () => {
+      const wrapper = mountSort([
+        { field: 'age', key: 'b', title: 'Age', sortBy: 'asc' },
+        { field: 'age', key: 'c', title: 'Age again', sortBy: '' },
+      ])
+
+      expect(sortStates(wrapper)).toEqual(['asc', ''])
+
+      wrapper.unmount()
+    })
+
+    it('columns without field sort independently', async () => {
+      const renderBodyCell = ({ rowIndex }: { rowIndex: number }) => rowIndex
+      const wrapper = mountSort([
+        { key: 'x', title: 'X', sortBy: '', renderBodyCell },
+        { key: 'y', title: 'Y', sortBy: '', renderBodyCell },
+      ], { multipleSort: true })
+
+      await clickSort(wrapper, 0)
+      expect(sortStates(wrapper)).toEqual(['asc', ''])
+
+      await clickSort(wrapper, 1)
+      await clickSort(wrapper, 1)
+      expect(sortStates(wrapper)).toEqual(['asc', 'desc'])
+
+      wrapper.unmount()
+    })
+
+    it('numeric column keys work', async () => {
+      const sortChange = vi.fn()
+      const wrapper = mountSort([
+        { field: 'age', key: 1, title: 'Age', sortBy: '' },
+        { field: 'weight', key: 2, title: 'Weight', sortBy: 'desc' },
+      ], { sortChange })
+
+      expect(sortStates(wrapper)).toEqual(['', 'desc'])
+
+      await clickSort(wrapper, 0)
+
+      expect(sortStates(wrapper)).toEqual(['asc', ''])
+      expect(sortChange).toHaveBeenLastCalledWith({ age: 'asc', weight: '' })
+
+      wrapper.unmount()
+    })
+  })
 })

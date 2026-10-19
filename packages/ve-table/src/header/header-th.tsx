@@ -126,17 +126,10 @@ export default defineComponent({
 
       return keys[keys.length - 1] === lastColumnKey
     },
-    // is sortable column
+    // is sortable column（COL-12：排序状态按列 key 保存）
     isSortableCloumn() {
-      let result = false
-
       const { sortColumns, groupColumnItem } = this
-      const currentField = groupColumnItem.field
-
-      if (Object.keys(sortColumns).includes(currentField))
-        result = true
-
-      return result
+      return Object.prototype.hasOwnProperty.call(sortColumns, String(groupColumnItem.key))
     },
   },
   methods: {
@@ -279,8 +272,8 @@ export default defineComponent({
       // INFRA-08：列设置了 sortBy 但没有 sortOption 时也能排序
       const sortAlways = sortOption?.sortAlways
 
-      const currentField = groupColumnItem.field
-      const sortBy = sortColumns[currentField]
+      const currentKey = groupColumnItem.key
+      const sortBy = sortColumns[String(currentKey)]
 
       if (sortAlways) {
         sortResult = sortBy === 'asc' ? 'desc' : 'asc'
@@ -291,7 +284,7 @@ export default defineComponent({
       }
 
       this.dispatch(COMPS_NAME.VE_TABLE_THADER, EMIT_EVENTS.SORT_CHANGE, {
-        currentField,
+        currentKey,
         sortResult,
       })
     },
@@ -300,11 +293,10 @@ export default defineComponent({
     getSortContent() {
       let result = null
 
-      const { sortColumns, groupColumnItem } = this
-      const currentField = groupColumnItem.field
+      const { sortColumns, isSortableCloumn, groupColumnItem } = this
 
-      if (Object.keys(sortColumns).includes(currentField)) {
-        const sortBy = sortColumns[currentField]
+      if (isSortableCloumn) {
+        const sortBy = sortColumns[String(groupColumnItem.key)]
 
         const props = {
           class: clsName('sort'),
