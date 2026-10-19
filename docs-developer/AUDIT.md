@@ -408,6 +408,12 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
   - **Done:** `setCellSelection` uses `getColumnByColkey(colKey, this.colgroups)` again. The unknown-key check (SEL-06) and the `columnToVisible(column)` call are unchanged.
   - **Verified:** `ve-table-cell-selection.spec.ts` › "unknown keys in the selection API (SEL-06)" › "setCellSelection accepts colKey 0 and scrolls that column into view" (new guard; passes before and after, and fails if `getColumnByColkey` treats `0` as empty again), plus the existing SEL-06 tests.
 
+- [x] ⛔ won't fix: the MOD-06 fixed-column map doesn't hold the fact the selection layer needs, so using it would add code, not remove it. **SEL-17** 🟢 The selection layer still has its own fixed-column edge logic (found in wave 2)
+  - **Where:** `selection/geometry.ts` `isFirstNotFixedSelectionCol` (used by `selection/index.tsx`), next to the table-level `features/fixed-columns/useFixedColumns.ts` (`injectFixedColumns` / `FIXED_COLUMNS_KEY`) from MOD-06.
+  - **Effect:** none today; the question was whether the selection layer could reuse the table-level fixed-column info.
+  - **Decision (2026-10-19 · fix/audit-wave3-selection-autofill):** no change. `isFirstNotFixedSelectionCol` asks "is the selection's left column the first non-fixed column, and is there a left-fixed column?" (two `colgroups.find` calls in a pure function). The MOD-06 map is keyed by colKey and holds each column's `left` / `right` offset and the `last-left-fixed-column` / `first-right-fixed-column` classes. Answering the same question from it still needs the column order from `colgroups` (find the left column's index, then look at its neighbour's class), so it would not be shorter. It would also turn a pure, unit-tested function into one that needs `inject` inside VeTable. The rest of the layer's fixed-column code (`isExistGivenFixedColKey`, `getColKeysByFixedTypeWithinColKeys`, the right-fixed neighbour check in `getCornerCellInfo`) groups the selected columns by fixed region and sums their widths; the map has no equivalent either. The cell offsets the map does hold are not needed here, because the layer measures cell rects from the DOM.
+  - **Verified:** no code change; `ve-table-selection-geometry.spec.ts` (31 tests) and the selection snapshots are unchanged.
+
 ---
 
 ## CLIP — clipboard
