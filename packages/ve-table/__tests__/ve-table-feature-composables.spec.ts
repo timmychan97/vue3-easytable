@@ -1,8 +1,9 @@
 import type { ColumnOption } from '@/ve-table/src/ve-table-types'
 import { useColumns } from '@/ve-table/src/features/columns/useColumns'
+import { useTableLayout } from '@/ve-table/src/features/layout/useTableLayout'
 import { createTableContext } from '@/ve-table/src/features/table-context'
 import { HOOKS_NAME } from '@/ve-table/src/util/constant'
-import { effectScope, nextTick, reactive } from 'vue'
+import { effectScope, nextTick, reactive, ref } from 'vue'
 
 /*
  * MOD-02：ve-table 拆出的功能组合式函数，脱离组件单独测试（只依赖显式传入的参数）
@@ -97,6 +98,33 @@ describe('useColumns', () => {
     columns.setColumnWidth({ colKey: 'c', width: 66 })
     expect(columns.colgroups.value.find(x => x.key === 'c')!._columnResizeWidth).toBe(66)
     expect(order).toEqual(['resize', 'emit'])
+    stop()
+  })
+})
+
+describe('useTableLayout', () => {
+  it('resets the header / footer rows and sums the reported heights', async () => {
+    const props = reactive({ showHeader: true, footerData: [{ a: 1 }] }) as any
+    const groupColumns = ref<any[]>([[{ key: 'a' }], [{ key: 'b' }]])
+    const { result: layout, stop } = runInScope(() => useTableLayout({ props, groupColumns }))
+
+    expect(layout.headerRows.value).toEqual([{ rowHeight: 0 }, { rowHeight: 0 }])
+    expect(layout.footerRows.value).toEqual([{ rowHeight: 0 }])
+
+    layout.headerRowHeightChange({ rowIndex: 0, height: 40 })
+    layout.headerRowHeightChange({ rowIndex: 1, height: 30 })
+    layout.footRowHeightChange({ rowIndex: 0, height: 25 })
+    expect(layout.headerTotalHeight.value).toBe(70)
+    expect(layout.footerTotalHeight.value).toBe(25)
+
+    // 隐藏表头时表头高度为 0
+    props.showHeader = false
+    expect(layout.headerTotalHeight.value).toBe(0)
+
+    // 表头行数变化：行高重置，等待表头行重新上报
+    groupColumns.value = [[{ key: 'a' }]]
+    await nextTick()
+    expect(layout.headerRows.value).toEqual([{ rowHeight: 0 }])
     stop()
   })
 })

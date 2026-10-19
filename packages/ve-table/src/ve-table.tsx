@@ -10,7 +10,6 @@ import type {
   EditingCell,
   EditorInstance,
   HeaderIndicatorColKeys,
-  RowHeight,
   SelectionInstance,
 } from './ve-table-types'
 import type { VirtualItem, VirtualScrollInstance } from './virtual-scroll'
@@ -21,7 +20,6 @@ import {
   getValByUnit,
   isBoolean,
   isDefined,
-  isEmptyArray,
   isEmptyValue,
   isFunction,
   isNumber,
@@ -41,6 +39,7 @@ import EditInput from './editor'
 import { useColumnMeasure } from './features/columns/useColumnMeasure'
 import { useColumns } from './features/columns/useColumns'
 import { FIXED_COLUMNS_KEY, useFixedColumns } from './features/fixed-columns/useFixedColumns'
+import { useTableLayout } from './features/layout/useTableLayout'
 import { createRowState, ROW_STATE_KEY } from './features/row-state'
 import { createTableContext, provideTableContext, useTableContext } from './features/table-context'
 import Footer from './footer'
@@ -145,6 +144,9 @@ export default defineComponent({
     // 固定列的样式与 class（MOD-06）：按 colgroups 计算一次，表头、表体、表尾共享
     provide(FIXED_COLUMNS_KEY, useFixedColumns(columns.colgroups))
 
+    // 表头 / 表尾行高、表格高度
+    const layout = useTableLayout({ props, groupColumns: columns.groupColumns })
+
     // 模板 ref（render 中以同名字符串引用）
     const tableRootRef = shallowRef<HTMLElement | null>(null)
     const tableContainerWrapperRef = shallowRef<ComponentPublicInstance | null>(null)
@@ -164,6 +166,7 @@ export default defineComponent({
       allRowKeys,
       ...columns,
       ...columnMeasure,
+      ...layout,
       tableRootRef,
       tableContainerWrapperRef,
       tableContainerRef,
@@ -179,10 +182,6 @@ export default defineComponent({
   data() {
     return {
       parentRendered: false,
-      tableViewportWidth: 0,
-
-      headerRows: [] as RowHeight[],
-      footerRows: [] as RowHeight[],
 
       // Virtual scroll
       defaultVirtualScrollMinRowHeight: 40,
@@ -229,10 +228,6 @@ export default defineComponent({
       currentCellSelectionType: '',
       // 键盘模式（SEL-08）：单元格导航 / 表格（焦点在根元素上，Tab 交给浏览器）
       keyboardMode: KEYBOARD_MODE.TABLE as KeyboardMode,
-
-      // Layout
-      tableOffestHeight: 0,
-      tableHeight: 0,
 
       // Highlight
       highlightRowKey: '' as string | number,
@@ -618,22 +613,6 @@ export default defineComponent({
         },
       }
     },
-    // header total height
-    headerTotalHeight() {
-      let result = 0
-      if (this.showHeader) {
-        result = this.headerRows.reduce((total, currentVal) => {
-          return currentVal.rowHeight + total
-        }, 0)
-      }
-      return result
-    },
-    // footer total height
-    footerTotalHeight() {
-      return this.footerRows.reduce((total, currentVal) => {
-        return currentVal.rowHeight + total
-      }, 0)
-    },
   },
   watch: {
     /*
@@ -697,22 +676,6 @@ export default defineComponent({
         this.reconcileCellState()
       },
       immediate: false,
-    },
-    // group columns change watch
-    'groupColumns': {
-      handler(val) {
-        if (!isEmptyArray(val))
-          this.initHeaderRows()
-      },
-      immediate: true,
-    },
-    // footer data
-    'footerData': {
-      handler(val) {
-        if (!isEmptyArray(val))
-          this.initFooterRows()
-      },
-      immediate: true,
     },
     /*
         watch virtualScrollOption enable
@@ -843,38 +806,6 @@ export default defineComponent({
   },
 
   methods: {
-    // int header rows
-    initHeaderRows() {
-      const { groupColumns } = this
-
-      if (Array.isArray(groupColumns)) {
-        this.headerRows = groupColumns.map(() => {
-          return { rowHeight: 0 }
-        })
-      }
-    },
-
-    // int footer rows
-    initFooterRows() {
-      const { footerData } = this
-
-      if (Array.isArray(footerData)) {
-        this.footerRows = footerData.map(() => {
-          return { rowHeight: 0 }
-        })
-      }
-    },
-
-    // header tr height resize
-    headerRowHeightChange({ rowIndex, height }) {
-      this.headerRows.splice(rowIndex, 1, { rowHeight: height })
-    },
-
-    // footer row height resize
-    footRowHeightChange({ rowIndex, height }) {
-      this.footerRows.splice(rowIndex, 1, { rowHeight: height })
-    },
-
     // sort change
     // COL-08：排序状态只保存在表头（header/index.tsx 的 sortColumns），不再写回 colgroups[].sortBy，
     // 这样 colgroups[].sortBy 始终是配置值，表头可以据此区分“列重新生成”和“配置变化”
