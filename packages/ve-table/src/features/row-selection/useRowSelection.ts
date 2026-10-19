@@ -52,6 +52,8 @@ export function useRowSelection(options: UseRowSelectionOptions) {
   const getOption = () => toValue(checkboxOption) || null
 
   // 非受控模式下的已选 key（只整体替换，不原地修改）
+  // ROW-08：allRowKeys 变化时不清理不在数据中的 key（与 D7 相同：无法区分被删除的行和其他页的行），
+  // 需要清理时使用受控的 selectedRowKeys
   const internalSelectedRowKeys = shallowRef<RowKey[]>([])
 
   // 是否受控（设置了 selectedRowKeys）
