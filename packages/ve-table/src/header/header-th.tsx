@@ -1,21 +1,26 @@
-import emitter from '@vue3-easytable/common/mixins/emitter'
-import { getValByUnit, isEmptyValue } from '@vue3-easytable/common/utils'
+import type { JSX } from 'vue/jsx-runtime'
+import type { ColKey } from '../util/core'
+import type { ColgroupData, RowHeight } from '../ve-table-types'
+import { getValByUnit, isEmptyArray, isEmptyValue } from '@vue3-easytable/common/utils'
 import { ICON_NAMES } from '@vue3-easytable/common/utils/constant'
 import VeIcon from '@vue3-easytable/ve-icon'
+import { h } from 'vue'
+import { bindCustomEvents, getCustomEvents } from '../features/custom-events/bindCustomEvents'
+import { injectFixedColumns } from '../features/fixed-columns/useFixedColumns'
+import { injectTableContext } from '../features/table-context'
 import {
   clsName,
   getColKeysByHeaderColumn,
   getColKeysByRangeColKeys,
-  getFixedTotalWidthByColumnKey,
 } from '../util'
-import { COLUMN_TYPES, COMPS_NAME, EMIT_EVENTS } from '../util/constant'
+import { COLUMN_TYPES, COMPS_CUSTOM_ATTRS, COMPS_NAME, EMIT_EVENTS } from '../util/constant'
+import { safeCall } from '../util/safe-call'
 import HeaderCheckboxContent from './header-checkbox-content'
 import HeaderFilterContent from './header-filter-content'
 import HeaderFilterCustomContent from './header-filter-custom-content'
 
 export default defineComponent({
   name: COMPS_NAME.VE_TABLE_THADER_Th,
-  mixins: [emitter()],
   props: {
     // group columns item
     groupColumn: {
@@ -28,11 +33,11 @@ export default defineComponent({
       required: true,
     },
     colgroups: {
-      type: Array,
+      type: Array as PropType<ColgroupData[]>,
       required: true,
     },
     headerRows: {
-      type: Array,
+      type: Array as PropType<RowHeight[]>,
       default() {
         return []
       },
@@ -103,79 +108,32 @@ export default defineComponent({
       },
     },
   },
+  setup() {
+    return {
+      fixedColumns: injectFixedColumns(),
+      // 表格上下文（MOD-01）：只发出事件，不注册监听器
+      tableContext: injectTableContext(),
+    }
+  },
   computed: {
-    // is last left fixed column
-    isLastLeftFixedColumn() {
-      let result = false
-
-      const { groupColumn, groupColumnItem: column } = this
-
-      const { fixed, _keys } = column
-
-      if (fixed === 'left') {
-        const leftFixedColumns = groupColumn.filter(
-          x => x.fixed === 'left',
-        )
-        const index = leftFixedColumns.findIndex(
-          x => x._keys === _keys,
-        )
-
-        if (index === leftFixedColumns.length - 1)
-          result = true
-      }
-      return result
-    },
-    // is first right fixed column
-    isfirstRightFixedColumn() {
-      let result = false
-
-      const { groupColumn, groupColumnItem: column } = this
-
-      const { fixed, _keys } = column
-
-      if (fixed === 'right') {
-        const leftFixedColumns = groupColumn.filter(
-          x => x.fixed === 'right',
-        )
-
-        if (leftFixedColumns[0]._keys === _keys)
-          result = true
-      }
-      return result
+    // 固定列的样式与 class（MOD-06，表格级计算；分组列由首尾叶子列得出）
+    fixedInfo() {
+      return this.fixedColumns.getHeaderFixedInfo(this.groupColumnItem)
     },
     // is last column
     isLastCloumn() {
-      let result = false
-
       const { colgroups, groupColumnItem: column } = this
 
-      const lastColumnKey = colgroups[colgroups.length - 1].key
+      // _keys 中的列 key 都是字符串，数字列 key 也按字符串比较（COL-10）
+      const lastColumnKey = String(colgroups[colgroups.length - 1].key)
+      const keys = getColKeysByHeaderColumn({ headerColumnItem: column })
 
-      const keys = column._keys.split('|')
-
-      if (keys.length) {
-        if (keys.length === 1) {
-          if (keys[0] === lastColumnKey)
-            result = true
-        }
-        else if (keys[keys.length - 2] === lastColumnKey) {
-          result = true
-        }
-      }
-
-      return result
+      return keys[keys.length - 1] === lastColumnKey
     },
-    // is sortable column
+    // is sortable column（COL-12：排序状态按列 key 保存）
     isSortableCloumn() {
-      let result = false
-
       const { sortColumns, groupColumnItem } = this
-      const currentField = groupColumnItem.field
-
-      if (Object.keys(sortColumns).includes(currentField))
-        result = true
-
-      return result
+      return Object.prototype.hasOwnProperty.call(sortColumns, String(groupColumnItem.key))
     },
   },
   methods: {
@@ -184,14 +142,11 @@ export default defineComponent({
          * @desc  get thead th class
          * @param {string} fixed - 固定方式
          */
-    getTheadThClass({ fixed }) {
+    getTheadThClass() {
       const result = {
         [clsName('header-th')]: true,
-        [clsName('fixed-left')]: fixed === 'left',
-        [clsName('fixed-right')]: fixed === 'right',
-        [clsName('last-left-fixed-column')]: this.isLastLeftFixedColumn,
-        [clsName('first-right-fixed-column')]:
-                    this.isfirstRightFixedColumn,
+        // fixed-left、fixed-right、last-left-fixed-column、first-right-fixed-column
+        ...this.fixedInfo.class,
         [clsName('last-column')]: this.isLastCloumn,
         [clsName('sortable-column')]: this.isSortableCloumn,
       }
@@ -208,11 +163,10 @@ export default defineComponent({
 
       if (cellSelectionRangeData) {
         const { leftColKey, rightColKey } = cellSelectionRangeData
-        const { startColKeyIndex } = headerIndicatorColKeys
-        const isIndicatorActive = startColKeyIndex > -1
+        const isIndicatorActive = !isEmptyValue(headerIndicatorColKeys.startColKey)
 
         if (!isEmptyValue(leftColKey)) {
-          let indicatorColKeys = []
+          let indicatorColKeys: ColKey[] = []
           if (leftColKey === rightColKey) {
             indicatorColKeys = [leftColKey]
           }
@@ -234,8 +188,9 @@ export default defineComponent({
             const colKeys = getColKeysByHeaderColumn({
               headerColumnItem: column,
             })
+            // colKeys 是字符串，数字列 key 也按字符串比较（COL-10）
             showIndicator = colKeys.every((colKey) => {
-              return indicatorColKeys.includes(colKey)
+              return indicatorColKeys.some(x => String(x) === colKey)
             })
           }
           if (showIndicator) {
@@ -248,69 +203,34 @@ export default defineComponent({
         }
       }
 
-      if (
-        cellStyleOption
-        && typeof cellStyleOption.headerCellClass === 'function'
-      ) {
-        const customClass = cellStyleOption.headerCellClass({
+      // INFRA-13：渲染时调用，抛出异常时只记录，不中断渲染
+      const { value: customClass } = safeCall(
+        'cellStyleOption.headerCellClass',
+        cellStyleOption?.headerCellClass,
+        {
           column,
           rowIndex,
-        })
-        if (customClass)
-          result[customClass] = true
-      }
+        },
+      )
+      if (customClass)
+        result[customClass as string] = true
 
       return result
     },
     /*
          * @getTheadThStyle
-         * @desc  get body td style
-         * @param {string} _keys - 当前列包含的key（单元格合并时有多个key值）
+         * @desc  get thead th style
          * @param {string} align - 居中方式
-         * @param {bool} fixed - 固定方式
          * @param {number} rowIndex - 当前行号
          */
-    getTheadThStyle({ _keys, align, fixed }, rowIndex) {
-      const result = {}
-
-      const colgroups = this.colgroups
+    getTheadThStyle({ align }: { align?: string }, rowIndex: number) {
       const headerRows = this.headerRows
 
-      // text align
-      result['text-align'] = align || 'center'
-
-      // fixed left total width or right total width
-      if (fixed) {
-        let key = ''
-        let totalWidth = 0
-        const keys = _keys.split('|')
-        if (fixed === 'left')
-          key = keys[0]
-
-        else if (fixed === 'right')
-          key = keys.length === 1 ? keys[0] : keys[keys.length - 2]
-
-        if (key) {
-          // column index
-          const columnIndex = colgroups.findIndex(
-            x => x.key === key,
-          )
-          if (
-            (fixed === 'left' && columnIndex > 0)
-            || (fixed === 'right'
-              && columnIndex < colgroups.length - 1)
-          ) {
-            totalWidth = getFixedTotalWidthByColumnKey({
-              colgroups,
-              colKey: key,
-              fixed,
-            })
-
-            totalWidth = getValByUnit(totalWidth)
-          }
-        }
-        result.left = fixed === 'left' ? totalWidth : ''
-        result.right = fixed === 'right' ? totalWidth : ''
+      const result: Record<string, any> = {
+        // text align
+        'text-align': align || 'center',
+        // fixed left total width or right total width（MOD-06）
+        ...this.fixedInfo.style,
       }
 
       // header row th fixed top
@@ -326,9 +246,7 @@ export default defineComponent({
             0,
           )
         }
-        rowHeight = getValByUnit(rowHeight)
-
-        result.top = rowHeight
+        result.top = getValByUnit(rowHeight)
       }
 
       return result
@@ -336,18 +254,15 @@ export default defineComponent({
 
     // get chcekbox content
     getCheckboxContent() {
-      let result = null
+      let result: JSX.Element | null = null
 
       const { checkboxOption } = this
 
       if (this.groupColumnItem.type === COLUMN_TYPES.CHECKBOX) {
-        if (!checkboxOption.hideSelectAll) {
-          // checkbox content props
-          const checkboxProps = {
-            column: this.groupColumnItem,
-          }
-
-          result = <HeaderCheckboxContent {...checkboxProps} />
+        // INFRA-08：没有 checkboxOption 时也渲染全选
+        if (!checkboxOption?.hideSelectAll) {
+          // RENDER-07：不传 column（组件未声明该 prop，会透传成 column="[object Object]"）
+          result = <HeaderCheckboxContent />
         }
       }
       return result
@@ -356,10 +271,11 @@ export default defineComponent({
     sortChange() {
       let sortResult = ''
       const { sortColumns, groupColumnItem, sortOption } = this
-      const { sortAlways } = sortOption
+      // INFRA-08：列设置了 sortBy 但没有 sortOption 时也能排序
+      const sortAlways = sortOption?.sortAlways
 
-      const currentField = groupColumnItem.field
-      const sortBy = sortColumns[currentField]
+      const currentKey = groupColumnItem.key
+      const sortBy = sortColumns[String(currentKey)]
 
       if (sortAlways) {
         sortResult = sortBy === 'asc' ? 'desc' : 'asc'
@@ -369,21 +285,21 @@ export default defineComponent({
                     = sortBy === 'asc' ? 'desc' : sortBy === 'desc' ? '' : 'asc'
       }
 
-      this.dispatch(COMPS_NAME.VE_TABLE_THADER, EMIT_EVENTS.SORT_CHANGE, {
-        currentField,
+      // 通知表头（header/index.tsx）更新排序状态（COL-12：按列 key）
+      this.tableContext.emit(EMIT_EVENTS.COLUMN_SORT_CHANGE, {
+        currentKey,
         sortResult,
       })
     },
 
     // get sort content
     getSortContent() {
-      let result = null
+      let result: JSX.Element | null = null
 
-      const { sortColumns, groupColumnItem } = this
-      const currentField = groupColumnItem.field
+      const { sortColumns, isSortableCloumn, groupColumnItem } = this
 
-      if (Object.keys(sortColumns).includes(currentField)) {
-        const sortBy = sortColumns[currentField]
+      if (isSortableCloumn) {
+        const sortBy = sortColumns[String(groupColumnItem.key)]
 
         const props = {
           class: clsName('sort'),
@@ -425,7 +341,7 @@ export default defineComponent({
 
     // get filter content
     getFilterContent() {
-      let result = null
+      let result: JSX.Element | null = null
 
       const { groupColumnItem } = this
 
@@ -441,7 +357,7 @@ export default defineComponent({
 
     // get filter custom content
     getFilterCustomContent() {
-      let result = null
+      let result: JSX.Element | null = null
 
       const { groupColumnItem } = this
 
@@ -455,106 +371,15 @@ export default defineComponent({
       return result
     },
 
-    // cell click
-    cellClick(e, fn) {
-      fn && fn(e)
-
-      const { groupColumnItem } = this
-
-      this.dispatch(COMPS_NAME.VE_TABLE, EMIT_EVENTS.HEADER_CELL_CLICK, {
-        event: e,
-        column: groupColumnItem,
+    // 通知 ve-table 表头单元格事件（列选择、右键菜单等）
+    dispatchCellEvent(eventName, event) {
+      this.tableContext.emit(eventName, {
+        event,
+        column: this.groupColumnItem,
       })
     },
-    // dblclick
-    cellDblclick(e, fn) {
-      fn && fn(e)
-    },
-    // contextmenu
-    cellContextmenu(e, fn) {
-      fn && fn(e)
-
-      const { groupColumnItem } = this
-
-      this.dispatch(
-        COMPS_NAME.VE_TABLE,
-        EMIT_EVENTS.HEADER_CELL_CONTEXTMENU,
-        {
-          event: e,
-          column: groupColumnItem,
-        },
-      )
-    },
-    // mouseenter
-    cellMouseenter(e, fn) {
-      fn && fn(e)
-    },
-    // mouseleave
-    cellMouseleave(e, fn) {
-      fn && fn(e)
-
-      const { groupColumnItem } = this
-
-      this.dispatch(
-        COMPS_NAME.VE_TABLE,
-        EMIT_EVENTS.HEADER_CELL_MOUSELEAVE,
-        {
-          event: e,
-          column: groupColumnItem,
-        },
-      )
-    },
-    // mousemove
-    cellMousemove(e, fn) {
-      fn && fn(e)
-
-      const { groupColumnItem } = this
-
-      this.dispatch(
-        COMPS_NAME.VE_TABLE,
-        EMIT_EVENTS.HEADER_CELL_MOUSEMOVE,
-        {
-          event: e,
-          column: groupColumnItem,
-        },
-      )
-    },
-    // mouseover
-    cellMouseover(e, fn) {
-      fn && fn(e)
-
-      const { groupColumnItem } = this
-
-      this.dispatch(
-        COMPS_NAME.VE_TABLE,
-        EMIT_EVENTS.HEADER_CELL_MOUSEOVER,
-        {
-          event: e,
-          column: groupColumnItem,
-        },
-      )
-    },
-    // mousedown
-    cellMousedown(e, fn) {
-      fn && fn(e)
-
-      const { groupColumnItem } = this
-
-      this.dispatch(
-        COMPS_NAME.VE_TABLE,
-        EMIT_EVENTS.HEADER_CELL_MOUSEDOWN,
-        {
-          event: e,
-          column: groupColumnItem,
-        },
-      )
-    },
-    // mouseup
-    cellMouseup(e, fn) {
-      fn && fn(e)
-    },
   },
-  render(h) {
+  render() {
     const {
       groupColumnItem,
       getTheadThClass,
@@ -565,6 +390,7 @@ export default defineComponent({
 
     let content
 
+    // RENDER-01：第二个参数传入真正的 h
     if (typeof groupColumnItem.renderHeaderCell === 'function') {
       const { ...column } = groupColumnItem
 
@@ -580,65 +406,30 @@ export default defineComponent({
       content = groupColumnItem.title
     }
 
-    // custom on cell event
-    let customEvents = {}
-    if (eventCustomOption) {
-      const { headerCellEvents } = eventCustomOption
-      customEvents = headerCellEvents
-        ? headerCellEvents({ column: groupColumnItem, rowIndex })
-        : {}
-    }
-
-    const {
-      click,
-      dblclick,
-      contextmenu,
-      mouseenter,
-      mouseleave,
-      mousemove,
-      mouseover,
-      mousedown,
-      mouseup,
-    } = customEvents
-
-    const events = {
-      onClick: (e) => {
-        this.cellClick(e, click)
-        // Note: Sorting is now triggered only by clicking on the sort icons themselves,
-        // not by clicking anywhere on the header cell. This prevents sorting from
-        // interfering with column selection.
+    // custom on cell event（MOD-07, INFRA-13）
+    // 排序只由点击排序图标触发，不响应整个表头单元格的点击，避免与列选择冲突
+    const customEvents = getCustomEvents(eventCustomOption, 'headerCellEvents', { column: groupColumnItem, rowIndex })
+    const dispatchCellEvent = eventName => e => this.dispatchCellEvent(eventName, e)
+    const events = bindCustomEvents(
+      customEvents,
+      {
+        click: dispatchCellEvent(EMIT_EVENTS.HEADER_CELL_CLICK),
+        contextmenu: dispatchCellEvent(EMIT_EVENTS.HEADER_CELL_CONTEXTMENU),
+        mouseleave: dispatchCellEvent(EMIT_EVENTS.HEADER_CELL_MOUSELEAVE),
+        mousemove: dispatchCellEvent(EMIT_EVENTS.HEADER_CELL_MOUSEMOVE),
+        mouseover: dispatchCellEvent(EMIT_EVENTS.HEADER_CELL_MOUSEOVER),
+        mousedown: dispatchCellEvent(EMIT_EVENTS.HEADER_CELL_MOUSEDOWN),
       },
-      onDblclick: (e) => {
-        this.cellDblclick(e, dblclick)
-      },
-      onContextmenu: (e) => {
-        this.cellContextmenu(e, contextmenu)
-      },
-      onMouseenter: (e) => {
-        this.cellMouseenter(e, mouseenter)
-      },
-      onMouseleave: (e) => {
-        this.cellMouseleave(e, mouseleave)
-      },
-      onMousemove: (e) => {
-        this.cellMousemove(e, mousemove)
-      },
-      onMouseover: (e) => {
-        this.cellMouseover(e, mouseover)
-      },
-      onMousedown: (e) => {
-        this.cellMousedown(e, mousedown)
-      },
-      onMouseup: (e) => {
-        this.cellMouseup(e, mouseup)
-      },
-    }
+      'eventCustomOption.headerCellEvents',
+    )
 
     const thProps = {
       style: getTheadThStyle(groupColumnItem, rowIndex),
-      class: getTheadThClass(groupColumnItem),
+      class: getTheadThClass(),
       rowspan: groupColumnItem._rowspan,
       colspan: groupColumnItem._colspan,
+      // RENDER-09：叶子列的表头单元格与 body 单元格一样带 col-key；分组表头单元格对应多列，不加
+      [COMPS_CUSTOM_ATTRS.BODY_COLUMN_KEY]: isEmptyArray(groupColumnItem.children) ? groupColumnItem.key : undefined,
       ...events,
     }
 

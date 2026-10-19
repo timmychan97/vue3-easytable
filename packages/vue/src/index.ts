@@ -8,7 +8,7 @@ import VeContextmenu from '@vue3-easytable/ve-contextmenu'
 import VeDropdown from '@vue3-easytable/ve-dropdown'
 import VeIcon from '@vue3-easytable/ve-icon'
 import VeLoading from '@vue3-easytable/ve-loading'
-import VeLocale from '@vue3-easytable/ve-locale'
+import VeLocale, { installLocale } from '@vue3-easytable/ve-locale'
 import VePagination from '@vue3-easytable/ve-pagination'
 import VeRadio from '@vue3-easytable/ve-radio'
 import VeSelect from '@vue3-easytable/ve-select'
@@ -23,7 +23,8 @@ const components = [
   VeDropdown,
   VeIcon,
   VeLoading,
-  VeLocale,
+  // VeLocale 不在这里通过 app.use 安装，而是由下面的 installLocale 安装：
+  // 否则之后的 app.use(VeLocale, { locale }) 会被 Vue 当作重复安装而跳过，语言包不生效（I18N-06）
   VePagination,
   VeRadio,
   VeSelect,
@@ -36,8 +37,8 @@ const useVeTable = function (options?: { locale?: LocaleMessageInput }): Plugin 
       components.forEach((Component) => {
         app.use(Component)
       })
-      if (options?.locale)
-        VeLocale.use(options.locale)
+      // 语言包只作用于当前 app（不修改全局 VeLocale），第二个 app 不会切换第一个 app 的语言（I18N-02）
+      installLocale(app, options?.locale)
     },
   }
 }
@@ -53,6 +54,18 @@ const useVeTable = function (options?: { locale?: LocaleMessageInput }): Plugin 
 /* istanbul ignore if */
 // if (typeof window !== 'undefined' && window.Vue)
 //   install(window.Vue)
+
+// 列配置相关的类型（INFRA-17，只导出类型）
+export type {
+  ColumnFilterItem,
+  ColumnFilterOption,
+  ColumnFixedType,
+  ColumnOption,
+  RenderBodyCellParams,
+  RenderFooterCellParams,
+  RenderH,
+  RenderHeaderCellParams,
+} from '@vue3-easytable/ve-table/src'
 
 export {
   useVeTable,

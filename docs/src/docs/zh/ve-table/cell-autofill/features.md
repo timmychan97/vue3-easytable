@@ -1,6 +1,6 @@
-:::anchor 禁用单元格选择
+:::anchor 自动填充与单元格选择
 
-:::demo 默认单元格选择是开启的，你可以通过 `cellSelectionOption.enable = false` 关闭
+:::demo 自动填充基于单元格选择：拖动选区角上的填充柄即可填充单元格。需要设置 `rowKeyFieldName`，并保持单元格选择开启。`cellSelectionOption.enable` 默认为 `true`，设为 `false` 时没有选区，也就没有自动填充的填充柄
 
 ```html
 <template>

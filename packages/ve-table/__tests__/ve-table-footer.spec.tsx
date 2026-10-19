@@ -1,3 +1,4 @@
+import type { ColumnOption } from '@/ve-table/src/ve-table-types'
 import veTable from '@/ve-table'
 import { mount } from '@vue/test-utils'
 import { expect } from 'vitest'
@@ -58,14 +59,14 @@ describe('veTable footer', () => {
     },
   ]
 
-  const COLUMNS = [
+  const COLUMNS: ColumnOption[] = [
     {
       field: 'name',
       key: 'a',
       title: 'Name',
       align: 'center',
       fixed: 'left',
-      renderFooterCell: ({ row, _column, _rowIndex }, _h) => {
+      renderFooterCell: ({ row }, _h) => {
         return (
           <span class="text-bold" style="">
             {row.name}
@@ -424,5 +425,30 @@ describe('veTable footer', () => {
         )
         .exists(),
     ).toBe(true)
+  })
+
+  // RENDER-11：表尾行 / 单元格不能与表体组件同名，否则按名称查找组件（测试、devtools）会混在一起
+  it('footer rows and cells have their own component names (RENDER-11)', () => {
+    const wrapper = mount(veTable, {
+      propsData: {
+        columns: COLUMNS,
+        tableData: TABLE_DATA,
+        footerData: FOOTER_DATA,
+        rowKeyFieldName: 'rowKey',
+      },
+    })
+
+    const bodyTrs = wrapper.findAllComponents({ name: 'VeTableBodyTr' })
+    const bodyTds = wrapper.findAllComponents({ name: 'VeTableBodyTd' })
+    expect(bodyTrs).toHaveLength(TABLE_DATA.length)
+    expect(bodyTds).toHaveLength(TABLE_DATA.length * COLUMNS.length)
+    expect(bodyTrs.every(tr => tr.classes('ve-table-body-tr'))).toBe(true)
+
+    const footerTrs = wrapper.findAllComponents({ name: 'VeTableFooterTr' })
+    const footerTds = wrapper.findAllComponents({ name: 'VeTableFooterTd' })
+    expect(footerTrs).toHaveLength(FOOTER_DATA.length)
+    expect(footerTds).toHaveLength(FOOTER_DATA.length * COLUMNS.length)
+    expect(footerTrs.every(tr => tr.classes('ve-table-footer-tr'))).toBe(true)
+    expect(footerTds.every(td => td.classes('ve-table-footer-td'))).toBe(true)
   })
 })

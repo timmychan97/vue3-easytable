@@ -6,8 +6,8 @@ exports[`vePagination > render by different props 1`] = `
     <ul class="ve-pagination" role="list"><span class="ve-pagination-total" aria-live="polite">共 600 条</span>
       <li class="ve-pagination-disabled ve-pagination-li ve-pagination-prev"><button type="button" aria-label="上一页" aria-disabled="true" disabled="" tabindex="-1"><i class="ve-icon iconfont-vet icon-vet-left-arrow"></i></button></li><span class="ve-pagination-pager"><li class="ve-pagination-li-active ve-pagination-li"><button type="button" aria-label="第 1 页，当前页" aria-current="page">1</button></li><!----><li class="ve-pagination-li"><button type="button" aria-label="第 2 页">2</button></li><li class="ve-pagination-li"><button type="button" aria-label="第 3 页">3</button></li><li class="ve-pagination-li"><button type="button" aria-label="第 4 页">4</button></li><li class="ve-pagination-li"><button type="button" aria-label="第 5 页">5</button></li><li class="ve-pagination-li"><button type="button" aria-label="第 6 页">6</button></li><li class="ve-pagination-li ve-pagination-jump-next" title="向后 5 页"><button type="button" aria-label="向后 5 页"><i class="ve-icon iconfont-vet icon-vet-double-right-arrow"></i></button></li><li class="ve-pagination-li"><button type="button" aria-label="第 60 页">60</button></li></span>
       <li class="ve-pagination-li ve-pagination-next"><button type="button" aria-label="下一页" aria-disabled="false" tabindex="0"><i class="ve-icon iconfont-vet icon-vet-right-arrow"></i></button></li>
-      <div class="ve-pagination-select-wrapper"><span class="ve-pagination-select-label" id="ve-pagination-size-label">每页显示条数</span>
-        <dl class="ve-dropdown ve-select ve-pagination-select" aria-labelledby="ve-pagination-size-label">
+      <div class="ve-pagination-select-wrapper"><span class="ve-pagination-select-label" id="ve-pagination-size-label-v-0">每页显示条数</span>
+        <dl class="ve-dropdown ve-select ve-pagination-select" aria-labelledby="ve-pagination-size-label-v-0">
           <dt class="ve-dropdown-dt"><a class="ve-dropdown-dt-selected" style="width: 90px;"><span><span class="ve-select-selected-span">10 条/页</span><i class="ve-icon iconfont-vet icon-vet-bottom-arrow ve-select-toggle-icon"></i></span></a></dt>
           <div style="display: none;">
             <dd class="ve-dropdown-dd">
@@ -25,15 +25,15 @@ exports[`vePagination > render by different props 1`] = `
             </dd>
           </div>
         </dl>
-      </div><span class="ve-pagination-goto"><label class="ve-pagination-goto-label" for="ve-pagination-jumper">前往</label><input id="ve-pagination-jumper" class="ve-pagination-goto-input" type="text" inputmode="numeric" pattern="[0-9]*" aria-label="跳转到指定页" value="1"><span class="ve-pagination-goto-suffix" aria-hidden="true">页</span></span>
+      </div><span class="ve-pagination-goto"><label class="ve-pagination-goto-label" for="ve-pagination-jumper-v-1">前往</label><input id="ve-pagination-jumper-v-1" class="ve-pagination-goto-input" type="text" inputmode="numeric" pattern="[0-9]*" aria-label="跳转到指定页" value="1"><span class="ve-pagination-goto-suffix" aria-hidden="true">页</span></span>
     </ul>
   </nav>
   <nav class="ve-pagination-nav" aria-label="分页导航">
     <ul class="ve-pagination" role="list"><span class="ve-pagination-total" aria-live="polite">共 600 条</span>
       <li class="ve-pagination-li ve-pagination-prev"><button type="button" aria-label="上一页" aria-disabled="false" tabindex="0"><i class="ve-icon iconfont-vet icon-vet-left-arrow"></i></button></li><span class="ve-pagination-pager"><li class="ve-pagination-li"><button type="button" aria-label="第 1 页">1</button></li><!----><li class="ve-pagination-li-active ve-pagination-li"><button type="button" aria-label="第 2 页，当前页" aria-current="page">2</button></li><li class="ve-pagination-li"><button type="button" aria-label="第 3 页">3</button></li><li class="ve-pagination-li"><button type="button" aria-label="第 4 页">4</button></li><li class="ve-pagination-li"><button type="button" aria-label="第 5 页">5</button></li><li class="ve-pagination-li"><button type="button" aria-label="第 6 页">6</button></li><li class="ve-pagination-li ve-pagination-jump-next" title="向后 5 页"><button type="button" aria-label="向后 5 页"><i class="ve-icon iconfont-vet icon-vet-double-right-arrow"></i></button></li><li class="ve-pagination-li"><button type="button" aria-label="第 60 页">60</button></li></span>
       <li class="ve-pagination-li ve-pagination-next"><button type="button" aria-label="下一页" aria-disabled="false" tabindex="0"><i class="ve-icon iconfont-vet icon-vet-right-arrow"></i></button></li>
-      <div class="ve-pagination-select-wrapper"><span class="ve-pagination-select-label" id="ve-pagination-size-label">每页显示条数</span>
-        <dl class="ve-dropdown ve-select ve-pagination-select" aria-labelledby="ve-pagination-size-label">
+      <div class="ve-pagination-select-wrapper"><span class="ve-pagination-select-label" id="ve-pagination-size-label-v-2">每页显示条数</span>
+        <dl class="ve-dropdown ve-select ve-pagination-select" aria-labelledby="ve-pagination-size-label-v-2">
           <dt class="ve-dropdown-dt"><a class="ve-dropdown-dt-selected" style="width: 90px;"><span><span class="ve-select-selected-span">10 条/页</span><i class="ve-icon iconfont-vet icon-vet-bottom-arrow ve-select-toggle-icon"></i></span></a></dt>
           <div style="display: none;">
             <dd class="ve-dropdown-dd">
@@ -51,15 +51,15 @@ exports[`vePagination > render by different props 1`] = `
             </dd>
           </div>
         </dl>
-      </div><span class="ve-pagination-goto"><label class="ve-pagination-goto-label" for="ve-pagination-jumper">前往</label><input id="ve-pagination-jumper" class="ve-pagination-goto-input" type="text" inputmode="numeric" pattern="[0-9]*" aria-label="跳转到指定页" value="2"><span class="ve-pagination-goto-suffix" aria-hidden="true">页</span></span>
+      </div><span class="ve-pagination-goto"><label class="ve-pagination-goto-label" for="ve-pagination-jumper-v-3">前往</label><input id="ve-pagination-jumper-v-3" class="ve-pagination-goto-input" type="text" inputmode="numeric" pattern="[0-9]*" aria-label="跳转到指定页" value="2"><span class="ve-pagination-goto-suffix" aria-hidden="true">页</span></span>
     </ul>
   </nav>
   <nav class="ve-pagination-nav" aria-label="分页导航">
     <ul class="ve-pagination" role="list"><span class="ve-pagination-total" aria-live="polite">共 600 条</span>
       <li class="ve-pagination-li ve-pagination-prev"><button type="button" aria-label="上一页" aria-disabled="false" tabindex="0"><i class="ve-icon iconfont-vet icon-vet-left-arrow"></i></button></li><span class="ve-pagination-pager"><li class="ve-pagination-li"><button type="button" aria-label="第 1 页">1</button></li><li class="ve-pagination-li ve-pagination-jump-prev" title="向前 5 页"><button type="button" aria-label="向前 5 页"><i class="ve-icon iconfont-vet icon-vet-double-left-arrow"></i></button></li><li class="ve-pagination-li"><button type="button" aria-label="第 28 页">28</button></li><li class="ve-pagination-li"><button type="button" aria-label="第 29 页">29</button></li><li class="ve-pagination-li-active ve-pagination-li"><button type="button" aria-label="第 30 页，当前页" aria-current="page">30</button></li><li class="ve-pagination-li"><button type="button" aria-label="第 31 页">31</button></li><li class="ve-pagination-li"><button type="button" aria-label="第 32 页">32</button></li><li class="ve-pagination-li ve-pagination-jump-next" title="向后 5 页"><button type="button" aria-label="向后 5 页"><i class="ve-icon iconfont-vet icon-vet-double-right-arrow"></i></button></li><li class="ve-pagination-li"><button type="button" aria-label="第 60 页">60</button></li></span>
       <li class="ve-pagination-li ve-pagination-next"><button type="button" aria-label="下一页" aria-disabled="false" tabindex="0"><i class="ve-icon iconfont-vet icon-vet-right-arrow"></i></button></li>
-      <div class="ve-pagination-select-wrapper"><span class="ve-pagination-select-label" id="ve-pagination-size-label">每页显示条数</span>
-        <dl class="ve-dropdown ve-select ve-pagination-select" aria-labelledby="ve-pagination-size-label">
+      <div class="ve-pagination-select-wrapper"><span class="ve-pagination-select-label" id="ve-pagination-size-label-v-4">每页显示条数</span>
+        <dl class="ve-dropdown ve-select ve-pagination-select" aria-labelledby="ve-pagination-size-label-v-4">
           <dt class="ve-dropdown-dt"><a class="ve-dropdown-dt-selected" style="width: 90px;"><span><span class="ve-select-selected-span">10 条/页</span><i class="ve-icon iconfont-vet icon-vet-bottom-arrow ve-select-toggle-icon"></i></span></a></dt>
           <div style="display: none;">
             <dd class="ve-dropdown-dd">
@@ -77,15 +77,15 @@ exports[`vePagination > render by different props 1`] = `
             </dd>
           </div>
         </dl>
-      </div><span class="ve-pagination-goto"><label class="ve-pagination-goto-label" for="ve-pagination-jumper">前往</label><input id="ve-pagination-jumper" class="ve-pagination-goto-input" type="text" inputmode="numeric" pattern="[0-9]*" aria-label="跳转到指定页" value="30"><span class="ve-pagination-goto-suffix" aria-hidden="true">页</span></span>
+      </div><span class="ve-pagination-goto"><label class="ve-pagination-goto-label" for="ve-pagination-jumper-v-5">前往</label><input id="ve-pagination-jumper-v-5" class="ve-pagination-goto-input" type="text" inputmode="numeric" pattern="[0-9]*" aria-label="跳转到指定页" value="30"><span class="ve-pagination-goto-suffix" aria-hidden="true">页</span></span>
     </ul>
   </nav>
   <nav class="ve-pagination-nav" aria-label="分页导航">
     <ul class="ve-pagination" role="list"><span class="ve-pagination-total" aria-live="polite">共 600 条</span>
       <li class="ve-pagination-disabled ve-pagination-li ve-pagination-prev"><button type="button" aria-label="上一页" aria-disabled="true" disabled="" tabindex="-1"><i class="ve-icon iconfont-vet icon-vet-left-arrow"></i></button></li>
       <li class="ve-pagination-li ve-pagination-next"><button type="button" aria-label="下一页" aria-disabled="false" tabindex="0"><i class="ve-icon iconfont-vet icon-vet-right-arrow"></i></button></li>
-      <div class="ve-pagination-select-wrapper"><span class="ve-pagination-select-label" id="ve-pagination-size-label">每页显示条数</span>
-        <dl class="ve-dropdown ve-select ve-pagination-select" aria-labelledby="ve-pagination-size-label">
+      <div class="ve-pagination-select-wrapper"><span class="ve-pagination-select-label" id="ve-pagination-size-label-v-6">每页显示条数</span>
+        <dl class="ve-dropdown ve-select ve-pagination-select" aria-labelledby="ve-pagination-size-label-v-6">
           <dt class="ve-dropdown-dt"><a class="ve-dropdown-dt-selected" style="width: 90px;"><span><span class="ve-select-selected-span">10 条/页</span><i class="ve-icon iconfont-vet icon-vet-bottom-arrow ve-select-toggle-icon"></i></span></a></dt>
           <div style="display: none;">
             <dd class="ve-dropdown-dd">
@@ -103,13 +103,13 @@ exports[`vePagination > render by different props 1`] = `
             </dd>
           </div>
         </dl>
-      </div><span class="ve-pagination-goto"><label class="ve-pagination-goto-label" for="ve-pagination-jumper">前往</label><input id="ve-pagination-jumper" class="ve-pagination-goto-input" type="text" inputmode="numeric" pattern="[0-9]*" aria-label="跳转到指定页" value="1"><span class="ve-pagination-goto-suffix" aria-hidden="true">页</span></span>
+      </div><span class="ve-pagination-goto"><label class="ve-pagination-goto-label" for="ve-pagination-jumper-v-7">前往</label><input id="ve-pagination-jumper-v-7" class="ve-pagination-goto-input" type="text" inputmode="numeric" pattern="[0-9]*" aria-label="跳转到指定页" value="1"><span class="ve-pagination-goto-suffix" aria-hidden="true">页</span></span>
     </ul>
   </nav>
   <nav class="ve-pagination-nav" aria-label="分页导航">
     <ul class="ve-pagination" role="list"><span class="ve-pagination-total" aria-live="polite">共 600 条</span>
-      <div class="ve-pagination-select-wrapper"><span class="ve-pagination-select-label" id="ve-pagination-size-label">每页显示条数</span>
-        <dl class="ve-dropdown ve-select ve-pagination-select" aria-labelledby="ve-pagination-size-label">
+      <div class="ve-pagination-select-wrapper"><span class="ve-pagination-select-label" id="ve-pagination-size-label-v-8">每页显示条数</span>
+        <dl class="ve-dropdown ve-select ve-pagination-select" aria-labelledby="ve-pagination-size-label-v-8">
           <dt class="ve-dropdown-dt"><a class="ve-dropdown-dt-selected" style="width: 90px;"><span><span class="ve-select-selected-span">10 条/页</span><i class="ve-icon iconfont-vet icon-vet-bottom-arrow ve-select-toggle-icon"></i></span></a></dt>
           <div style="display: none;">
             <dd class="ve-dropdown-dd">
@@ -129,7 +129,7 @@ exports[`vePagination > render by different props 1`] = `
         </dl>
       </div>
       <li class="ve-pagination-disabled ve-pagination-li ve-pagination-prev"><button type="button" aria-label="上一页" aria-disabled="true" disabled="" tabindex="-1"><i class="ve-icon iconfont-vet icon-vet-left-arrow"></i></button></li><span class="ve-pagination-pager"><li class="ve-pagination-li-active ve-pagination-li"><button type="button" aria-label="第 1 页，当前页" aria-current="page">1</button></li><!----><li class="ve-pagination-li"><button type="button" aria-label="第 2 页">2</button></li><li class="ve-pagination-li"><button type="button" aria-label="第 3 页">3</button></li><li class="ve-pagination-li"><button type="button" aria-label="第 4 页">4</button></li><li class="ve-pagination-li"><button type="button" aria-label="第 5 页">5</button></li><li class="ve-pagination-li"><button type="button" aria-label="第 6 页">6</button></li><li class="ve-pagination-li ve-pagination-jump-next" title="向后 5 页"><button type="button" aria-label="向后 5 页"><i class="ve-icon iconfont-vet icon-vet-double-right-arrow"></i></button></li><li class="ve-pagination-li"><button type="button" aria-label="第 60 页">60</button></li></span>
-      <li class="ve-pagination-li ve-pagination-next"><button type="button" aria-label="下一页" aria-disabled="false" tabindex="0"><i class="ve-icon iconfont-vet icon-vet-right-arrow"></i></button></li><span class="ve-pagination-goto"><label class="ve-pagination-goto-label" for="ve-pagination-jumper">前往</label><input id="ve-pagination-jumper" class="ve-pagination-goto-input" type="text" inputmode="numeric" pattern="[0-9]*" aria-label="跳转到指定页" value="1"><span class="ve-pagination-goto-suffix" aria-hidden="true">页</span></span>
+      <li class="ve-pagination-li ve-pagination-next"><button type="button" aria-label="下一页" aria-disabled="false" tabindex="0"><i class="ve-icon iconfont-vet icon-vet-right-arrow"></i></button></li><span class="ve-pagination-goto"><label class="ve-pagination-goto-label" for="ve-pagination-jumper-v-9">前往</label><input id="ve-pagination-jumper-v-9" class="ve-pagination-goto-input" type="text" inputmode="numeric" pattern="[0-9]*" aria-label="跳转到指定页" value="1"><span class="ve-pagination-goto-suffix" aria-hidden="true">页</span></span>
     </ul>
   </nav>
 </div>"

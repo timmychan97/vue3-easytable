@@ -1,3 +1,4 @@
+import type { ColumnOption } from '@/ve-table/src/ve-table-types'
 import veTable from '@/ve-table'
 import { later } from '@test-utils'
 import { mount } from '@vue/test-utils'
@@ -41,7 +42,7 @@ describe('veTable operation column', () => {
     },
   ]
 
-  const COLUMNS = [
+  const COLUMNS: ColumnOption[] = [
     {
       field: 'index',
       key: 'index',
@@ -109,5 +110,20 @@ describe('veTable operation column', () => {
       .findAll('.ve-table-body-td')[0]
 
     expect(selectionTd.classes()).toContain('ve-table-operation-col')
+  })
+
+  // COL-14：操作列默认左固定（去掉多余的类型断言后行为不变）
+  it('the operation column is fixed left by default', () => {
+    const wrapper = mount(veTable, {
+      propsData: {
+        columns: COLUMNS,
+        tableData: TABLE_DATA,
+        rowKeyFieldName: 'rowKey',
+      },
+    })
+
+    expect((wrapper.vm as any).colgroups.map((x: ColumnOption) => x.fixed)).toEqual(['left', undefined, undefined, undefined, undefined])
+    expect(COLUMNS[0].fixed).toBeUndefined()
+    wrapper.unmount()
   })
 })

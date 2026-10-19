@@ -1,3 +1,4 @@
+import { isModelValueBound } from '@vue3-easytable/common/utils/v-model'
 import { injectCheckboxGroup } from '@vue3-easytable/ve-checkbox-group'
 import { clsName } from './util'
 import { COMPS_NAME, EMIT_EVENTS } from './util/constant'
@@ -30,7 +31,8 @@ export default defineComponent({
     },
   },
   setup(props, { emit, slots }) {
-    const { onCheckboxGroupUpdate, updateCheckboxGroup, inCheckboxGroup, isVerticalShow, groupModelValue } = injectCheckboxGroup()
+    const instance = getCurrentInstance()
+    const { onCheckboxGroupUpdate, updateCheckboxGroup, inCheckboxGroup, isVerticalShow, groupModelValue, isGroupModelBound } = injectCheckboxGroup()
     const offCheckboxGroupUpdate = onCheckboxGroupUpdate(updateModelByGroup)
     // 卸载后不再接收 checkbox-group 的更新
     onBeforeUnmount(() => {
@@ -70,14 +72,22 @@ export default defineComponent({
 
     // checkbox change
     function checkboxChange(event: Event) {
-      if (props.disabled)
-        return
-
       const target = event.target as HTMLInputElement
+
+      // 禁用时只阻止用户操作：浏览器已经切换了原生 input，需要恢复为当前状态
+      if (props.disabled) {
+        target.checked = !!internalIsSelected.value
+        return
+      }
+
       const isChecked = target.checked
 
-      if (!props.isControlled)
+      if (!props.isControlled) {
+        // 非受控：先更新本地状态，没有绑定 v-model 时也能显示选中样式；
+        // 绑定了 v-model 时，父组件回传的 modelValue 与本地状态一致
+        model.value = isChecked
         emit('update:modelValue', isChecked)
+      }
 
       emit(EMIT_EVENTS.ON_CHECKED_CHANGE, isChecked)
 
@@ -85,6 +95,32 @@ export default defineComponent({
         // update parent comp:checkbox-group
         updateCheckboxGroup(props.label, isChecked)
       }
+
+      syncAfterChange(target)
+    }
+
+    /**
+     * 受控时以父组件的值为准（FORM-04）：父组件处理完事件并重新渲染后，
+     * 重新读取数据来源，并把原生 input 恢复为该状态。
+     * 父组件不接受这次修改时（值没有变化），Vue 不会修补原生 input，需要在这里恢复。
+     * - isControlled：以 isSelected 为准
+     * - 在通过 v-model 绑定的 checkbox-group 中：以 group 的值为准
+     * - 自身通过 v-model 绑定：以 modelValue 为准
+     * - 其余（非受控）：保持本地状态
+     */
+    function syncAfterChange(target: HTMLInputElement) {
+      nextTick(() => {
+        if (!props.isControlled) {
+          if (isCheckBoxGroup()) {
+            if (isGroupModelBound())
+              updateModelByGroup(Array.isArray(groupModelValue.value) ? groupModelValue.value : [])
+          }
+          else if (isModelValueBound(instance)) {
+            updateModelBySingle()
+          }
+        }
+        target.checked = !!internalIsSelected.value
+      })
     }
 
     // is checkbox group
@@ -112,22 +148,15 @@ export default defineComponent({
       }
     }
 
-    // 通过单选更新 model
+    // 通过单选更新 model（disabled 只阻止用户操作，不阻止 v-model 同步）
     function updateModelBySingle() {
-      if (!props.disabled)
-        model.value = props.modelValue
+      model.value = props.modelValue
     }
 
-    // 父组件调用更新 model
-    function updateModelByGroup(checkBoxGroup: string[]) {
-      if (checkBoxGroup.includes(props.label)) {
-        if (!props.disabled)
-          model.value = true
-      }
-      else {
-        if (!props.disabled)
-          model.value = false
-      }
+    // 父组件调用更新 model（disabled 时同样要与 checkbox-group 的值保持一致）
+    // group 的值被设为 null 等非数组时按空数组处理（FORM-06）
+    function updateModelByGroup(checkBoxGroup: string[] | null | undefined) {
+      model.value = Array.isArray(checkBoxGroup) && checkBoxGroup.includes(props.label)
     }
 
     initModel()
@@ -140,6 +169,7 @@ export default defineComponent({
             class={clsName('input')}
             type="checkbox"
             value={props.label}
+            disabled={props.disabled}
             onChange={checkboxChange}
           />
           <span class={clsName('inner')}></span>

@@ -1,25 +1,22 @@
 import type { VNode } from 'vue'
-import emitter from '@vue3-easytable/common/mixins/emitter'
-import { getValByUnit } from '@vue3-easytable/common/utils'
+import type { RowKey } from '../util/core'
+import type { ColgroupData } from '../ve-table-types'
 import { cloneVNode, defineComponent } from 'vue'
 import { injectRowState } from '../features/row-state'
-import {
-  clsName,
-  getFixedTotalWidthByColumnKey,
-} from '../util'
+import { useTableContext } from '../features/table-context'
 import {
   COLUMN_TYPES,
   COMPS_NAME,
   EMIT_EVENTS,
   EXPAND_TRIGGER_TYPES,
 } from '../util/constant'
+import { safeCall } from '../util/safe-call'
 
 import BodyTr from './body-tr'
 import ExpandTr from './expand-tr'
 
 export default defineComponent({
   name: COMPS_NAME.VE_TABLE_BODY,
-  mixins: [emitter()],
   // 虚拟滚动时根节点是片段，未声明的监听器无法 fall-through（会告警），因此显式声明
   emits: [EMIT_EVENTS.HIGHLIGHT_ROW_CHANGE],
   props: {
@@ -38,12 +35,8 @@ export default defineComponent({
       type: Number,
       default: 0,
     },
-    columnsOptionResetTime: {
-      type: Number,
-      default: 0,
-    },
     colgroups: {
-      type: Array,
+      type: Array as PropType<ColgroupData[]>,
       required: true,
     },
     actualRenderTableData: {
@@ -55,7 +48,7 @@ export default defineComponent({
       default: false,
     },
     allRowKeys: {
-      type: Array,
+      type: Array as PropType<RowKey[]>,
       required: true,
     },
     // expand row option
@@ -180,67 +173,12 @@ export default defineComponent({
     const { expand } = injectRowState()
     return {
       rowExpand: expand,
+      // 表格上下文（MOD-01）：接收行点击，卸载时自动注销
+      tableEvents: useTableContext(),
     }
   },
   computed: {
-    /*
-        column collenction info
-        1、style of each column
-        2、class of each column
-        */
-    columnCollection() {
-      const columnCollection = []
-
-      const { colgroups } = this
-
-      colgroups.forEach((col) => {
-        const colKey = col.key
-
-        const columnCollectionItem = {
-          colKey,
-          class: {
-            [clsName('last-left-fixed-column')]:
-                            this.isLastLeftFixedColumn(col),
-            [clsName('first-right-fixed-column')]:
-                            this.isfirstRightFixedColumn(col),
-          },
-          style: {},
-        }
-
-        const { fixed, align } = col
-
-        columnCollectionItem.style['text-align'] = align || 'center'
-
-        if (fixed) {
-          let totalWidth = 0
-          // column index
-          const columnIndex = colgroups.findIndex(
-            x => x.key === colKey,
-          )
-          if (
-            (fixed === 'left' && columnIndex > 0)
-            || (fixed === 'right'
-              && columnIndex < colgroups.length - 1)
-          ) {
-            totalWidth = getFixedTotalWidthByColumnKey({
-              colgroups,
-              colKey,
-              fixed,
-            })
-
-            totalWidth = getValByUnit(totalWidth)
-          }
-
-          columnCollectionItem.style.left
-                        = fixed === 'left' ? totalWidth : ''
-          columnCollectionItem.style.right
-                        = fixed === 'right' ? totalWidth : ''
-        }
-
-        columnCollection.push(columnCollectionItem)
-      })
-      return columnCollection
-    },
+    // 固定列的样式与 class 由 ve-table 提供（MOD-06），body-td 直接 inject，这里不再计算 columnCollection
     // expand column
     expandColumn() {
       return this.colgroups.find(x => x.type === COLUMN_TYPES.EXPAND)
@@ -252,54 +190,11 @@ export default defineComponent({
   },
   mounted() {
     // recieve tr click
-    this.on(EMIT_EVENTS.BODY_ROW_CLICK, (params) => {
+    this.tableEvents.on(EMIT_EVENTS.BODY_ROW_CLICK, (params) => {
       this.rowClick(params)
     })
   },
   methods: {
-    // is last left fixed column
-    isLastLeftFixedColumn(column) {
-      let result = false
-
-      const { colgroups } = this
-
-      const { fixed } = column
-
-      if (fixed === 'left') {
-        const { field } = column
-        const leftFixedColumns = colgroups.filter(
-          x => x.fixed === 'left',
-        )
-        const index = leftFixedColumns.findIndex(
-          x => x.field === field,
-        )
-
-        if (index === leftFixedColumns.length - 1)
-          result = true
-      }
-      return result
-    },
-
-    // is first right fixed column
-    isfirstRightFixedColumn(column) {
-      let result = false
-
-      const { colgroups } = this
-
-      const { fixed } = column
-
-      if (fixed === 'right') {
-        const { field } = column
-        const rightFixedColumns = colgroups.filter(
-          x => x.fixed === 'right',
-        )
-
-        if (rightFixedColumns[0].field === field)
-          result = true
-      }
-      return result
-    },
-
     /*
          * @expandRowChange
          * @desc  row expand change
@@ -358,13 +253,15 @@ export default defineComponent({
 
       if (expandColumn && expandOption) {
         // 是否允许展开
-        let expandable = true
+        let expandable: unknown = true
         if (typeof expandOption.expandable === 'function') {
-          expandable = expandOption.expandable({
+          // INFRA-16：渲染时调用，抛出异常时只记录，按不可展开处理
+          const { value, threw } = safeCall('expandOption.expandable', expandOption.expandable, {
             row: rowData,
             column: expandColumn,
             rowIndex,
           })
+          expandable = threw ? false : value
         }
 
         if (expandable !== false)
@@ -450,7 +347,6 @@ export default defineComponent({
       eventCustomOption: this.eventCustomOption,
       cellSelectionData: this.cellSelectionData,
       editOption: this.editOption,
-      columnCollection: this.columnCollection,
       cellSelectionRangeData: this.cellSelectionRangeData,
       bodyIndicatorRowKeys: this.bodyIndicatorRowKeys,
     })

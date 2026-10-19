@@ -66,6 +66,10 @@
                         console.log("afterDelete");
                         this.log({ data, selectionRangeIndexes, selectionRangeKeys });
                     },
+                    // context menu copy/cut could not write to the clipboard (no permission, not a secure context)
+                    writeError: ({ type, error, text }) => {
+                        console.warn("writeError", type, error, text);
+                    },
                 },
                 virtualScrollOption: {
                     // enable or not

@@ -12,7 +12,7 @@ createApp(App).use(useVeTable({
 ```
 
 :::anchor Global bruk
-Ved bruk av useVeTable monteres veLocale-komponenten automatisk på Vues prototype for enkel global tilgang
+Med useVeTable får alle komponentene i appen `$veLocale`. Den endrer bare språket i den appen; den importerte `VeLocale` endrer alle apper (se Internasjonalisering → Språk per app)
 
 ```javascript
 import enUS from '@vue3-easytable/vue/libs/locale/lang/en-US'

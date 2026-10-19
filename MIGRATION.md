@@ -1,6 +1,6 @@
 # Migration Guide
 
-- **Library users:** [Locale message keys renamed](#locale-message-keys-renamed-breaking-change-deprecated-aliases)
+- **Library users:** [Locale message keys renamed](#locale-message-keys-renamed-breaking-change-deprecated-aliases), [Language per app](#language-per-app-usevetable-locale--no-longer-changes-the-global-language), [Norwegian language pack renamed](#norwegian-language-pack-renamed-no-nb--nb-no), [Clipboard and autofill respect `editOption`](#clipboard-respects-editoption-paste-cut-and-delete-skip-non-editable-columns), [Typed `columns` prop](#typed-columns-prop-typescript-only)
 - **Contributors:** [Development setup improvements](#migration-guide-development-setup-improvements)
 
 ## Locale message keys renamed (breaking change, deprecated aliases)
@@ -22,6 +22,67 @@ VeLocale.update({ 分页: { 前往: 'Go to' } })
 ```
 
 **Types:** `LocaleMessage` now describes the exact shape (`分页` and `表格` with their keys), and every built-in language pack is checked against it with `satisfies`. A missing or unknown key is a type error. User input is typed as `LocaleMessageInput`: any subset of the new keys, plus the deprecated English keys, which are marked `@deprecated`.
+
+## Language per app: `useVeTable({ locale })` no longer changes the global language
+
+**What changed:** each app now has its own language. `useVeTable({ locale })` sets the language of that app only, and `this.$veLocale` in a component changes only the language of the component's app. Before, both changed one global language shared by every app, so a second app's `useVeTable({ locale })` switched the language of the first app.
+
+**Unchanged:** the imported `VeLocale.use(...)` / `VeLocale.update(...)` are still global and apply to every app, on top of each app's own language. With a single app, everything renders as before. `VeConfigProvider` still sets the language of its children, on top of the app's language. `use` / `update` no longer modify the object returned by an earlier `getMessage()` call: each call produces a new object.
+
+**What to do:** only if you read the language with the imported `VeLocale.getMessage()` after installing with `useVeTable({ locale })`: it now returns the global language, not the app's. Use `this.$veLocale.getMessage()` in a component of that app instead, or call `VeLocale.use(locale)` if you really want a global language.
+
+## Norwegian language pack renamed: `no-NB` → `nb-NO`
+
+**What changed:** the Norwegian Bokmål language pack is now `lang/nb-NO`, the BCP 47 tag for Norwegian Bokmål. `lang/no-NB` still exists as a deprecated alias that re-exports `nb-NO`, and will be removed in a future version.
+
+**What to do:** change the import path.
+
+```javascript
+// Before (deprecated, still works)
+import noNB from '@vue3-easytable/vue/libs/locale/lang/no-NB'
+
+// After
+import nbNO from '@vue3-easytable/vue/libs/locale/lang/nb-NO'
+```
+
+## Clipboard respects `editOption`: paste, cut and delete skip non-editable columns
+
+This also applies to autofill (dragging the fill handle), see [Autofill](#autofill) below.
+
+**What changed:** when the table has an `editOption`, paste, cut and delete (including the context menu "Cut" and the "empty" actions) only write to columns with `edit: true`. A column without `edit: true` can't be edited by typing, and now can't be changed through the clipboard either. For every cell whose value changes, `editOption.beforeCellValueChange`, `cellValueChange` and `afterCellValueChange` are called with the same `{ row, column, changeValue }` as cell editing. A `beforeCellValueChange` that returns `false` (or throws) skips that cell only. Cells whose value doesn't change (`===`) don't trigger the callbacks.
+
+**Order:** `beforePaste` / `beforeCut` / `beforeDelete` → per cell: `beforeCellValueChange`, then the write → per written cell: `cellValueChange`, `afterCellValueChange` → `afterPaste` / `afterCut` / `afterDelete`. With `editOption`, the `data` passed to `beforePaste` / `afterPaste` no longer contains the non-editable columns. Cut still copies the whole selection, including non-editable cells. A paste that only covers columns it can't write to (non-editable columns, operation columns, columns without `field`) now does nothing: `beforePaste` / `afterPaste` are not called and the selection doesn't grow to the pasted block.
+
+**Unchanged:** without `editOption`, every data column is written as before and the cell value callbacks are not called. Copy is not affected.
+
+### Autofill
+
+**What changed:** autofill follows the same rules. With `editOption`, it only fills columns with `edit: true` and calls `beforeCellValueChange` / `cellValueChange` / `afterCellValueChange` for every cell whose value changes; a `beforeCellValueChange` that returns `false` (or throws) skips that cell only. Order: `beforeAutofill` → per cell: `beforeCellValueChange`, then the write → selection update → per written cell: `cellValueChange`, `afterCellValueChange` → `afterAutofill`. With or without `editOption`, autofill no longer writes to operation columns or columns without `field` (it used to write an `"undefined"` or operation-field key into the row objects), and in a horizontal fill a source column without data leaves its target cells unchanged. `sourceSelectionData` / `targetSelectionData` of `beforeAutofill` / `afterAutofill` no longer contain those columns; they still contain non-editable columns, and `afterAutofill` sees the values after the fill, so a skipped cell shows its old value. A fill that has nothing to write (it only covers columns it can't write to, or in a horizontal fill its source columns hold no data) now does nothing: `beforeAutofill` / `afterAutofill` are not called and the selection doesn't grow to the dragged area.
+
+**Unchanged:** without `editOption`, every data column is filled as before and the cell value callbacks are not called.
+
+**What to do:**
+
+- If users should paste or autofill into a column, mark it `edit: true` (this also allows editing it by typing).
+- If your `beforeCellValueChange` / `afterCellValueChange` assume they only run for typed edits (for example, they focus the edited cell or show a toast), check how they behave for a paste or an autofill into many cells. Each changed cell gets its own call.
+- If you validated or saved clipboard or autofill changes in `afterPaste` / `afterCut` / `afterDelete` / `afterAutofill`, you can now do it in `afterCellValueChange` instead. Keep only one of the two, or each change is handled twice.
+
+## Typed `columns` prop (TypeScript only)
+
+**What changed:** the column types are exported from the package entry (type-only): `ColumnOption`, `ColumnFixedType`, `ColumnFilterOption`, `ColumnFilterItem`, `RenderH`, `RenderBodyCellParams`, `RenderHeaderCellParams` and `RenderFooterCellParams`. The `columns` prop of `VeTable` is typed `ColumnOption[]` (it was a plain `Array`). Runtime behaviour is unchanged.
+
+**Impact:** with `vue-tsc` or a type-checking editor, a columns array declared without a type can now fail to type-check, because TypeScript widens `align: 'left'` or `fixed: 'left'` in an untyped literal to `string`.
+
+**What to do:** annotate the array.
+
+```typescript
+import type { ColumnOption } from '@vue3-easytable/vue'
+
+const columns: ColumnOption[] = [
+  { field: 'name', key: 'a', title: 'Name', align: 'left', fixed: 'left' },
+  { title: 'Group', children: [{ field: 'age', key: 'b', title: 'Age' }] },
+]
+```
 
 ---
 

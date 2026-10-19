@@ -1,3 +1,4 @@
+import { isModelValueBound } from '@vue3-easytable/common/utils/v-model'
 import { clsName } from './util'
 import { COMPS_NAME, EMIT_EVENTS } from './util/constant'
 
@@ -57,16 +58,39 @@ export default defineComponent({
 
   methods: {
     checkedChange(event: Event) {
-      if (this.disabled)
-        return false
-
       const target = event.target as HTMLInputElement
+
+      // 禁用时只阻止用户操作：浏览器已经切换了原生 input，需要恢复为当前状态
+      if (this.disabled) {
+        target.checked = !!this.internalIsSelected
+        return false
+      }
+
       const isChecked = target.checked
 
-      if (!this.isControlled)
+      if (!this.isControlled) {
+        // 非受控：先更新本地状态，没有绑定 v-model 时也能显示选中样式
+        this.model = isChecked
         this.$emit('update:modelValue', isChecked)
+      }
 
       this.$emit(EMIT_EVENTS.ON_RADIO_CHANGE, isChecked)
+
+      this.syncAfterChange(target)
+    },
+
+    /**
+     * 受控时以父组件的值为准（FORM-04）：父组件处理完事件并重新渲染后，
+     * 重新读取数据来源，并把原生 input 恢复为该状态。
+     * 父组件不接受这次修改时（值没有变化），Vue 不会修补原生 input，需要在这里恢复。
+     * isControlled 时以 isSelected 为准；通过 v-model 绑定时以 modelValue 为准；否则保持本地状态。
+     */
+    syncAfterChange(target: HTMLInputElement) {
+      this.$nextTick(() => {
+        if (!this.isControlled && isModelValueBound(this.$))
+          this.updateModelBySingle()
+        target.checked = !!this.internalIsSelected
+      })
     },
 
     getLabelContent() {
@@ -79,10 +103,9 @@ export default defineComponent({
       this.model = this.modelValue
     },
 
-    // 通过单选更新 model
+    // 通过单选更新 model（disabled 只阻止用户操作，不阻止 v-model 同步）
     updateModelBySingle() {
-      if (!this.disabled)
-        this.model = this.modelValue
+      this.model = this.modelValue
     },
   },
 
@@ -106,6 +129,7 @@ export default defineComponent({
             class={clsName('input')}
             type="radio"
             value={label}
+            disabled={this.disabled}
             onChange={checkedChange}
           />
 

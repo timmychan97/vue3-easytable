@@ -1,11 +1,11 @@
 :::anchor Combined with Row Multi-Select
 
-:::demo The multi-select logic in this example can refer to [mail.google.com](https://mail.google.com/)
+:::demo The multi-select logic in this example can refer to [mail.google.com](https://mail.google.com/)<br>`selectedRowKeys` keeps the selected keys of every page: select all / deselect all only change the rows of the current page, and the keys selected on other pages stay in `selectedRowKeys`
 
 ```html
 <template>
     <div>
-        <div>当前选中的行key：{{selectedRowKeysCollection}}</div>
+        <div>当前选中的行key：{{checkboxOption.selectedRowKeys}}</div>
         <ve-table
             :columns="columns"
             :table-data="currentPageData"
@@ -42,19 +42,17 @@
                 pageIndex: 1,
                 // page size
                 pageSize: 10,
-                // selected row keys collection
-                selectedRowKeysCollection: [],
                 // checkbox option
                 checkboxOption: {
-                    // 可控属性
+                    // 可控属性：保存所有页选中的 rowKey
                     selectedRowKeys: [],
                     // 行选择改变事件
                     selectedRowChange: ({ row, isSelected, selectedRowKeys }) => {
-                        this.changeSelectedRowKeys(row, isSelected);
+                        this.checkboxOption.selectedRowKeys = selectedRowKeys;
                     },
-                    // 全选改变事件
+                    // 全选改变事件：只影响当前页的行，其他页选中的 rowKey 会保留在 selectedRowKeys 中
                     selectedAllChange: ({ isSelected, selectedRowKeys }) => {
-                        this.changeSelectAll(isSelected, selectedRowKeys);
+                        this.checkboxOption.selectedRowKeys = selectedRowKeys;
                     },
                 },
                 columns: [
@@ -96,62 +94,15 @@
             },
         },
         methods: {
-            // selected rowKeys change
-            changeSelectedRowKeys(row, isSelected) {
-                const rowKey = row.rowKey;
-
-                if (isSelected) {
-                    this.checkboxOption.selectedRowKeys.push(rowKey);
-                    this.selectedRowKeysCollection.push(rowKey);
-                } else {
-                    const index = this.checkboxOption.selectedRowKeys.indexOf(rowKey);
-                    this.checkboxOption.selectedRowKeys.splice(index, 1);
-                    this.selectedRowKeysCollection.splice(index, 1);
-                }
-            },
-
-            // select all change
-            changeSelectAll(isSelected, selectedRowKeys) {
-                this.checkboxOption.selectedRowKeys = selectedRowKeys;
-
-                if (isSelected) {
-                    this.selectedRowKeysCollection =
-                        this.selectedRowKeysCollection.concat(selectedRowKeys);
-                } else {
-                    this.currentPageData.forEach((item) => {
-                        if (selectedRowKeysCollection.indexOf(item.rowKey) > -1) {
-                            this.selectedRowKeysCollection.splice(index, 1);
-                        }
-                    });
-                }
-            },
-
-            // reset selectedRowKeys
-            resetSelectedRowKeys() {
-                this.checkboxOption.selectedRowKeys = [];
-
-                const selectedRowKeysCollection = this.selectedRowKeysCollection;
-
-                if (selectedRowKeysCollection.length) {
-                    this.currentPageData.forEach((item) => {
-                        if (selectedRowKeysCollection.indexOf(item.rowKey) > -1) {
-                            this.checkboxOption.selectedRowKeys.push(item.rowKey);
-                        }
-                    });
-                }
-            },
-
             // page number change
             pageNumberChange(pageIndex) {
                 this.pageIndex = pageIndex;
-                this.resetSelectedRowKeys();
             },
 
             // page size change
             pageSizeChange(pageSize) {
                 this.pageIndex = 1;
                 this.pageSize = pageSize;
-                this.resetSelectedRowKeys();
             },
 
             // Simulation table data

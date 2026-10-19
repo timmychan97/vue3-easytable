@@ -66,6 +66,10 @@
                         console.log("afterDelete");
                         this.log({ data, selectionRangeIndexes, selectionRangeKeys });
                     },
+                    // 右键菜单复制、剪切无法写入剪贴板（无权限、非安全上下文）
+                    writeError: ({ type, error, text }) => {
+                        console.warn("writeError", type, error, text);
+                    },
                 },
                 virtualScrollOption: {
                     // 是否开启

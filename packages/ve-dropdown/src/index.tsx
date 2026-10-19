@@ -1,14 +1,12 @@
+import type { VNode } from 'vue'
 import type { VeDropdownItem } from './type'
 import clickoutside from '@vue3-easytable/common/directives/clickoutside'
+import { usePopper } from '@vue3-easytable/common/popper'
 import { isBoolean, isFunction } from '@vue3-easytable/common/utils'
-import {
-  getViewportOffset,
-  getViewportOffsetWithinContainer,
-} from '@vue3-easytable/common/utils/dom'
 import { getRandomId } from '@vue3-easytable/common/utils/random'
 import VeCheckbox from '@vue3-easytable/ve-checkbox'
 import VeRadio from '@vue3-easytable/ve-radio'
-import { defineComponent } from 'vue'
+import { computed, defineComponent, ref } from 'vue'
 import { COMPS_NAME, EMIT_EVENTS } from './util/constant'
 import { clsName } from './util/index'
 
@@ -108,11 +106,10 @@ export default defineComponent({
       default: 5,
     },
     // popper append to element
+    // 不传时在挂载后使用 document.body（不能在默认值里访问 document，否则 SSR 导入会崩溃）
     popperAppendTo: {
-      type: [String, HTMLElement],
-      default() {
-        return document.body
-      },
+      type: [String, Object] as PropType<string | HTMLElement>,
+      default: undefined,
     },
     /*
         before visible change
@@ -123,30 +120,43 @@ export default defineComponent({
       default: null,
     },
   },
+  setup(props) {
+    const internalVisible = ref(false)
+    const isDropdownVisible = computed(() => props.isControlled ? props.visible : internalVisible.value)
+
+    // 模板引用（渲染函数中使用同名的字符串 ref）
+    const dropdownTrigger = ref<HTMLElement | null>(null)
+    const dropdownPopper = ref<HTMLElement | null>(null)
+
+    // 弹出层由 <Teleport> 渲染到 popperAppendTo（默认 body），不再手动创建容器或移动 DOM（MOD-09）
+    const popper = usePopper(dropdownTrigger, {
+      visible: isDropdownVisible,
+      appendTo: () => props.popperAppendTo,
+      placement: 'bottom-start',
+      popperRef: dropdownPopper,
+      offset: () => props.defaultInstance,
+      name: COMPS_NAME.VE_DROPDOWN,
+    })
+
+    return {
+      internalVisible,
+      isDropdownVisible,
+      dropdownTrigger,
+      dropdownPopper,
+      popper,
+    }
+  },
   data() {
     return {
-      internalVisible: false,
       internalOptions: [] as VeDropdownItem[],
       inputValue: '',
-      // 是否显示触发器被点击了（被点击将忽略 clickOutside 事件）
-      isDropdownShowTriggerClicked: false,
-      // root id
+      // 弹出层的 id（挂载后生成，SSR 输出中没有随机 id）
       rootId: '',
-      // dropdown items panel id
-      dropdownItemsPanelId: '',
-      // 弹出被添加到的目标元素
-      popperAppendToEl: null as HTMLElement | null,
-      // 弹出被添加到的目标元素标签名称
-      appendToElTagName: null as string | null,
       // clickoutside 延迟处理的定时器（卸载时需要清除）
       clickOutsideTimer: null as ReturnType<typeof setTimeout> | null,
     }
   },
   computed: {
-    isDropdownVisible() {
-      return this.isControlled ? this.visible : this.internalVisible
-    },
-
     // 获取最大宽度(不设置则是无穷大)
     getMaxWidth() {
       let result = Number.POSITIVE_INFINITY
@@ -168,13 +178,13 @@ export default defineComponent({
         })
     },
     // operation buttons class
+    // 重置按钮只在未确认的勾选和 modelValue 中都没有选中项时显示为禁用（DD-08）
     operationFilterClass() {
-      let result = null
-      result = {
-        [clsName('filter-disable')]: this.selectedLabels.length === 0,
+      const hasSelection = this.selectedLabels.length > 0
+        || (this.modelValue ?? []).some(x => x.selected)
+      return {
+        [clsName('filter-disable')]: !hasSelection,
       }
-
-      return result
     },
     // dropdown items class
     dropdownItemsClass() {
@@ -188,25 +198,9 @@ export default defineComponent({
     modelValue() {
       this.init()
     },
-    visible: {
-      async handler(visible) {
-        const { isControlled, showDropDown, hideDropDown } = this
-        // deal after mounted hook
-        await nextTick()
-        nextTick(() => {
-          // 组件可能已在等待期间卸载
-          if (this.$.isUnmounted)
-            return
-          if (isControlled) {
-            if (visible)
-              showDropDown()
-
-            else
-              hideDropDown()
-          }
-        })
-      },
-      immediate: true,
+    // 初始值在 mounted 中处理：不能用 immediate，否则 SSR 渲染时也会执行并访问 document
+    visible(visible: boolean) {
+      this.syncControlledVisible(visible)
     },
   },
 
@@ -214,44 +208,19 @@ export default defineComponent({
     this.init()
   },
   mounted() {
-    this.addRootElementToElement()
-
-    this.$nextTick(() => {
-      const targetEl
-                = this.appendToElTagName === 'BODY'
-                  ? document
-                  : this.popperAppendToEl
-      targetEl?.addEventListener(
-        'scroll',
-        this.changDropdownPanelPosition,
-      )
-    })
-    window.addEventListener('resize', this.changDropdownPanelPosition)
+    this.rootId = this.getRandomIdWithPrefix()
+    this.syncControlledVisible(this.visible)
   },
 
   beforeUnmount() {
     // 清除待执行的定时器，避免卸载后仍然触发隐藏逻辑
     this.clearClickOutsideTimer()
-    // 移除挂在 body（或 popperAppendTo）上的弹出层容器，否则每次挂载都会泄漏一个 div
-    this.removeRootElement()
   },
 
-  unmounted() {
-    this.$nextTick(() => {
-      const targetEl
-                = this.appendToElTagName === 'BODY'
-                  ? document
-                  : this.popperAppendToEl
-      targetEl?.removeEventListener(
-        'scroll',
-        this.changDropdownPanelPosition,
-      )
-    })
-    window.removeEventListener('resize', this.changDropdownPanelPosition)
-  },
   methods: {
     init() {
-      this.internalOptions = Object.assign([], this.modelValue)
+      // 复制每个选项对象：用户确认之前不能修改调用方传入的对象（例如 ve-table 的 column.filter.filterList）
+      this.internalOptions = (this.modelValue ?? []).map(x => ({ ...x }))
 
       if (this.isInput)
         this.setInputValue()
@@ -266,48 +235,38 @@ export default defineComponent({
     },
 
     // operation filter reset
+    // 总是发出重置（DD-08）：未确认的勾选可能已全部取消，但已确认（已生效）的筛选仍需清除；
+    // 下拉框无法可靠地知道调用方已确认的状态，所以不根据勾选判断是否发出
     reset() {
-      if (this.internalOptions.some(x => x.selected)) {
-        this.internalOptions.map((x) => {
-          if (x.selected)
-            x.selected = false
+      this.internalOptions = this.internalOptions.map(x => ({ ...x, selected: false }))
 
-          return x
-        })
+      // 使用户传入的v-model 生效
+      this.$emit('update:modelValue', this.internalOptions)
 
-        // 使用户传入的v-model 生效
-        this.$emit('update:modelValue', this.internalOptions)
-
-        this.$emit(EMIT_EVENTS.FILTER_RESET, this.internalOptions)
-      }
+      this.$emit(EMIT_EVENTS.FILTER_RESET, this.internalOptions)
 
       this.hideDropDown()
     },
 
-    showDropDown() {
-      const { rootId, dropdownItemsPanelId } = this
+    // 受控模式：根据 visible 显示或隐藏（只在挂载后调用）
+    syncControlledVisible(visible: boolean) {
+      if (!this.isControlled)
+        return
+      if (visible)
+        this.showDropDown()
 
+      else
+        this.hideDropDown()
+    },
+
+    showDropDown() {
       const nextVisible = true
 
       const allowChange = this.beforeVisibleChangeCallback(nextVisible)
       if (isBoolean(allowChange) && !allowChange)
         return false
 
-      const rootEl = document.querySelector<HTMLElement>(`#${rootId}`)
-
-      const panelEl = this.$refs[dropdownItemsPanelId] as HTMLElement | undefined
-
-      if (rootEl && panelEl) {
-        // remove first
-        rootEl.innerHTML = ''
-        rootEl.appendChild(panelEl)
-
-        rootEl.style.position = 'absolute'
-        rootEl.classList.add(clsName('popper'))
-
-        this.changDropdownPanelPosition()
-      }
-
+      // 显示后由 usePopper 在渲染完成时定位（绘制之前）
       this.internalVisible = true
 
       this.$emit(EMIT_EVENTS.VISIBLE_CHANGE, nextVisible)
@@ -322,10 +281,8 @@ export default defineComponent({
 
       this.$emit(EMIT_EVENTS.VISIBLE_CHANGE, nextVisible)
 
-      // 同步隐藏：之前延迟 150ms 的定时器会与紧接着的显示操作竞争（快速点击丢失、受控模式面板被清空）。
-      // 弹出层本身没有过渡动画，所以无需等待。
+      // 同步隐藏，没有定时器（DD-01）：<Teleport> 被禁用，内容回到组件内部并隐藏
       this.internalVisible = false
-      this.removeOrEmptyRootPanel()
     },
 
     // before visible change callback
@@ -343,25 +300,6 @@ export default defineComponent({
       }
     },
 
-    removeOrEmptyRootPanel() {
-      const { rootId } = this
-
-      const rootEl = document.querySelector(`#${rootId}`)
-      if (rootEl)
-        rootEl.innerHTML = ''
-    },
-
-    // 移除弹出层容器
-    removeRootElement() {
-      const { rootId } = this
-      if (!rootId)
-        return
-
-      const rootEl = document.querySelector(`#${rootId}`)
-      if (rootEl)
-        rootEl.remove()
-    },
-
     // 清除 clickoutside 的定时器
     clearClickOutsideTimer() {
       if (this.clickOutsideTimer) {
@@ -370,80 +308,9 @@ export default defineComponent({
       }
     },
 
+    // 重新计算弹出层位置
     changDropdownPanelPosition() {
-      const {
-        defaultInstance,
-        rootId,
-        popperAppendToEl,
-        appendToElTagName,
-      } = this
-
-      const rootEl = document.querySelector<HTMLElement>(`#${rootId}`)
-
-      if (rootEl) {
-        const { width: currentPanelWidth, height: currentPanelHeight }
-                    = rootEl.getBoundingClientRect()
-
-        const triggerEl = this.$el.querySelector('.ve-dropdown-dt')
-        const { height: triggerElHeight }
-                    = triggerEl.getBoundingClientRect()
-
-        if (!popperAppendToEl)
-          return false
-
-        const isAppendToBody = appendToElTagName === 'BODY'
-
-        const {
-          offsetLeft: triggerElLeft,
-          offsetTop: triggerElTop,
-          right: triggerElRight,
-          bottom: triggerElBottom,
-        } = isAppendToBody
-          ? getViewportOffset(triggerEl)
-          : getViewportOffsetWithinContainer(
-              triggerEl,
-              popperAppendToEl,
-            )
-
-        let panelX = 0
-        let panelY = 0
-
-        // 如果不是添加到body 需要考虑外层容器滚动调的影响
-        let scrollLeft = 0
-        let scrollTop = 0
-        if (!isAppendToBody) {
-          scrollLeft = popperAppendToEl.scrollLeft
-          scrollTop = popperAppendToEl.scrollTop
-        }
-
-        // 右方宽度够显示
-        if (triggerElRight >= currentPanelWidth)
-          panelX = triggerElLeft + scrollLeft
-
-        // 右方宽度不够显示在鼠标点击左方
-        else
-          panelX = triggerElLeft - currentPanelWidth + scrollLeft
-
-        // 下方高度够显示
-        if (triggerElBottom >= currentPanelHeight) {
-          panelY
-                        = triggerElTop
-                          + triggerElHeight
-                          + defaultInstance
-                          + scrollTop
-        }
-        // 下方高度不够显示在鼠标点击上方
-        else {
-          panelY
-                        = triggerElTop
-                          - currentPanelHeight
-                          - defaultInstance
-                          + scrollTop
-        }
-
-        rootEl.style.left = `${panelX}px`
-        rootEl.style.top = `${panelY}px`
-      }
+      this.popper.update()
     },
 
     // 设置文本框的值
@@ -458,7 +325,6 @@ export default defineComponent({
     },
 
     dropdownPanelClick() {
-      this.isDropdownShowTriggerClicked = true
       this.dropdownShowToggle()
     },
 
@@ -470,15 +336,11 @@ export default defineComponent({
     },
 
     singleSelectOptionClick(e: MouseEvent, item: VeDropdownItem) {
-      this.internalOptions = this.internalOptions.map((x) => {
-        if (item.label === x.label)
-          x.selected = true
-
-        else
-          x.selected = false
-
-        return x
-      })
+      // 生成新的选项对象，不修改原对象（它们可能已通过 update:modelValue 交给了调用方）
+      this.internalOptions = this.internalOptions.map(x => ({
+        ...x,
+        selected: item.label === x.label,
+      }))
 
       if (this.hideByItemClick)
         this.hideDropDown()
@@ -497,77 +359,38 @@ export default defineComponent({
       return clsName(`items-li-a-${this.textAlign}`)
     },
 
-    dropdownClickOutside() {
-      // 是否显示触发器被点击了（被点击将忽略 clickOutside 事件）
+    dropdownClickOutside(e?: MouseEvent) {
+      // 已关闭的下拉框不需要处理（否则页面上每个下拉框在每次点击时都会发出隐藏事件）
+      if (!this.isDropdownVisible)
+        return
+
+      // 点击触发器时由 dropdownPanelClick 负责切换。
+      // clickoutside 在捕获阶段执行，早于触发器自身的 click 事件，所以这里直接判断事件目标
+      const triggerEl = this.$refs.dropdownTrigger as HTMLElement | undefined
+      const target = e?.target as Node | null | undefined
+      if (triggerEl && target && triggerEl.contains(target))
+        return
+
       this.clearClickOutsideTimer()
       this.clickOutsideTimer = setTimeout(() => {
         this.clickOutsideTimer = null
-        if (this.isDropdownShowTriggerClicked)
-          this.isDropdownShowTriggerClicked = false
-        else
+        // 等待期间可能已经被关闭（例如受控模式下父组件已修改 visible）
+        if (this.isDropdownVisible)
           this.hideDropDown()
       })
     },
 
     // checbox 受控属性管理
     checkedChangeControl(item: VeDropdownItem, isChecked: boolean) {
-      this.internalOptions = this.internalOptions.map((i) => {
-        if (i.label === item.label)
-          i.selected = isChecked
-
-        return i
-      })
+      this.internalOptions = this.internalOptions.map(i =>
+        i.label === item.label ? { ...i, selected: isChecked } : i,
+      )
 
       this.$emit(EMIT_EVENTS.ITEM_SELECT_CHANGE, this.internalOptions)
     },
 
     getRandomIdWithPrefix() {
       return clsName(getRandomId())
-    },
-
-    /*
-        add root element to element
-        如果不指定则添加到 body
-        */
-    addRootElementToElement() {
-      const { popperAppendTo } = this
-
-      this.rootId = this.getRandomIdWithPrefix()
-      this.dropdownItemsPanelId = this.getRandomIdWithPrefix()
-
-      const rootEl = document.querySelector(`#${this.rootId}`)
-
-      if (rootEl) {
-        return false
-      }
-      else {
-        // FIXME: What is this comment below here? Remove?
-        // fixed unit test error: [Vue warn]: Error in v-on handler: "TypeError: Failed to execute 'appendChild' on 'Node': parameter 1 is not of type 'Node'."
-        this.$nextTick(() => {
-          // 在 nextTick 之前已卸载：不再创建容器，否则会泄漏
-          if (this.$.isUnmounted)
-            return
-
-          const containerEl = document.createElement('div')
-
-          containerEl.setAttribute('id', this.rootId)
-
-          if (
-            typeof popperAppendTo === 'string'
-            && popperAppendTo.length > 0
-          ) {
-            this.popperAppendToEl
-                            = document.querySelector<HTMLElement>(popperAppendTo)
-          }
-          else {
-            this.popperAppendToEl = popperAppendTo as HTMLElement
-          }
-
-          this.appendToElTagName = this.popperAppendToEl!.tagName
-
-          this.popperAppendToEl?.appendChild(containerEl)
-        })
-      }
     },
   },
 
@@ -586,10 +409,10 @@ export default defineComponent({
       showOperation,
       isCustomContent,
       dropdownItemsClass,
-      dropdownItemsPanelId,
     } = this
 
-    let content = []
+    // 下拉选项列表（DD-10：显式标注类型，否则 [] 被推断为 never[]）
+    let content: VNode[] = []
 
     if (isMultiple) {
       content = internalOptions.map((item, index) => {
@@ -656,13 +479,86 @@ export default defineComponent({
     }
 
     const dropdownItemsProps = {
-      ref: dropdownItemsPanelId,
       class: dropdownItemsClass,
+    }
+
+    const itemsNode = (
+      <dd {...dropdownItemsProps} v-click-outside={this.dropdownClickOutside}>
+        <ul
+          class={clsName('items')}
+          style={{
+            'min-width': `${width}px`,
+            'max-width': `${getMaxWidth}px`,
+          }}
+        >
+          {/* custom content */}
+          {isCustomContent && this.$slots['custom-content']?.()}
+          {/* not custom content */}
+          {!isCustomContent && (
+            <div>
+              <div
+                class={clsName('items-warpper')}
+                style={{
+                  'max-height': `${maxHeight}px`,
+                }}
+              >
+                {content}
+              </div>
+              {showOperation && (
+                <li class={clsName('operation')}>
+                  <a
+                    href="javascript:void(0)"
+                    class={[
+                      clsName('operation-item'),
+                      this.operationFilterClass,
+                    ]}
+                    onClick={reset}
+                  >
+                    {this.resetFilterText}
+                  </a>
+                  <a
+                    class={clsName(
+                      'operation-item',
+                    )}
+                    href="javascript:void(0)"
+                    onClick={this.confirm}
+                  >
+                    {this.confirmFilterText}
+                  </a>
+                </li>
+              )}
+            </div>
+          )}
+        </ul>
+      </dd>
+    )
+
+    /*
+      第一次显示之前（包括 SSR）内容隐藏在组件内部；之后由 <Teleport> 渲染：
+      显示时在 popperAppendTo 中，隐藏时回到组件内部（保留插槽内容的组件状态）
+      */
+    const { isTeleported, position, renderTeleport } = this.popper
+    let popperContent
+    if (isTeleported.value) {
+      const popperProps = {
+        ref: 'dropdownPopper',
+        id: this.rootId || undefined,
+        class: { [clsName('popper')]: this.isDropdownVisible },
+        style: {
+          position: 'absolute' as const,
+          left: position.value ? `${position.value.left}px` : undefined,
+          top: position.value ? `${position.value.top}px` : undefined,
+        },
+      }
+      popperContent = renderTeleport([<div {...popperProps}>{itemsNode}</div>])
+    }
+    else {
+      popperContent = itemsNode
     }
 
     return (
       <dl {...dropdownProps}>
-        <dt class="ve-dropdown-dt" onClick={dropdownPanelClick}>
+        <dt ref="dropdownTrigger" class="ve-dropdown-dt" onClick={dropdownPanelClick}>
           <a
             class={[isSelect ? clsName('dt-selected') : '']}
             style={{ width: `${width}px` }}
@@ -671,54 +567,7 @@ export default defineComponent({
           </a>
         </dt>
         <div style={{ display: 'none' }}>
-          <dd {...dropdownItemsProps} v-click-outside={this.dropdownClickOutside}>
-            <ul
-              class={clsName('items')}
-              style={{
-                'min-width': `${width}px`,
-                'max-width': `${getMaxWidth}px`,
-              }}
-            >
-              {/* custom content */}
-              {isCustomContent && this.$slots['custom-content']?.()}
-              {/* not custom content */}
-              {!isCustomContent && (
-                <div>
-                  <div
-                    class={clsName('items-warpper')}
-                    style={{
-                      'max-height': `${maxHeight}px`,
-                    }}
-                  >
-                    {content}
-                  </div>
-                  {showOperation && (
-                    <li class={clsName('operation')}>
-                      <a
-                        href="javascript:void(0)"
-                        class={[
-                          clsName('operation-item'),
-                          this.operationFilterClass,
-                        ]}
-                        onClick={reset}
-                      >
-                        {this.resetFilterText}
-                      </a>
-                      <a
-                        class={clsName(
-                          'operation-item',
-                        )}
-                        href="javascript:void(0)"
-                        onClick={this.confirm}
-                      >
-                        {this.confirmFilterText}
-                      </a>
-                    </li>
-                  )}
-                </div>
-              )}
-            </ul>
-          </dd>
+          {popperContent}
         </div>
       </dl>
     )

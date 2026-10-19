@@ -22,13 +22,13 @@ exports[`veTable column hidden > columnHiddenOption defaultHiddenColumnKeys prop
                 <!---->
                 <!---->
               </th>
-              <th style="text-align: center; top: 0px;" class="ve-table-header-th" rowspan="3" colspan="1">
+              <th style="text-align: center; top: 0px;" class="ve-table-header-th" rowspan="3" colspan="1" col-key="col7">
                 <!---->col7
                 <!---->
                 <!---->
                 <!---->
               </th>
-              <th style="text-align: center; top: 0px;" class="ve-table-header-th ve-table-last-column" rowspan="3" colspan="1">
+              <th style="text-align: center; top: 0px;" class="ve-table-header-th ve-table-last-column" rowspan="3" colspan="1" col-key="col8">
                 <!---->col8
                 <!---->
                 <!---->
@@ -42,7 +42,7 @@ exports[`veTable column hidden > columnHiddenOption defaultHiddenColumnKeys prop
                 <!---->
                 <!---->
               </th>
-              <th style="text-align: center; top: 0px;" class="ve-table-header-th" rowspan="2" colspan="1">
+              <th style="text-align: center; top: 0px;" class="ve-table-header-th" rowspan="2" colspan="1" col-key="col6">
                 <!---->col6
                 <!---->
                 <!---->
@@ -50,13 +50,13 @@ exports[`veTable column hidden > columnHiddenOption defaultHiddenColumnKeys prop
               </th>
             </tr>
             <tr class="ve-table-header-tr">
-              <th style="text-align: center; top: 0px;" class="ve-table-header-th" rowspan="1" colspan="1">
+              <th style="text-align: center; top: 0px;" class="ve-table-header-th" rowspan="1" colspan="1" col-key="col4">
                 <!---->col4
                 <!---->
                 <!---->
                 <!---->
               </th>
-              <th style="text-align: center; top: 0px;" class="ve-table-header-th" rowspan="1" colspan="1">
+              <th style="text-align: center; top: 0px;" class="ve-table-header-th" rowspan="1" colspan="1" col-key="col5">
                 <!---->col5
                 <!---->
                 <!---->

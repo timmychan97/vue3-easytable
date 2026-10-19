@@ -1,12 +1,15 @@
+import type { RowKey } from '../util/core'
+import type { ColgroupData, RowHeight } from '../ve-table-types'
 import { clsName } from '../util'
 import { COMPS_NAME } from '../util/constant'
 import FooterTr from './footer-tr'
 
-export default {
+// RENDER-10：用 defineComponent 包裹，this 与 JSX 用法才有类型
+export default defineComponent({
   name: COMPS_NAME.VE_TABLE_FOOTER,
   props: {
     colgroups: {
-      type: Array,
+      type: Array as PropType<ColgroupData[]>,
       required: true,
     },
     footerData: {
@@ -18,7 +21,7 @@ export default {
       default: false,
     },
     allRowKeys: {
-      type: Array,
+      type: Array as PropType<RowKey[]>,
       required: true,
     },
     rowKeyFieldName: {
@@ -41,7 +44,7 @@ export default {
     },
     // footer rows
     footerRows: {
-      type: Array,
+      type: Array as PropType<RowHeight[]>,
       default() {
         return []
       },
@@ -69,7 +72,7 @@ export default {
   },
   methods: {
     // get tr key
-    getTrKey({ rowData, rowIndex }) {
+    getTrKey({ rowData, rowIndex }: { rowData: Record<string, any>, rowIndex: number }) {
       let result = rowIndex
 
       const { rowKeyFieldName } = this
@@ -84,7 +87,7 @@ export default {
 
     return (
       <tfoot class={this.footerClass}>
-        {this.footerData.map((rowData, rowIndex) => {
+        {(this.footerData as Record<string, any>[]).map((rowData, rowIndex) => {
           const trProps = {
             key: this.getTrKey({ rowData, rowIndex }),
             rowIndex,
@@ -103,4 +106,4 @@ export default {
       </tfoot>
     )
   },
-}
+})

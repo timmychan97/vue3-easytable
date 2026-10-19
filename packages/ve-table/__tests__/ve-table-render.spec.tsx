@@ -1,3 +1,4 @@
+import type { ColumnOption } from '@/ve-table/src/ve-table-types'
 import veTable from '@/ve-table'
 import { mount } from '@vue/test-utils'
 
@@ -12,7 +13,7 @@ describe('veTable render performance', () => {
     ]
   }
 
-  const COLUMNS = [
+  const COLUMNS: ColumnOption[] = [
     { field: 'name', key: 'b', title: 'Name', width: 200, align: 'left' },
     { field: 'hobby', key: 'c', title: 'Hobby', width: 300, align: 'left' },
     { field: 'address', key: 'd', title: 'Address', width: '', align: 'left' },
@@ -28,7 +29,7 @@ describe('veTable render performance', () => {
 
   // RENDER-02：非虚拟滚动的行必须按 key 复用，不能按位置匹配
   describe('body rows are keyed (RENDER-02)', () => {
-    const EXPAND_COLUMNS = [
+    const EXPAND_COLUMNS: ColumnOption[] = [
       { field: '', key: 'a', type: 'expand', title: '', width: 50, align: 'center' },
       ...COLUMNS,
     ]

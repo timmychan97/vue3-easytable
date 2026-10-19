@@ -143,18 +143,15 @@ describe('veTable contextmenu', () => {
     },
   ]
 
-  afterEach(() => {
-    return new Promise((resolve) => {
-      const contextmenuNodes = document.querySelectorAll(
-        '.ve-contextmenu-node',
-      );
-
-      [].forEach.call(contextmenuNodes, (nodeEl: HTMLElement) => {
-        nodeEl.remove()
-      })
-
-      resolve()
-    })
+  // 弹出层由 <Teleport> 渲染，组件卸载时由 Vue 移除（MOD-09），用例结束后组件自动卸载（tests/utils/auto-unmount.ts），
+  // 所以不再手动删除节点（那样会删除 Vue 管理的 DOM）。这里检查 body 中没有遗留的节点
+  let bodyChildCount: number | undefined
+  beforeEach(() => {
+    bodyChildCount ??= document.body.children.length
+    expect(document.body.children.length).toBe(bodyChildCount)
+  })
+  afterAll(() => {
+    expect(document.body.children.length).toBe(bodyChildCount)
   })
 
   it('render', () => {
@@ -261,7 +258,7 @@ describe('veTable contextmenu', () => {
     await later()
 
     const contextmenuNodes = document.querySelectorAll(
-      '.ve-contextmenu-node',
+      '.ve-contextmenu-popper .ve-contextmenu-node',
     )
 
     expect(contextmenuNodes.length).toBe(7)
@@ -349,7 +346,7 @@ describe('veTable contextmenu', () => {
     await later()
 
     const contextmenuNodes = document.querySelectorAll(
-      '.ve-contextmenu-node',
+      '.ve-contextmenu-popper .ve-contextmenu-node',
     )
 
     expect(contextmenuNodes.length).toBe(7)
@@ -422,7 +419,7 @@ describe('veTable contextmenu', () => {
     await later()
 
     const contextmenuNodes = document.querySelectorAll(
-      '.ve-contextmenu-node',
+      '.ve-contextmenu-popper .ve-contextmenu-node',
     )
 
     // CUT, COPY, EMPTY_COLUMN, LEFT_FIXED, CANCEL_LEFT_FIXED, RIGHT_FIXED, CANCEL_RIGHT_FIXED
@@ -520,7 +517,7 @@ describe('veTable contextmenu', () => {
     expect(firstTrTdEl.classes()).toContain('ve-table-cell-selection')
 
     const contextmenuNodes = document.querySelectorAll(
-      '.ve-contextmenu-node',
+      '.ve-contextmenu-popper .ve-contextmenu-node',
     )
 
     expect(contextmenuNodes.length).toBe(6)
@@ -610,7 +607,7 @@ describe('veTable contextmenu', () => {
     expect(firstTrTdEl.classes()).toContain('ve-table-cell-selection')
 
     const contextmenuNodes = document.querySelectorAll(
-      '.ve-contextmenu-node',
+      '.ve-contextmenu-popper .ve-contextmenu-node',
     )
 
     expect(contextmenuNodes.length).toBe(6)
@@ -640,6 +637,53 @@ describe('veTable contextmenu', () => {
         startRowIndex: 2,
       },
     })
+  })
+
+  // 单元格的 contextmenu 处理函数会同步替换 options，事件随后冒泡到 .ve-table-content 打开菜单。
+  // 脚本派发的事件（测试工具、dispatchEvent）在两个监听器之间没有微任务检查点，
+  // 菜单必须等 options 更新渲染完成后再显示，否则会显示在即将被移除的旧容器里
+  it('the menu stays open after repeated right-clicks on body and header cells (MENU-06)', async () => {
+    // 前面的用例没有卸载表格，会留下空的 popper 容器
+    const poppersBefore = document.querySelectorAll('.ve-contextmenu-popper').length
+    const wrapper = mount(veTable, {
+      props: {
+        columns: COLUMNS,
+        tableData: cloneDeep(TABLE_DATA),
+        rowKeyFieldName: 'rowKey',
+        contextmenuHeaderOption: { contextmenus: HEADER_CONTEXTMENUS },
+        contextmenuBodyOption: { contextmenus: BODY_CONTEXTMENUS },
+      },
+    })
+
+    const rightClick = async (el: any) => {
+      el.trigger('mousedown', { button: 2 })
+      await later()
+      el.trigger('contextmenu')
+      await later()
+    }
+    const visibleLabels = () => [...document.querySelectorAll(
+      '.ve-contextmenu-popper .ve-contextmenu-node-label',
+    )].map(x => x.textContent)
+
+    const bodyTrs = wrapper.findAll('.ve-table-body-tr')
+
+    // 第一次右键（options 从空数组变为菜单项）
+    await rightClick(bodyTrs[2].findAll('.ve-table-body-td')[2])
+    expect(visibleLabels()).toHaveLength(6)
+    expect(visibleLabels()).toContain('删除 1 行')
+
+    // 再次右键（options 被替换为新的数组）
+    await rightClick(bodyTrs[3].findAll('.ve-table-body-td')[3])
+    expect(visibleLabels()).toHaveLength(6)
+    expect(document.querySelectorAll('.ve-contextmenu-popper')).toHaveLength(poppersBefore + 1)
+
+    // 切换到表头菜单
+    await rightClick(wrapper.findAll('.ve-table-header-th')[1])
+    expect(visibleLabels()).toHaveLength(7)
+    expect(visibleLabels()).toContain('清空 1 列')
+
+    wrapper.unmount()
+    expect(document.querySelectorAll('.ve-contextmenu-popper')).toHaveLength(poppersBefore)
   })
 
   // it("contextmenu INSERT_ROW_ABOVE", async () => {

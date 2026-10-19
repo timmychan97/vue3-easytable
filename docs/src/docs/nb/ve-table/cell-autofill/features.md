@@ -1,6 +1,6 @@
-:::anchor Deaktiver cellevalg
+:::anchor Autofyll og cellevalg
 
-:::demo Cellevalg er aktivert som standard. Du kan deaktivere det via `cellSelectionOption.enable = false`
+:::demo Autofyll bygger på cellevalg: du fyller celler ved å dra i håndtaket i hjørnet av det valgte området. Det krever `rowKeyFieldName`, og cellevalg må være aktivert. `cellSelectionOption.enable` er `true` som standard; med `false` finnes det ikke noe valg, og dermed heller ikke noe autofyll-håndtak
 
 ```html
 <template>

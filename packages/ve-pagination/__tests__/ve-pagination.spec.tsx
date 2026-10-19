@@ -1,4 +1,6 @@
 import vePagination from '@/ve-pagination'
+import Pager from '@/ve-pagination/src/pager'
+import { Jumper, Next, Prev, Sizer, Total } from '@/ve-pagination/src/parts'
 import { later } from '@test-utils'
 import { KEY_CODES } from '@test-utils/constant'
 import { mount } from '@vue/test-utils'
@@ -493,6 +495,290 @@ describe('vePagination', () => {
       await later()
 
       expect(wrapper.emitted('on-page-number-change')).toBeFalsy()
+    })
+  })
+
+  describe('edge cases (PAG-01)', () => {
+    async function pressEnter(wrapper: any, value: string) {
+      const input = wrapper.find('.ve-pagination-goto-input')
+      await input.setValue(value)
+      input.element.dispatchEvent(new KeyboardEvent('keyup', { key: 'Enter' }))
+      await later()
+    }
+
+    it('jumping with total = 0 emits page 1, not 0 (PAG-01)', async () => {
+      const wrapper = mount(vePagination, { props: { total: 0 } })
+      await pressEnter(wrapper, '3')
+
+      expect(wrapper.emitted('on-page-number-change')).toEqual([[1]])
+      expect((wrapper.find('.ve-pagination-goto-input').element as HTMLInputElement).value).toBe('1')
+    })
+
+    it('total = 0 disables prev and next (PAG-01)', () => {
+      const wrapper = mount(vePagination, { props: { total: 0 } })
+
+      expect(wrapper.find('.ve-pagination-prev button').attributes('disabled')).toBeDefined()
+      expect(wrapper.find('.ve-pagination-next button').attributes('disabled')).toBeDefined()
+    })
+
+    it('next is disabled when total shrinks below the current page (PAG-01)', async () => {
+      const wrapper = mount(vePagination, { props: { total: 100, pageSize: 10, pageIndex: 8 } })
+      expect(wrapper.find('.ve-pagination-next button').attributes('disabled')).toBeUndefined()
+
+      await wrapper.setProps({ total: 50 })
+
+      expect(wrapper.find('.ve-pagination-next button').attributes('disabled')).toBeDefined()
+      wrapper.find('.ve-pagination-next').trigger('click')
+      expect(wrapper.emitted('on-page-number-change')).toBeFalsy()
+    })
+
+    it('prev from a page beyond the last page goes to the last page (PAG-01)', async () => {
+      const wrapper = mount(vePagination, { props: { total: 100, pageSize: 10, pageIndex: 8 } })
+      await wrapper.setProps({ total: 50 })
+
+      wrapper.find('.ve-pagination-prev').trigger('click')
+
+      expect(wrapper.emitted('on-page-number-change')).toEqual([[5]])
+    })
+
+    it('pageSize = 0 does not display Infinity (PAG-01)', () => {
+      const wrapper = mount(vePagination, { props: { total: 30, pageSize: 0 } })
+
+      expect(wrapper.text()).not.toContain('Infinity')
+      expect(wrapper.text()).not.toContain('NaN')
+    })
+
+    it('an invalid pageIndex prop update falls back to page 1 (PAG-01)', async () => {
+      const wrapper = mount(vePagination, { props: { total: 100, pageIndex: 3 } })
+
+      await wrapper.setProps({ pageIndex: 0 })
+      expect(wrapper.find('.ve-pagination-li-active').text()).toBe('1')
+
+      await wrapper.setProps({ pageIndex: Number.NaN })
+      expect(wrapper.find('.ve-pagination-li-active').text()).toBe('1')
+    })
+  })
+
+  describe('pagingCount is clamped to an integer >= 1 (PAG-05)', () => {
+    function jumpButtons(wrapper: any) {
+      return {
+        prev: wrapper.find('.ve-pagination-jump-prev'),
+        next: wrapper.find('.ve-pagination-jump-next'),
+      }
+    }
+
+    it.each([0, -3])('pagingCount = %s behaves like 1', async (pagingCount) => {
+      const wrapper = mount(vePagination, {
+        props: { total: 600, pageIndex: 10, pagingCount },
+      })
+      const { prev, next } = jumpButtons(wrapper)
+
+      // 当前页两侧的跳转按钮每次至少移动 1 页，并且当前页始终显示
+      expect(wrapper.find('.ve-pagination-li-active').text()).toBe('10')
+      expect(next.find('button').attributes('aria-label')).toBe('向后 1 页')
+      expect(prev.find('button').attributes('aria-label')).toBe('向前 1 页')
+
+      await next.trigger('click')
+      expect(wrapper.emitted('on-page-number-change')).toEqual([[11]])
+      await jumpButtons(wrapper).prev.trigger('click')
+      expect(wrapper.emitted('on-page-number-change')).toEqual([[11], [10]])
+    })
+
+    it('a non-integer pagingCount is floored', async () => {
+      const wrapper = mount(vePagination, {
+        props: { total: 600, pageIndex: 10, pagingCount: 3.7 },
+      })
+
+      // 3 个数字按钮 + 首页、尾页、两个跳转按钮
+      expect(wrapper.findAll('.ve-pagination-pager .ve-pagination-li')).toHaveLength(7)
+      expect(jumpButtons(wrapper).next.attributes('title')).toBe('向后 3 页')
+
+      // 不会跳到 13.7 这样的非整数页码
+      await jumpButtons(wrapper).next.trigger('click')
+      expect(wrapper.emitted('on-page-number-change')).toEqual([[13]])
+    })
+
+    it('a NaN pagingCount falls back to the default 5', () => {
+      const wrapper = mount(vePagination, {
+        props: { total: 600, pageIndex: 10, pagingCount: Number.NaN },
+      })
+
+      expect(wrapper.findAll('.ve-pagination-pager .ve-pagination-li')).toHaveLength(9)
+      expect(jumpButtons(wrapper).next.attributes('title')).toBe('向后 5 页')
+    })
+  })
+
+  describe('the pager always shows pagingCount number buttons (PAG-06)', () => {
+    // 除首页、尾页和两个跳转按钮外的数字按钮
+    function render(pageIndex: number, pageCount: number, pagingCount: number) {
+      const wrapper = mount(Pager, { props: { pageIndex, pageCount, pagingCount } })
+      const numbers = wrapper
+        .findAll('.ve-pagination-li:not(.ve-pagination-jump-prev):not(.ve-pagination-jump-next)')
+        .map(li => Number(li.text()))
+      const hasJump = wrapper.find('.ve-pagination-jump-prev').exists()
+        || wrapper.find('.ve-pagination-jump-next').exists()
+      wrapper.unmount()
+      expect(numbers[0]).toBe(1)
+      expect(numbers[numbers.length - 1]).toBe(pageCount)
+      return { middle: numbers.slice(1, -1), hasJump }
+    }
+
+    function middleNumbers(pageIndex: number, pageCount: number, pagingCount: number) {
+      return render(pageIndex, pageCount, pagingCount).middle
+    }
+
+    it.each([1, 2, 3, 4, 5, 6])('pagingCount = %s on every page index', (pagingCount) => {
+      for (const pageCount of [pagingCount + 2, pagingCount + 3, 2 * pagingCount + 3, 30]) {
+        for (let pageIndex = 1; pageIndex <= pageCount; pageIndex++) {
+          const { middle, hasJump } = render(pageIndex, pageCount, pagingCount)
+          const context = `pageIndex ${pageIndex} / pageCount ${pageCount}`
+
+          // 有跳转按钮（即有页码被隐藏）时，数字按钮数量固定为 pagingCount，翻页时不会变化；
+          // 没有跳转按钮时显示全部页码
+          expect(middle, context).toHaveLength(hasJump ? pagingCount : pageCount - 2)
+          // 连续的页码，并且当前页（首页、尾页除外）总在其中
+          middle.forEach((n, i) => expect(n, context).toBe(middle[0] + i))
+          if (pageIndex > 1 && pageIndex < pageCount)
+            expect(middle, context).toContain(pageIndex)
+        }
+      }
+    })
+
+    it('an even pagingCount puts the extra button after the current page', () => {
+      expect(middleNumbers(10, 20, 4)).toEqual([9, 10, 11, 12])
+      expect(middleNumbers(10, 20, 2)).toEqual([10, 11])
+      expect(middleNumbers(10, 20, 6)).toEqual([8, 9, 10, 11, 12, 13])
+      // 奇数保持对称，与修复前一致
+      expect(middleNumbers(10, 20, 5)).toEqual([8, 9, 10, 11, 12])
+    })
+  })
+
+  it('two paginations get distinct element ids (PAG-02)', () => {
+    const wrapper = mount({
+      render() {
+        return (
+          <div>
+            <vePagination total={100} />
+            <vePagination total={100} />
+          </div>
+        )
+      },
+    })
+
+    const inputs = wrapper.findAll('.ve-pagination-goto-input')
+    const gotoLabels = wrapper.findAll('.ve-pagination-goto-label')
+    const sizeLabels = wrapper.findAll('.ve-pagination-select-label')
+    const selects = wrapper.findAll('.ve-pagination-select')
+    expect(inputs).toHaveLength(2)
+
+    const inputIds = inputs.map(x => x.attributes('id'))
+    const sizeLabelIds = sizeLabels.map(x => x.attributes('id'))
+    expect(new Set(inputIds).size).toBe(2)
+    expect(new Set(sizeLabelIds).size).toBe(2)
+
+    // 每个 label / aria-labelledby 指向自己实例中的元素
+    gotoLabels.forEach((label, i) => {
+      expect(label.attributes('for')).toBe(inputIds[i])
+    })
+    selects.forEach((select, i) => {
+      expect(select.attributes('aria-labelledby')).toBe(sizeLabelIds[i])
+    })
+  })
+
+  it('pageSizeChangeHandler uses its argument (PAG-03)', async () => {
+    const wrapper = mount(vePagination, {
+      props: { total: 600, pageSizeOption: [5, 10, 15], pageSize: 5, pageIndex: 3 },
+    })
+
+    ;(wrapper.vm as any).pageSizeChangeHandler(15)
+    await nextTick()
+
+    expect(wrapper.emitted('on-page-size-change')).toEqual([[15]])
+    expect(wrapper.find('.ve-pagination-li-active').text()).toBe('1')
+  })
+
+  describe('subcomponents use props and events, not $parent (MOD-10)', () => {
+    it('total renders its total prop', () => {
+      const wrapper = mount(Total, { props: { total: 42 } })
+
+      expect(wrapper.find('.ve-pagination-total').text()).toContain('42')
+    })
+
+    it('prev and next follow their props and emit on click', async () => {
+      const prev = mount(Prev, { props: { pageIndex: 1, pageCount: 3 } })
+      const next = mount(Next, { props: { pageIndex: 1, pageCount: 3 } })
+
+      expect(prev.find('button').attributes('disabled')).toBeDefined()
+      expect(next.find('button').attributes('disabled')).toBeUndefined()
+
+      await prev.setProps({ pageIndex: 3 })
+      await next.setProps({ pageIndex: 3 })
+      expect(prev.find('button').attributes('disabled')).toBeUndefined()
+      expect(next.find('button').attributes('disabled')).toBeDefined()
+
+      await prev.find('li').trigger('click')
+      await next.find('li').trigger('click')
+      expect(prev.emitted('prev')).toHaveLength(1)
+      expect(next.emitted('next')).toHaveLength(1)
+    })
+
+    it('sizer emits the selected page size', async () => {
+      const wrapper = mount(Sizer, {
+        props: {
+          options: [
+            { value: 10, label: '10', selected: true },
+            { value: 20, label: '20', selected: false },
+          ],
+        },
+      })
+
+      await wrapper.findAll('.ve-dropdown-items-li')[1].trigger('click')
+
+      expect(wrapper.emitted('change')).toEqual([[20]])
+    })
+
+    it('jumper emits the page clamped to pageCount and shows it', async () => {
+      const wrapper = mount(Jumper, { props: { pageIndex: 1, pageCount: 4 } })
+      const input = wrapper.find('input')
+
+      await input.setValue('9')
+      input.element.dispatchEvent(new KeyboardEvent('keyup', { key: 'Enter' }))
+
+      expect(wrapper.emitted('jump')).toEqual([[4]])
+      expect((input.element as HTMLInputElement).value).toBe('4')
+    })
+
+    it('pager emits the clicked page', async () => {
+      const wrapper = mount(Pager, { props: { pageIndex: 1, pageCount: 3, pagingCount: 5 } })
+
+      await wrapper.findAll('.ve-pagination-li')[1].trigger('click')
+
+      expect(wrapper.emitted('jump')).toEqual([[2]])
+    })
+
+    it('keeps the instance members available through a ref', async () => {
+      const wrapper = mount(vePagination, {
+        props: { total: 100, pageSize: 10, pageIndex: 3 },
+      })
+      const vm = wrapper.vm as any
+
+      expect(vm.newPageIndex).toBe(3)
+      expect(vm.pageCount).toBe(10)
+      expect(vm.getValidNum('42')).toBe(10)
+      expect(vm.newPageSizeOption.map((x: { value: number }) => x.value)).toEqual([10, 20, 30])
+
+      vm.nextPage()
+      vm.prevPage()
+      vm.jumpPageHandler(7)
+      vm.pageSizeChangeHandler(20)
+      vm.goBackPageIndex()
+      vm.goBackPageSize()
+      await nextTick()
+
+      expect(wrapper.emitted('on-page-number-change')).toEqual([[4], [3], [7]])
+      expect(wrapper.emitted('on-page-size-change')).toEqual([[20]])
+      expect(vm.newPageIndex).toBe(3)
+      expect(vm.newPageSize).toBe(10)
     })
   })
 })

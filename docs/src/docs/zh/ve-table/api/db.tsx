@@ -704,7 +704,7 @@ export const db = {
       },
       {
         param: 'selectedAllChange',
-        desc: '全选改变事件。事件接收 2 个参数，<code>isSelected</code> 是否全选。<code>selectedRowKeys</code>所有选中的 rowKey 信息',
+        desc: '全选改变事件。事件接收 2 个参数，<code>isSelected</code> 是否全选。<code>selectedRowKeys</code>所有选中的 rowKey 信息。全选 / 取消全选只改变当前数据中的行，不在当前数据中的已选 key（例如其他页的行）会保留',
         type: '<code>Function({isSelected, selectedRowKeys})</code>',
         optionalVal: '-',
         default: '-',
@@ -970,14 +970,14 @@ export const db = {
       },
       {
         param: 'beforeCellValueChange',
-        desc: '单元格内容改变前的回调方法。<code>row</code>当前行数据，<code>column</code>当前列信息，<code>changeValue</code>单元格改变的值。如果返回false，将会阻止编辑，单元格还原为编辑前状态',
+        desc: '单元格内容改变前的回调方法。<code>row</code>当前行数据，<code>column</code>当前列信息，<code>changeValue</code>单元格改变的值。如果返回false，将会阻止编辑，单元格还原为编辑前状态。粘贴、剪切、删除（含右键菜单）与单元格自动填充也会对每个值发生变化的单元格调用，返回false只跳过该单元格；此时只写入 <code>edit: true</code> 的列',
         type: '<code>Function({ row, column,changeValue })</code>',
         optionalVal: '-',
         default: '-',
       },
       {
         param: 'afterCellValueChange',
-        desc: '单元格内容改变后的回调方法。<code>row</code>当前行数据，<code>column</code>当前列信息，<code>changeValue</code>单元格改变的值',
+        desc: '单元格内容改变后的回调方法。<code>row</code>当前行数据，<code>column</code>当前列信息，<code>changeValue</code>单元格改变的值。粘贴、剪切、删除（含右键菜单）与单元格自动填充对每个实际写入的单元格调用，在 <code>afterPaste</code> / <code>afterCut</code> / <code>afterDelete</code> / <code>afterAutofill</code> 之前',
         type: '<code>Function({ row, column,changeValue })</code>',
         optionalVal: '-',
         default: '-',
@@ -1095,7 +1095,7 @@ export const db = {
       },
       {
         param: 'afterAutofill',
-        desc: '单元格自动填充后的回调方法。参数说明：\r1、<code>direction</code>自动填充的方向\r2、<code>sourceSelectionRangeIndexes</code>自动填充来源的行和列索引\r3、<code>targetSelectionRangeIndexes</code>自动填充目标的行和列索引\r4、<code>sourceSelectionData</code>自动填充来源的数据，超出会自动去除\r5、<code>targetSelectionData</code>自动填充目标的数据',
+        desc: '单元格自动填充后的回调方法，在逐单元格的 <code>editOption.afterCellValueChange</code> 之后调用。参数说明：\r1、<code>direction</code>自动填充的方向\r2、<code>sourceSelectionRangeIndexes</code>自动填充来源的行和列索引\r3、<code>targetSelectionRangeIndexes</code>自动填充目标的行和列索引\r4、<code>sourceSelectionData</code>自动填充来源的数据，超出会自动去除\r5、<code>targetSelectionData</code>自动填充目标的数据',
         type: `<code>Function({
                         direction,
                         sourceSelectionRangeIndexes,
@@ -1161,7 +1161,7 @@ export const db = {
       },
       {
         param: 'beforePaste',
-        desc: '单元格粘贴前的回调方法,返回false 则取消粘贴。参数说明：\r1、<code>data</code>粘贴的数据\r2、<code>selectionRangeIndexes</code>粘贴区域的索引信息\r3、<code>selectionRangeKeys</code>粘贴区域的key信息',
+        desc: '单元格粘贴前的回调方法,返回false 则取消粘贴。参数说明：\r1、<code>data</code>粘贴的数据（设置了 <code>editOption</code> 时不含不可编辑的列）\r2、<code>selectionRangeIndexes</code>粘贴区域的索引信息\r3、<code>selectionRangeKeys</code>粘贴区域的key信息',
         type: `<code>Function({
                     data, selectionRangeIndexes, selectionRangeKeys
 })</code>`,
@@ -1209,6 +1209,15 @@ export const db = {
         desc: '单元格删除后回调方法。参数说明：\r1、<code>data</code>删除的数据\r2、<code>selectionRangeIndexes</code>删除区域的索引信息\r3、<code>selectionRangeKeys</code>删除区域的key信息',
         type: `<code>Function({
                     data, selectionRangeIndexes, selectionRangeKeys
+})</code>`,
+        optionalVal: '-',
+        default: '-',
+      },
+      {
+        param: 'writeError',
+        desc: '右键菜单“复制”“剪切”写入剪贴板失败时的回调（如无权限、非安全上下文且 <code>execCommand</code> 不可用）。剪切失败时单元格保持不变，也不会调用 <code>afterCopy</code> / <code>afterCut</code>；未提供时输出 <code>console.warn</code>。参数说明：\r1、<code>type</code>：<code>"copy"</code> 或 <code>"cut"</code>\r2、<code>error</code>：浏览器返回的错误\r3、<code>text</code>：要写入的文本（可用于提示用户手动复制）\r4、<code>data</code>、<code>selectionRangeIndexes</code>、<code>selectionRangeKeys</code>：同 <code>beforeCopy</code>',
+        type: `<code>Function({
+                    type, error, text, data, selectionRangeIndexes, selectionRangeKeys
 })</code>`,
         optionalVal: '-',
         default: '-',

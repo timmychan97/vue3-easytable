@@ -17,7 +17,7 @@ export const COLUMN_TYPES = {
 export const COLUMN_FIXED_TYPE = {
   LEFT: 'left',
   RIGHT: 'right',
-}
+} as const
 
 // expand row trigger types
 export const EXPAND_TRIGGER_TYPES = {
@@ -61,6 +61,10 @@ export const CURRENT_CELL_SELECTION_TYPES = {
   RANGE: 'range',
 }
 
+/*
+ * 事件名（as const：表格上下文用字面量类型把事件名映射到参数类型，MOD-01）
+ * 其中一部分是组件对外的 emit，一部分是子组件通过表格上下文通知表格的事件
+ */
 export const EMIT_EVENTS = {
   // body-cell-width-change
   BODY_CELL_WIDTH_CHANGE: 'on-body-cell-width-change',
@@ -89,8 +93,10 @@ export const EMIT_EVENTS = {
   // expand row change
   EXPAND_ROW_CHANGE: 'on-expand-row-change',
   // 行勾选 / 单选不再走事件总线，改为 inject 表格级行状态（MOD-08）
-  // sort change
+  // sort change（表头 → 表格，参数为全部列的排序状态 sortColumns）
   SORT_CHANGE: 'on-sort-change',
+  // 表头单元格 → 表头：点击排序图标后某一列的新排序状态（MOD-01：之前与 SORT_CHANGE 同名，靠组件名区分）
+  COLUMN_SORT_CHANGE: 'on-column-sort-change',
   // on-cell-selection-key-change
   CELL_SELECTION_KEY_CHANGE: 'on-cell-selection-key-change',
   // on-cell-selection-range-data-change
@@ -131,18 +137,14 @@ export const EMIT_EVENTS = {
   SELECTION_CORNER_MOUSEDOWN: 'selection-corner-mousedown',
   // selection corner mouseup
   SELECTION_CORNER_MOUSEUP: 'selection-corner-mouseup',
-  // autofilling direction change
-  AUTOFILLING_DIRECTION_CHANGE: 'autofilling-direction-change',
   // row insert
   ROW_INSERT: 'on-row-insert',
-}
+} as const
 
-// hooks name
+// hooks name：表格通过表格上下文通知子组件的事件（滚动、尺寸变化等，MOD-01）
 export const HOOKS_NAME = {
   // table container scroll
   TABLE_CONTAINER_SCROLL: 'table-container-scroll',
-  // table-container-mouseup
-  TABLE_CONTAINER_MOUSEUP: 'table-container-mouseup',
   // table-container-mousemove
   // TABLE_CONTAINER_MOUSEMOVE: "table-container-mousemove",
   // table size change
@@ -160,7 +162,7 @@ export const HOOKS_NAME = {
   HEADER_CELL_MOUSEMOVE: 'header-cell-mousemove',
   // body cell mousemove
   BODY_CELL_MOUSEMOVE: 'body-cell-mousemove',
-}
+} as const
 
 export const COMPS_NAME = {
   VE_TABLE: 'VeTable',
@@ -180,6 +182,9 @@ export const COMPS_NAME = {
 
   VE_TABLE_COLGROUP: 'VeTableColgroup',
   VE_TABLE_FOOTER: 'VeTableFooter',
+  // 表尾行 / 单元格有自己的名称，不与表体组件同名（RENDER-11）
+  VE_TABLE_FOOTER_TR: 'VeTableFooterTr',
+  VE_TABLE_FOOTER_TD: 'VeTableFooterTd',
 
   VE_TABLE_EXPAND_TR: 'VeTableExpandTr',
   VE_TABLE_EXPAND_TR_ICON: 'VeTableExpandTrIcon',

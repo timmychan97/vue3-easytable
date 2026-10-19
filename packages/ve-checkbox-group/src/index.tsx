@@ -1,13 +1,9 @@
+import { isModelValueBound } from '@vue3-easytable/common/utils/v-model'
 import { provideCheckboxGroup } from './uses'
 import { COMPS_NAME, EMIT_EVENTS } from './util/constant'
 
 export default defineComponent({
   name: COMPS_NAME.VE_CHECKBOX_GROUP,
-  provide() {
-    return {
-      aaa: () => {},
-    }
-  },
   props: {
     modelValue: {
       type: Array as PropType<string[]>,
@@ -21,11 +17,14 @@ export default defineComponent({
       default: false,
     },
   },
-  expose: ['modelValue', 'updateModel'],
+  // 只暴露确实存在的成员（updateModel 从未实现）
+  expose: ['modelValue'],
   setup(props, { slots, emit }) {
+    const instance = getCurrentInstance()
     const { updateCheckbox } = provideCheckboxGroup({
       onCheckboxUpdate(label, checked) {
-        const newValue = [...props.modelValue]
+        // modelValue 被设为 null 等非数组时按空数组处理（FORM-06）
+        const newValue = Array.isArray(props.modelValue) ? [...props.modelValue] : []
         const index = newValue.indexOf(label)
         if (index > -1) {
           if (!checked)
@@ -41,6 +40,7 @@ export default defineComponent({
       },
       isVerticalShow: toRef(() => props.isVerticalShow),
       groupModelValue: toRef(() => props.modelValue),
+      isGroupModelBound: () => isModelValueBound(instance),
     })
     // 更新子组件选中状态
     watch(() => props.modelValue, (newVal: string[]) => {

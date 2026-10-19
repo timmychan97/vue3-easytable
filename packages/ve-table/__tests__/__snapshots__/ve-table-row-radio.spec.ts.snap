@@ -15,25 +15,25 @@ exports[`veTable row radio > render 1`] = `
           </colgroup>
           <thead class="ve-table-fixed-header ve-table-header">
             <tr class="ve-table-header-tr">
-              <th style="text-align: center; top: 0px;" class="ve-table-header-th" rowspan="1" colspan="1">
+              <th style="text-align: center; top: 0px;" class="ve-table-header-th" rowspan="1" colspan="1" col-key="a">
                 <!---->
                 <!---->
                 <!---->
                 <!---->
               </th>
-              <th style="text-align: left; top: 0px;" class="ve-table-header-th" rowspan="1" colspan="1">
+              <th style="text-align: left; top: 0px;" class="ve-table-header-th" rowspan="1" colspan="1" col-key="b">
                 <!---->Name
                 <!---->
                 <!---->
                 <!---->
               </th>
-              <th style="text-align: left; top: 0px;" class="ve-table-header-th" rowspan="1" colspan="1">
+              <th style="text-align: left; top: 0px;" class="ve-table-header-th" rowspan="1" colspan="1" col-key="c">
                 <!---->Hobby
                 <!---->
                 <!---->
                 <!---->
               </th>
-              <th style="text-align: left; top: 0px;" class="ve-table-header-th ve-table-last-column" rowspan="1" colspan="1">
+              <th style="text-align: left; top: 0px;" class="ve-table-header-th ve-table-last-column" rowspan="1" colspan="1" col-key="d">
                 <!---->Address
                 <!---->
                 <!---->
@@ -61,7 +61,7 @@ exports[`veTable row radio > render 1`] = `
             <tr class="ve-table-body-tr" row-key="1001">
               <td class="ve-table-body-td" style="text-align: center;" rowspan="1" colspan="1" col-key="a">
                 <!---->
-                <!----><label class="ve-radio ve-table-radio-wrapper" column="[object Object]"><span class="ve-radio-container"><input class="ve-radio-input" type="radio"><span class="ve-radio-inner"></span></span><span class="ve-radio-label"><!----></span></label>
+                <!----><label class="ve-radio ve-table-radio-wrapper"><span class="ve-radio-container"><input class="ve-radio-input" type="radio"><span class="ve-radio-inner"></span></span><span class="ve-radio-label"><!----></span></label>
                 <!---->
               </td>
               <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="b">
@@ -83,7 +83,7 @@ exports[`veTable row radio > render 1`] = `
             <tr class="ve-table-body-tr" row-key="1002">
               <td class="ve-table-body-td" style="text-align: center;" rowspan="1" colspan="1" col-key="a">
                 <!---->
-                <!----><label class="ve-radio ve-table-radio-wrapper" column="[object Object]"><span class="ve-radio-container"><input class="ve-radio-input" type="radio"><span class="ve-radio-inner"></span></span><span class="ve-radio-label"><!----></span></label>
+                <!----><label class="ve-radio ve-table-radio-wrapper"><span class="ve-radio-container"><input class="ve-radio-input" type="radio"><span class="ve-radio-inner"></span></span><span class="ve-radio-label"><!----></span></label>
                 <!---->
               </td>
               <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="b">
@@ -105,7 +105,7 @@ exports[`veTable row radio > render 1`] = `
             <tr class="ve-table-body-tr" row-key="1003">
               <td class="ve-table-body-td" style="text-align: center;" rowspan="1" colspan="1" col-key="a">
                 <!---->
-                <!----><label class="ve-radio ve-table-radio-wrapper" column="[object Object]"><span class="ve-radio-container"><input class="ve-radio-input" type="radio"><span class="ve-radio-inner"></span></span><span class="ve-radio-label"><!----></span></label>
+                <!----><label class="ve-radio ve-table-radio-wrapper"><span class="ve-radio-container"><input class="ve-radio-input" type="radio"><span class="ve-radio-inner"></span></span><span class="ve-radio-label"><!----></span></label>
                 <!---->
               </td>
               <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="b">
@@ -127,7 +127,7 @@ exports[`veTable row radio > render 1`] = `
             <tr class="ve-table-body-tr" row-key="1004">
               <td class="ve-table-body-td" style="text-align: center;" rowspan="1" colspan="1" col-key="a">
                 <!---->
-                <!----><label class="ve-radio ve-table-radio-wrapper" column="[object Object]"><span class="ve-radio-container"><input class="ve-radio-input" type="radio"><span class="ve-radio-inner"></span></span><span class="ve-radio-label"><!----></span></label>
+                <!----><label class="ve-radio ve-table-radio-wrapper"><span class="ve-radio-container"><input class="ve-radio-input" type="radio"><span class="ve-radio-inner"></span></span><span class="ve-radio-label"><!----></span></label>
                 <!---->
               </td>
               <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="b">
@@ -149,7 +149,7 @@ exports[`veTable row radio > render 1`] = `
             <tr class="ve-table-body-tr" row-key="1005">
               <td class="ve-table-body-td" style="text-align: center;" rowspan="1" colspan="1" col-key="a">
                 <!---->
-                <!----><label class="ve-radio ve-table-radio-wrapper" column="[object Object]"><span class="ve-radio-container"><input class="ve-radio-input" type="radio"><span class="ve-radio-inner"></span></span><span class="ve-radio-label"><!----></span></label>
+                <!----><label class="ve-radio ve-table-radio-wrapper"><span class="ve-radio-container"><input class="ve-radio-input" type="radio"><span class="ve-radio-inner"></span></span><span class="ve-radio-label"><!----></span></label>
                 <!---->
               </td>
               <td class="ve-table-body-td" style="text-align: left;" rowspan="1" colspan="1" col-key="b">

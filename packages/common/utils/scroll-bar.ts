@@ -5,6 +5,10 @@
  * @return
  */
 export function getScrollbarWidth() {
+  // SSR（没有 DOM）时无法测量，返回 0；客户端激活后的实例会重新测量
+  if (typeof document === 'undefined')
+    return 0
+
   const outer = document.createElement('div')
   outer.className = 've-scrollbar-wrap'
   outer.style.visibility = 'hidden'

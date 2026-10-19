@@ -1,13 +1,5 @@
-import type { VNodeNormalizedChildren } from 'vue'
-import type { LocaleMessage } from '../locale/types'
-import { createI18N } from '../locale'
-
-/**
- * @desc create locale namespace by component name
- */
-export function createLocale(compName: keyof LocaleMessage) {
-  return createI18N(compName)
-}
+import type { VNode, VNodeNormalizedChildren } from 'vue'
+import { Comment } from 'vue'
 
 export function isArray(arr: unknown) {
   return Array.isArray(arr)
@@ -65,31 +57,54 @@ export function scrollTo(el: Element, option: ScrollToOptions) {
     el.scrollTo(option)
   }
   else {
+    // INFRA-20：只写入给出的坐标，未给出的方向保持当前位置（与 Element.scrollTo 一致）
     const { top, left } = option
-    el.scrollTop = top ?? 0
-    el.scrollLeft = left ?? 0
+    if (isDefined(top))
+      el.scrollTop = top as number
+    if (isDefined(left))
+      el.scrollLeft = left as number
   }
 }
 
 type VNodeLeaf = string | number | boolean | null | undefined | void
 
 export function getTextContentOfVNode(vNode: VNode | VNodeNormalizedChildren | VNodeLeaf): string {
-  if (isNumber(vNode))
-    return vNode.toString()
+  // 顶层的布尔值保持原有行为（转为字符串）
   if (isBoolean(vNode))
-    return vNode.toString()
-  if (isString(vNode))
-    return vNode
-  if (!vNode)
+    return String(vNode)
+  return getVNodeText(vNode)
+}
+
+/*
+ * RENDER-05：递归读取 VNode 的文本。
+ * 之前只要 VNode 有 children 就提前返回 ''，下面的递归永远走不到。
+ * 支持：字符串 / 数字子节点、子节点数组、组件 VNode 的 default 插槽函数；
+ * 注释节点和条件渲染留下的 true / false / null 不计入文本。
+ */
+function getVNodeText(vNode: unknown): string {
+  if (isNumber(vNode) || isString(vNode))
+    return String(vNode)
+  if (!vNode || isBoolean(vNode))
     return ''
 
   if (isArray(vNode))
-    return vNode.map(e => getTextContentOfVNode(e)).join('')
-  if (typeof vNode === 'object' && vNode.children)
-    return ''
+    return (vNode as unknown[]).map(e => getVNodeText(e)).join('')
 
-  if (vNode.children)
-    return getTextContentOfVNode(vNode.children as VNodeNormalizedChildren)
+  if (typeof vNode === 'object') {
+    const { type, children } = vNode as VNode
+    if (type === Comment)
+      return ''
+
+    if (isString(children) || isNumber(children) || isArray(children))
+      return getVNodeText(children)
+
+    // 组件 VNode：children 为插槽对象，读取 default 插槽
+    if (children && typeof children === 'object') {
+      const defaultSlot = (children as Record<string, unknown>).default
+      if (typeof defaultSlot === 'function')
+        return getVNodeText(defaultSlot())
+    }
+  }
 
   return ''
 }

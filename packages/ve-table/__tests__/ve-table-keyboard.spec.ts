@@ -3,6 +3,7 @@ import { later, wrapMount as mount } from '@test-utils'
 import { KEY_CODES } from '@test-utils/constant'
 import { cloneDeep } from 'lodash'
 import { afterEach, expect, vi } from 'vitest'
+import { h } from 'vue'
 
 /*
  * SEL-02：document 上的 keydown 只处理发生在本表格内的按键
@@ -320,6 +321,152 @@ describe('veTable keyboard', () => {
       await later()
       expect(tab.defaultPrevented).toBe(true)
       expect(isSelected(1, 2)).toBe(true)
+    })
+  })
+
+  /*
+   * SEL-10：单元格内渲染的可聚焦元素（输入框、按钮等）拥有自己的按键与焦点：
+   * 其中的按键不作为单元格导航处理，点击它时编辑框也不会抢走焦点
+   */
+  describe('focusable elements inside cells (SEL-10)', () => {
+    // b 列渲染一个输入框
+    const COLUMNS_WITH_INPUT = COLUMNS.map(col => col.key === 'b'
+      ? {
+          ...col,
+          edit: false,
+          renderBodyCell: ({ row }: any) => h('input', { 'class': 'cell-input', 'data-row': row.rowKey }),
+        }
+      : col)
+
+    function mountWithInput() {
+      const beforeCellValueChange = vi.fn()
+      mountTable({
+        columns: COLUMNS_WITH_INPUT,
+        editOption: { beforeCellValueChange },
+      })
+      return { beforeCellValueChange }
+    }
+
+    function getCellInput(rowIndex: number): HTMLInputElement {
+      return getCell(rowIndex, 1).find('input.cell-input').element
+    }
+
+    /*
+     * 模拟浏览器：mousedown 冒泡到单元格；监听函数返回后先执行微任务（Vue 的 watcher），
+     * 然后默认行为才把焦点交给输入框
+     */
+    async function clickCellInput(rowIndex: number) {
+      const input = getCellInput(rowIndex)
+      input.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }))
+      await Promise.resolve()
+      input.focus()
+      await later()
+      await later(10)
+      return input
+    }
+
+    it('ignores navigation and editing keys typed into an input inside a cell', async () => {
+      mountWithInput()
+      await selectCell(1, 0)
+      expect(isSelected(1, 0)).toBe(true)
+
+      // 焦点通过程序或其他方式进入单元格中的输入框
+      const input = getCellInput(2)
+      input.focus()
+      await later()
+
+      const events = [
+        keydown(input, KEY_CODES.ARROW_DOWN),
+        keydown(input, KEY_CODES.ARROW_LEFT),
+        keydown(input, KEY_CODES.TAB),
+        keydown(input, KEY_CODES.ENTER),
+        keydown(input, KEY_CODES.SPACE),
+        keydown(input, KEY_CODES.BACK_SPACE),
+        keydown(input, KEY_CODES.DELETE),
+        keydown(input, 65),
+      ]
+      await later()
+
+      events.forEach(event => expect(event.defaultPrevented).toBe(false))
+      expect(isSelected(1, 0)).toBe(true)
+      expect(isEditing()).toBe(false)
+      expect(document.activeElement).toBe(input)
+    })
+
+    it('focus entering an input inside a cell puts cell navigation to sleep', async () => {
+      mountWithInput()
+      await selectCell(1, 0)
+      expect(wrapper.vm.keyboardMode).toBe('cell')
+
+      getCellInput(2).focus()
+      await later()
+      expect(wrapper.vm.keyboardMode).toBe('table')
+      // 编辑框获得焦点不算
+      wrapper.vm.resumeCellKeyboardMode()
+      await later()
+      expect(document.activeElement).toBe(getTextareaEl())
+      expect(wrapper.vm.keyboardMode).toBe('cell')
+    })
+
+    it('ignores keys from an input inside a cell even while cell navigation is active', async () => {
+      mountWithInput()
+      await selectCell(1, 0)
+
+      const input = getCellInput(2)
+      input.focus()
+      // 即使模式仍是单元格导航（例如焦点事件被拦截），按键也属于输入框
+      wrapper.vm.keyboardMode = 'cell'
+      await later()
+
+      const down = keydown(input, KEY_CODES.ARROW_DOWN)
+      keydown(input, 65)
+      await later()
+      expect(down.defaultPrevented).toBe(false)
+      expect(isEditing()).toBe(false)
+      expect(isSelected(1, 0)).toBe(true)
+    })
+
+    it('clicking an input inside a cell keeps the focus in the input', async () => {
+      mountWithInput()
+      await selectCell(0, 0)
+
+      const input = await clickCellInput(2)
+
+      // 编辑框的聚焦定时器不会把焦点抢走
+      expect(document.activeElement).toBe(input)
+
+      const right = keydown(input, KEY_CODES.ARROW_RIGHT)
+      keydown(input, 65)
+      await later()
+      expect(right.defaultPrevented).toBe(false)
+      expect(isEditing()).toBe(false)
+      expect(document.activeElement).toBe(input)
+    })
+
+    it('dragging from an input inside a cell does not start a range selection', async () => {
+      mountWithInput()
+      await selectCell(0, 0)
+
+      await clickCellInput(2)
+      // 按住左键经过（没有按住左键的 mouseover 本身就会结束拖动，SEL-18）
+      getCell(3, 2).trigger('mouseover', { buttons: 1 })
+      await later()
+
+      expect(wrapper.vm.cellSelectionData.normalEndCell.colKey).toBe('')
+    })
+
+    it('clicking a cell afterwards resumes cell navigation', async () => {
+      mountWithInput()
+      await selectCell(0, 0)
+      await clickCellInput(2)
+
+      await selectCell(1, 2)
+      expect(document.activeElement).toBe(getTextareaEl())
+
+      const down = keydown(getTextareaEl(), KEY_CODES.ARROW_DOWN)
+      await later()
+      expect(down.defaultPrevented).toBe(true)
+      expect(isSelected(2, 2)).toBe(true)
     })
   })
 })

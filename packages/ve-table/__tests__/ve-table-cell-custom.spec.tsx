@@ -1,3 +1,4 @@
+import type { ColumnOption } from '@/ve-table/src/ve-table-types'
 import veTable from '@/ve-table'
 import { } from '@test-utils'
 import { mount } from '@vue/test-utils'
@@ -53,7 +54,7 @@ describe('veTable cell custom', () => {
     },
   ]
 
-  const COLUMNS = [
+  const COLUMNS: ColumnOption[] = [
     {
       field: 'name',
       key: 'a',
@@ -69,7 +70,7 @@ describe('veTable cell custom', () => {
           </span>
         )
       },
-      renderBodyCell: ({ _row, _column, rowIndex }, _h) => {
+      renderBodyCell: ({ rowIndex }, _h) => {
         return (
           <span
             class="body-cell-custom-class-test"

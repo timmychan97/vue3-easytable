@@ -1,3 +1,4 @@
+import type { ColumnOption } from '@/ve-table/src/ve-table-types'
 import veTable from '@/ve-table'
 import { mount } from '@vue/test-utils'
 
@@ -47,7 +48,7 @@ describe('veTable header fixed', () => {
     },
   ]
 
-  const TABLE_COLUMNS = [
+  const TABLE_COLUMNS: ColumnOption[] = [
     {
       field: 'name',
       key: 'a',

@@ -1,4 +1,6 @@
+import type { ColgroupData } from '../ve-table-types'
 import { isNumber } from '@vue3-easytable/common/utils'
+import { useTableContext } from '../features/table-context'
 import { clsName } from '../util'
 import { COMPS_NAME, HOOKS_NAME } from '../util/constant'
 
@@ -10,15 +12,12 @@ export default defineComponent({
       required: true,
     },
     tableContainerEl: {
-      type: HTMLDivElement,
+      // SSR：不能在模块顶层引用 HTMLDivElement（Node 中不存在）
+      type: Object as PropType<HTMLDivElement | null>,
       default: null,
     },
-    hooks: {
-      type: Object,
-      required: true,
-    },
     colgroups: {
-      type: Array,
+      type: Array as PropType<ColgroupData[]>,
       required: true,
     },
     isColumnResizerHover: {
@@ -49,10 +48,18 @@ export default defineComponent({
       },
     },
   },
+  setup() {
+    return {
+      // 表格上下文（MOD-01）：订阅表头 mousemove，卸载时自动注销
+      tableEvents: useTableContext(),
+    }
+  },
   data() {
     return {
       // column resizer start x
       columnResizerStartX: 0,
+      // 拖动过程中最后一次（按住鼠标时）的 clientX，鼠标在窗口外松开时按此位置提交
+      columnResizerLastX: null as number | null,
       // current resizing column
       currentResizingColumn: null,
       // column resizer handler width
@@ -63,7 +70,7 @@ export default defineComponent({
         left: 0,
         height: 0,
       },
-      // 表头 mousemove hook 的注销函数
+      // 表头 mousemove 订阅的注销函数（重新订阅前先注销）
       removeHeaderCellMousemoveHook: null as (() => void) | null,
     }
   },
@@ -86,11 +93,11 @@ export default defineComponent({
     parentRendered: {
       handler(val) {
         if (val) {
-          // 先注销旧的 hook，避免重复注册
+          // 先注销旧的订阅，避免重复注册
           if (this.removeHeaderCellMousemoveHook)
             this.removeHeaderCellMousemoveHook()
           // header cell mousemove
-          this.removeHeaderCellMousemoveHook = this.hooks.addHook(
+          this.removeHeaderCellMousemoveHook = this.tableEvents.on(
             HOOKS_NAME.HEADER_CELL_MOUSEMOVE,
             ({ event, column }) => {
               if (column.disableResizing)
@@ -145,6 +152,17 @@ export default defineComponent({
         currentResizingColumn,
       } = this
 
+      // 鼠标已在窗口外松开（没有收到 mouseup），回到窗口时按最后一次拖动的位置结束拖动
+      if (isColumnResizing && event.buttons === 0) {
+        this.columnResizerMouseup({
+          clientX: this.columnResizerLastX ?? this.columnResizerStartX,
+        })
+        return
+      }
+
+      if (isColumnResizing)
+        this.columnResizerLastX = event.clientX
+
       if (tableContainerEl && isColumnResizing) {
         const { left: tableContainerLeft }
                     = tableContainerEl.getBoundingClientRect()
@@ -170,22 +188,53 @@ export default defineComponent({
       if (this.isColumnResizerHover) {
         this.setIsColumnResizing(true)
 
-        // add document mousemove listener
-        document.addEventListener(
-          'mousemove',
-          this.setColumnResizerPositionByDrag,
-        )
-        // add document mouseup listener
-        document.addEventListener('mouseup', this.columnResizerMouseup)
-
-        // stop text select when reszing
-        document.onselectstart = function () {
-          return false
-        }
-        document.ondragstart = function () {
-          return false
-        }
+        this.columnResizerLastX = null
+        this.addDragListeners()
       }
+    },
+
+    // 拖动期间的 document / window 监听
+    addDragListeners() {
+      document.addEventListener(
+        'mousemove',
+        this.setColumnResizerPositionByDrag,
+      )
+      document.addEventListener('mouseup', this.columnResizerMouseup)
+      document.addEventListener('keydown', this.columnResizerKeydown)
+      window.addEventListener('blur', this.cancelColumnResize)
+      // 拖动时禁止选中文本和拖拽。用监听器而不是覆盖 document.onselectstart / ondragstart，
+      // 以免清掉应用自己的处理函数（COL-05）
+      document.addEventListener('selectstart', this.preventDefault)
+      document.addEventListener('dragstart', this.preventDefault)
+    },
+
+    removeDragListeners() {
+      document.removeEventListener(
+        'mousemove',
+        this.setColumnResizerPositionByDrag,
+      )
+      document.removeEventListener('mouseup', this.columnResizerMouseup)
+      document.removeEventListener('keydown', this.columnResizerKeydown)
+      window.removeEventListener('blur', this.cancelColumnResize)
+      document.removeEventListener('selectstart', this.preventDefault)
+      document.removeEventListener('dragstart', this.preventDefault)
+    },
+
+    preventDefault(event) {
+      event.preventDefault()
+    },
+
+    // Esc 取消拖动
+    columnResizerKeydown(event) {
+      if (event.key === 'Escape')
+        this.cancelColumnResize()
+    },
+
+    // 取消拖动，不改变列宽（Esc、窗口失焦）
+    cancelColumnResize() {
+      if (this.isColumnResizing)
+        this.clearColumnResizerStatus()
+      this.removeDragListeners()
     },
 
     // column resizer mouseup
@@ -199,8 +248,13 @@ export default defineComponent({
         columnMinWidth,
       } = this
 
-      if (!isColumnResizing || !currentResizingColumn)
+      if (!isColumnResizing || !currentResizingColumn) {
+        // 未开始拖动列宽（如没有可拖动的列）也要结束拖动状态并移除监听
+        if (isColumnResizing)
+          this.clearColumnResizerStatus()
+        this.removeDragListeners()
         return false
+      }
 
       let differWidth
       // 拖动小于列最小宽度
@@ -238,44 +292,23 @@ export default defineComponent({
       }
 
       this.clearColumnResizerStatus()
-      // add document mousemove listener
-      document.removeEventListener(
-        'mousemove',
-        this.setColumnResizerPositionByDrag,
-      )
-      // add document mouseup listener
-      document.removeEventListener('mouseup', this.columnResizerMouseup)
+      this.removeDragListeners()
     },
 
     // clear column resizer status
     clearColumnResizerStatus() {
       this.currentResizingColumn = null
       this.columnResizerStartX = 0
+      this.columnResizerLastX = null
       this.setIsColumnResizerHover(false)
       this.setIsColumnResizing(false)
-
-      // enable text select when reszing
-      document.onselectstart = function () {
-        return true
-      }
-      document.ondragstart = function () {
-        return true
-      }
     },
   },
 
   beforeUnmount() {
-    // 卸载后不再响应表头 mousemove hook
-    if (this.removeHeaderCellMousemoveHook) {
-      this.removeHeaderCellMousemoveHook()
-      this.removeHeaderCellMousemoveHook = null
-    }
-    // 拖动过程中卸载：移除 document 上的拖动监听，并恢复文本选择
-    document.removeEventListener(
-      'mousemove',
-      this.setColumnResizerPositionByDrag,
-    )
-    document.removeEventListener('mouseup', this.columnResizerMouseup)
+    // 表头 mousemove 订阅由表格上下文在组件卸载时自动注销（INFRA-01）
+    // 拖动过程中卸载：移除 document / window 上的拖动监听（包括禁止文本选择的监听）
+    this.removeDragListeners()
     if (this.isColumnResizing)
       this.clearColumnResizerStatus()
   },

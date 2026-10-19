@@ -1,53 +1,78 @@
-import emitter from '@vue3-easytable/common/mixins/emitter'
-import { isBoolean, isEmptyValue } from '@vue3-easytable/common/utils/index'
-import { debounce } from 'lodash'
+/*
+单元格选区层（MOD-05）
+- geometry.ts：纯几何计算（选区范围、边框、角标、填充预览、填充方向）
+- useSelectionPositions.ts：单元格元素与位置跟踪、表格事件（滚动、尺寸变化等）的订阅、防抖、卸载清理
+- SelectionBorders.tsx：边框、角标与区域浮层的展示组件
+本组件把三者组合起来：按左固定 / 中间 / 右固定三个区域渲染当前单元格、区域选择、填充预览与区域浮层
+*/
+import type { PropType, VNode } from 'vue'
+import type { RowKey } from '../util/core'
+import type { ColgroupData } from '../ve-table-types'
+import type { AutofillingDirection, CellSelectionRange, SelectionBorders as SelectionBordersData, SelectionCell } from './geometry'
+import type { SelectionPositionsProps } from './useSelectionPositions'
+import { computed, defineComponent } from 'vue'
+import { useTableContext } from '../features/table-context'
+import {
+  COLUMN_FIXED_TYPE,
+  COMPS_NAME,
+  CURRENT_CELL_SELECTION_TYPES,
+  EMIT_EVENTS,
+} from '../util/constant'
 import {
   clsName,
   getColKeysByFixedTypeWithinColKeys,
   getColKeysByRangeColKeys,
   getLeftmostColKey,
-  getNextColKey,
-  getPreviewColKey,
-  getRightmostColKey,
   getTotalWidthByColKeys,
   isExistGivenFixedColKey,
   isExistNotFixedColKey,
-  isLastColumnByColKey,
-  isLastRowByRowKey,
-} from '../util'
-import { queryCell, queryFirstRowCell, queryLastRowCell } from '../util/cell-dom'
-import {
-  AUTOFILLING_DIRECTION,
-  COLUMN_FIXED_TYPE,
-  COMPS_NAME,
-  CURRENT_CELL_SELECTION_TYPES,
-  EMIT_EVENTS,
-  HOOKS_NAME,
-} from '../util/constant'
+} from '../util/index'
 import { INSTANCE_METHODS } from './constant'
+import {
+  adjustSelectionBorders,
+  getAreaLayerRect,
+  getAutofillAreaBorders,
+  getAutofillAreaColKeys,
+  getCellSelectionRange,
+  getCornerCellInfo,
+  getCornerPosition,
+  getCurrentCellBorders,
+  isFirstNotFixedSelectionCol as getIsFirstNotFixedSelectionCol,
+  isFirstSelectionCol as getIsFirstSelectionCol,
+  isFirstSelectionRow as getIsFirstSelectionRow,
+  getRangeBorders,
+  isCornerEnabled,
+  isSelectionInVirtualView,
+} from './geometry'
+import { SelectionAreaLayer, SelectionBorders } from './SelectionBorders'
+import { useSelectionPositions } from './useSelectionPositions'
+
+// 某个区域（左固定 / 中间 / 右固定）中要渲染的边框
+interface BordersParams {
+  className: string
+  borders: SelectionBordersData
+  fixedType: string
+  totalColKeys: any[] | null
+}
 
 export default defineComponent({
   name: COMPS_NAME.VE_TABLE_SELECTION,
-  mixins: [emitter()],
   props: {
     tableEl: {
-      type: HTMLTableElement,
+      // SSR：不能在模块顶层引用 HTMLTableElement（Node 中不存在）
+      type: Object as PropType<HTMLTableElement | null>,
       default: null,
     },
     allRowKeys: {
-      type: Array,
+      type: Array as PropType<RowKey[]>,
       required: true,
     },
     colgroups: {
-      type: Array,
+      type: Array as PropType<ColgroupData[]>,
       required: true,
     },
     parentRendered: {
       type: Boolean,
-      required: true,
-    },
-    hooks: {
-      type: Object,
       required: true,
     },
     // cell autofill option
@@ -58,16 +83,21 @@ export default defineComponent({
       },
     },
     cellSelectionData: {
-      type: Object,
+      type: Object as PropType<SelectionPositionsProps['cellSelectionData']>,
       required: true,
     },
     cellSelectionRangeData: {
-      type: Object,
+      type: Object as PropType<CellSelectionRange>,
       required: true,
     },
     isAutofillStarting: {
       type: Boolean,
       required: true,
+    },
+    // 填充方向，由表格根据行列位置计算（FILL-01），为 null 时不显示填充预览
+    autofillingDirection: {
+      type: String as PropType<AutofillingDirection | null>,
+      default: null,
     },
     currentCellSelectionType: {
       type: String,
@@ -78,7 +108,7 @@ export default defineComponent({
       default: false,
     },
     virtualScrollVisibleIndexs: {
-      type: Object,
+      type: Object as PropType<{ start: number, end: number }>,
       required: true,
     },
     isCellEditing: {
@@ -86,1462 +116,289 @@ export default defineComponent({
       default: false,
     },
   },
+  emits: [EMIT_EVENTS.CELL_SELECTION_RANGE_DATA_CHANGE],
 
-  data() {
-    return {
-      // current cell
-      currentCellEl: null,
-      normalEndCellEl: null,
-      autoFillEndCellEl: null,
-      // cell selection rect
-      cellSelectionRect: {
-        // current cell element rect
-        currentCellRect: {
-          left: 0,
-          top: 0,
-          width: 0,
-          height: 0,
-        },
-        // normal end cell element rect
-        normalEndCellRect: {
-          left: 0,
-          top: 0,
-          width: 0,
-          height: 0,
-        },
-        // auto fill end cell element rect
-        autoFillEndCellRect: {
-          left: 0,
-          top: 0,
-          width: 0,
-          height: 0,
-        },
-      },
-      // 已注册 hooks 的注销函数
-      hookDisposers: [] as (() => void)[],
-    }
-  },
+  setup(props, { emit }) {
+    // 表格上下文（MOD-01）：角标的鼠标事件发给表格；表格的滚动、尺寸变化等事件由 useSelectionPositions 订阅，卸载时自动注销
+    const tableEvents = useTableContext()
 
-  computed: {
-    // selection borders visibility
-    selectionBordersVisibility() {
-      let result = true
-      if (this.isVirtualScroll) {
-        const {
-          cellSelectionData,
-          virtualScrollVisibleIndexs,
-          currentCellSelectionType,
-        } = this
+    // selection borders visibility（虚拟滚动时选区可能在已渲染的行之外）
+    const selectionBordersVisibility = computed(() => {
+      const { currentCell, normalEndCell } = props.cellSelectionData
+      return isSelectionInVirtualView({
+        isVirtualScroll: props.isVirtualScroll,
+        selectionType: props.currentCellSelectionType,
+        currentCell,
+        normalEndCell,
+        visibleIndexes: props.virtualScrollVisibleIndexs,
+      })
+    })
 
-        const { currentCell, normalEndCell } = cellSelectionData
-
-        if (
-          currentCellSelectionType
-          === CURRENT_CELL_SELECTION_TYPES.SINGLE
-        ) {
-          if (
-            currentCell.rowIndex
-            < virtualScrollVisibleIndexs.start
-            || currentCell.rowIndex
-            > virtualScrollVisibleIndexs.end
-          ) {
-            result = false
-          }
-        }
-
-        if (
-          currentCellSelectionType
-          === CURRENT_CELL_SELECTION_TYPES.RANGE
-        ) {
-          if (
-            (currentCell.rowIndex
-              < virtualScrollVisibleIndexs.start
-              && normalEndCell.rowIndex
-              < virtualScrollVisibleIndexs.start)
-            || (currentCell.rowIndex
-              > virtualScrollVisibleIndexs.end
-              && normalEndCell.rowIndex
-              > virtualScrollVisibleIndexs.end)
-          ) {
-            result = false
-          }
-        }
-      }
-      return result
-    },
     // show corner
-    showCorner() {
-      let result = true
-      const { cellAutofillOption } = this
-      if (cellAutofillOption) {
-        const { directionX, directionY } = this.cellAutofillOption
-        if (
-          isBoolean(directionY)
-          && !directionY
-          && isBoolean(directionX)
-          && !directionX
-        ) {
-          result = false
-        }
-      }
-      else {
-        result = false
-      }
+    const showCorner = computed(() => isCornerEnabled(props.cellAutofillOption))
 
-      return result
-    },
     // corner cell info
-    cornerCellInfo() {
-      const { allRowKeys, colgroups, cellSelectionRangeData } = this
+    const cornerCellInfo = computed(() => {
+      const { rightColKey, bottomRowKey } = props.cellSelectionRangeData
+      return getCornerCellInfo({
+        colgroups: props.colgroups,
+        allRowKeys: props.allRowKeys,
+        rightColKey,
+        bottomRowKey,
+      })
+    })
 
-      const { rightColKey, bottomRowKey } = cellSelectionRangeData
+    const isFirstSelectionRow = computed(() =>
+      getIsFirstSelectionRow(props.allRowKeys, props.cellSelectionRangeData),
+    )
+    const isFirstSelectionCol = computed(() =>
+      getIsFirstSelectionCol(props.colgroups, props.cellSelectionRangeData),
+    )
+    const isFirstNotFixedSelectionCol = computed(() =>
+      getIsFirstNotFixedSelectionCol(props.colgroups, props.cellSelectionRangeData),
+    )
 
-      let isLastColumn = false
-      if (isLastColumnByColKey(rightColKey, colgroups)) {
-        isLastColumn = true
-      }
-      else {
-        const index = colgroups.findIndex(x => x.key === rightColKey)
-        // right col is right fixed and current col is not right fixed
-        // 列已被隐藏 / 移除时 index 为 -1（SEL-01），不能再读 colgroups[index]
-        if (
-          index > -1
-          && index < colgroups.length - 1
-          && colgroups[index + 1].fixed === COLUMN_FIXED_TYPE.RIGHT
-          && colgroups[index].fixed !== COLUMN_FIXED_TYPE.RIGHT
-        ) {
-          isLastColumn = true
-        }
-      }
+    // 把当前单元格 / 结束单元格换算成选区范围，交给表格保存
+    function setCellSelectionRangeData() {
+      const { currentCell, normalEndCell } = props.cellSelectionData
+      emit(
+        EMIT_EVENTS.CELL_SELECTION_RANGE_DATA_CHANGE,
+        getCellSelectionRange({
+          selectionType: props.currentCellSelectionType,
+          currentCell,
+          normalEndCell,
+          colgroups: props.colgroups,
+        }),
+      )
+    }
 
-      let isLastRow = false
-      if (isLastRowByRowKey(bottomRowKey, allRowKeys))
-        isLastRow = true
-
-      return {
-        isLastColumn,
-        isLastRow,
-      }
-    },
-    // is first selection row
-    isFirstSelectionRow() {
-      const { allRowKeys, cellSelectionRangeData } = this
-      return allRowKeys[0] === cellSelectionRangeData.topRowKey
-    },
-    // is first selection column
-    isFirstSelectionCol() {
-      const { colgroups, cellSelectionRangeData } = this
-      // 所有列都被隐藏时 colgroups 为空
-      return colgroups[0]?.key === cellSelectionRangeData.leftColKey
-    },
-    // is first not fixed selection column
-    isFirstNotFixedSelectionCol() {
-      let result = false
-
-      const { colgroups, cellSelectionRangeData } = this
-
-      if (colgroups.find(x => x.fixed === 'left')) {
-        const col = colgroups.find(x => !x.fixed)
-        if (col && col.field === cellSelectionRangeData.leftColKey)
-          result = true
-      }
-
-      return result
-    },
-  },
-
-  watch: {
-    'parentRendered': {
-      handler(val) {
-        if (val) {
-          // 先注销旧的 hooks，避免重复注册
-          this.removeHooks()
-          // 保存注销函数，在 beforeUnmount 中统一移除
-          this.hookDisposers = [
-            // add table container scroll hook
-            this.hooks.addHook(
-              HOOKS_NAME.TABLE_CONTAINER_SCROLL,
-              () => {
-                this.setCellEls()
-                this.debounceSetCellEls()
-
-                this.resetCellPositions()
-                // debounce reset cell positions
-                this.debounceResetCellPositions()
-              },
-            ),
-            // add table size change hook
-            this.hooks.addHook(HOOKS_NAME.TABLE_SIZE_CHANGE, () => {
-              // debounce reset cell positions
-              this.debounceResetCellPositions()
-            }),
-            // add table td width change hook
-            this.hooks.addHook(
-              HOOKS_NAME.TABLE_CELL_WIDTH_CHANGE,
-              () => {
-                this.$nextTick(() => {
-                  this.resetCellPositions()
-                })
-              },
-            ),
-
-            // add clipboard cell value change hook
-            this.hooks.addHook(
-              HOOKS_NAME.CLIPBOARD_CELL_VALUE_CHANGE,
-              () => {
-                this.$nextTick(() => {
-                  // Re-fetch cell elements from DOM before resetting positions
-                  // This is needed when rows are inserted/removed and DOM elements have changed
-                  this.setCurrentCellEl()
-                  this.setNormalEndCellEl()
-                  this.resetCellPositions()
-                })
-              },
-            ),
-          ]
-        }
-      },
-      immediate: true,
-    },
-    // watch current cell
-    'cellSelectionData.currentCell': {
-      handler(val) {
-        const { rowKey, colKey } = val
-        if (!isEmptyValue(rowKey) && !isEmptyValue(colKey)) {
-          this.setCurrentCellEl()
-          this.setSelectionPositions({ type: 'currentCell' })
-        }
-        else {
-          this[INSTANCE_METHODS.CLEAR_CURRENT_CELL_RECT]()
-        }
-        this.setCellSelectionRangeData()
-      },
-      deep: true,
-      immediate: true,
-    },
-    // watch normal end cell
-    'cellSelectionData.normalEndCell': {
-      handler(val) {
-        const { rowKey, colKey } = val
-        if (!isEmptyValue(rowKey) && !isEmptyValue(colKey)) {
-          // set normal end cell el
-          this.setNormalEndCellEl()
-          this.setSelectionPositions({ type: 'normalEndCell' })
-        }
-        else {
-          this[INSTANCE_METHODS.CLEAR_NORMAL_END_CELL_RECT]()
-        }
-        this.setCellSelectionRangeData()
-      },
-      deep: true,
-      immediate: true,
-    },
-    // watch autofill cell
-    'cellSelectionData.autoFillEndCell': {
-      handler(val) {
-        const { rowKey, colKey } = val
-        if (!isEmptyValue(rowKey) && !isEmptyValue(colKey)) {
-          this.setAutofillEndCellEl()
-          this.setSelectionPositions({ type: 'autoFillEndCell' })
-        }
-        else {
-          this.clearAutofillEndCellRect()
-        }
-      },
-      deep: true,
-      immediate: true,
-    },
-  },
-
-  methods: {
-    // reset cell position
-    resetCellPositions() {
-      const { currentCell, normalEndCell } = this.cellSelectionData
-      if (
-        !isEmptyValue(currentCell.rowKey)
-        && !isEmptyValue(currentCell.colKey)
-      ) {
-        this.setSelectionPositions({
-          type: 'currentCell',
-        })
-      }
-
-      if (
-        !isEmptyValue(normalEndCell.rowKey)
-        && !isEmptyValue(normalEndCell.colKey)
-      ) {
-        this.setSelectionPositions({
-          type: 'normalEndCell',
-        })
-      }
-    },
-
-    // set cell els
-    setCellEls() {
-      if (this.isVirtualScroll && this.selectionBordersVisibility) {
-        this.setCurrentCellEl()
-        this.setNormalEndCellEl()
-      }
-    },
-
-    // set cell selection range data
-    setCellSelectionRangeData() {
-      const { currentCellSelectionType } = this
-      const { currentCell, normalEndCell } = this.cellSelectionData
-
-      let result = {}
-
-      if (
-        currentCellSelectionType === CURRENT_CELL_SELECTION_TYPES.SINGLE
-      ) {
-        result = {
-          leftColKey: currentCell.colKey,
-          rightColKey: currentCell.colKey,
-          topRowKey: currentCell.rowKey,
-          bottomRowKey: currentCell.rowKey,
-        }
-      }
-      else if (
-        currentCellSelectionType === CURRENT_CELL_SELECTION_TYPES.RANGE
-      ) {
-        const leftmostColKey = getLeftmostColKey({
-          colgroups: this.colgroups,
-          colKeys: [currentCell.colKey, normalEndCell.colKey],
-        })
-
-        /*
-                current cell col key is leftmost colKey
-                需要用 colKey 的位置进行判断，不能根据当前单元格 left 值判断（固定列时）
-                */
-        if (leftmostColKey === currentCell.colKey) {
-          result.leftColKey = currentCell.colKey
-          result.rightColKey = normalEndCell.colKey
-        }
-        else {
-          result.leftColKey = normalEndCell.colKey
-          result.rightColKey = currentCell.colKey
-        }
-
-        if (currentCell.rowIndex < normalEndCell.rowIndex) {
-          result.topRowKey = currentCell.rowKey
-          result.bottomRowKey = normalEndCell.rowKey
-        }
-        else {
-          result.topRowKey = normalEndCell.rowKey
-          result.bottomRowKey = currentCell.rowKey
-        }
-      }
-      else {
-        // clear
-        result = {
-          leftColKey: '',
-          rightColKey: '',
-          topRowKey: '',
-          bottomRowKey: '',
-        }
-      }
-
-      this.$emit(EMIT_EVENTS.CELL_SELECTION_RANGE_DATA_CHANGE, result)
-    },
-
-    // get cell position
-    getCellPosition({ cellEl, tableLeft, tableTop }) {
-      if (!this.selectionBordersVisibility)
-        return false
-
-      const {
-        left: cellLeft,
-        top: cellTop,
-        height: cellHeight,
-        width: cellWidth,
-      } = cellEl.getBoundingClientRect()
-
-      if (cellHeight && cellWidth) {
-        return {
-          left: cellLeft - tableLeft,
-          top: cellTop - tableTop,
-          width: cellWidth,
-          height: cellHeight,
-        }
-      }
-    },
-
-    // get cell position by column key
-    getCellPositionByColKey({
-      tableLeft,
-      tableTop,
-      colKey,
-      isFirstRow,
-      isLastRow,
-    }) {
-      if (!this.selectionBordersVisibility)
-        return false
-
-      let cellEl
-      if (isFirstRow)
-        cellEl = this.getTableFirstRowCellByColKey(colKey)
-
-      else if (isLastRow)
-        cellEl = this.getTableLastRowCellByColKey(colKey)
-
-      if (!cellEl)
-        return
-
-      const {
-        left: cellLeft,
-        top: cellTop,
-        // height: cellHeight,
-        width: cellWidth,
-      } = cellEl.getBoundingClientRect()
-
-      if (cellWidth) {
-        return {
-          left: cellLeft - tableLeft,
-          top: cellTop - tableTop,
-          width: cellWidth,
-        }
-      }
-    },
-
-    // set selection positions
-    setSelectionPositions({ type }) {
-      const {
-        allRowKeys,
-        tableEl,
-        currentCellEl,
-        normalEndCellEl,
-        autoFillEndCellEl,
-        cellSelectionData,
-        virtualScrollVisibleIndexs,
-      } = this
-
-      // table empty
-      if (allRowKeys.length === 0)
-        return false
-
-      if (!tableEl)
-        return false
-
-      const { left: tableLeft, top: tableTop }
-                = tableEl.getBoundingClientRect()
-
-      let isCurrentCellOverflow = false
-      let isNormalEndCellOverflow = false
-      // set current cell position
-      if (type === 'currentCell') {
-        isCurrentCellOverflow = true
-        if (currentCellEl) {
-          const rect = this.getCellPosition({
-            cellEl: currentCellEl,
-            tableLeft,
-            tableTop,
-          })
-          if (rect) {
-            isCurrentCellOverflow = false
-            this.cellSelectionRect.currentCellRect = rect
-          }
-        }
-      }
-
-      // set nromal end cell position`
-      if (type === 'normalEndCell') {
-        isNormalEndCellOverflow = true
-        if (normalEndCellEl) {
-          const rect = this.getCellPosition({
-            cellEl: normalEndCellEl,
-            tableLeft,
-            tableTop,
-          })
-          if (rect) {
-            isNormalEndCellOverflow = false
-            this.cellSelectionRect.normalEndCellRect = rect
-          }
-        }
-      }
-
-      // current cell overflow or normal end cell overflow && is virtual scroll
-      if (
-        (isCurrentCellOverflow || isNormalEndCellOverflow)
-        && this.isVirtualScroll
-      ) {
-        const { currentCell, normalEndCell } = cellSelectionData
-        // 弥补的
-        let mackUpColKey
-        let mackUpRowIndex
-
-        if (isCurrentCellOverflow) {
-          mackUpColKey = currentCell.colKey
-          mackUpRowIndex = currentCell.rowIndex
-        }
-        else {
-          mackUpColKey = normalEndCell.colKey
-          mackUpRowIndex = normalEndCell.rowIndex
-        }
-
-        let mackUpRect
-        /*
-                当没有 currentCellRect 或 normalCellRect 时 进行纠正，否则只更新top值
-                */
-        if (
-          (isCurrentCellOverflow
-            && !this.cellSelectionRect.currentCellRect.height)
-          || (isNormalEndCellOverflow
-            && !this.cellSelectionRect.normalEndCellRect.height)
-        ) {
-          const mackUpRectParams = {
-            tableLeft,
-            tableTop,
-            colKey: mackUpColKey,
-          }
-          // 上方超出
-          if (mackUpRowIndex < virtualScrollVisibleIndexs.start) {
-            mackUpRect = this.getCellPositionByColKey({
-              ...mackUpRectParams,
-              isFirstRow: true,
-            })
-          }
-          // 下方超出
-          else if (mackUpRowIndex > virtualScrollVisibleIndexs.end) {
-            mackUpRect = this.getCellPositionByColKey({
-              ...mackUpRectParams,
-              isLastRow: true,
-            })
-          }
-        }
-        // 仅更新 top 值
-        else {
-          // 上方超出
-          if (mackUpRowIndex < virtualScrollVisibleIndexs.start) {
-            mackUpRect = {
-              top: 0,
-            }
-          }
-          // 下方超出
-          else if (mackUpRowIndex > virtualScrollVisibleIndexs.end) {
-            mackUpRect = {
-              top: tableEl.clientHeight,
-            }
-          }
-        }
-
-        if (isCurrentCellOverflow) {
-          Object.assign(
-            this.cellSelectionRect.currentCellRect,
-            mackUpRect,
-          )
-        }
-        else {
-          Object.assign(
-            this.cellSelectionRect.normalEndCellRect,
-            mackUpRect,
-          )
-        }
-      }
-
-      if (autoFillEndCellEl && type === 'autoFillEndCell') {
-        const rect = this.getCellPosition({
-          cellEl: autoFillEndCellEl,
-          tableLeft,
-          tableTop,
-        })
-
-        if (rect)
-          this.cellSelectionRect.autoFillEndCellRect = rect
-      }
-    },
+    const positions = useSelectionPositions(props as unknown as SelectionPositionsProps, {
+      isSelectionVisible: selectionBordersVisibility,
+      onSelectionCellChange: setCellSelectionRangeData,
+      tableEvents,
+    })
+    const { cellSelectionRect } = positions
 
     /*
-        get selection current
-        1、selection current
-        2、auto fill area
-        */
-    getSelectionCurrent({ fixedType }) {
-      const result = {
-        selectionCurrent: null,
-        autoFillArea: null,
-      }
+    resolve borders
+    判断当前区域（左固定 / 中间 / 右固定）是否需要渲染，并返回修正后的边框（新对象，不修改入参，SEL-07）
+    */
+    function resolveBorders({ borders, fixedType, totalColKeys }: Omit<BordersParams, 'className'>): SelectionBordersData | null {
+      const { colgroups } = props
 
-      const { cellSelectionRect, colgroups, cellSelectionData } = this
+      const isRender = fixedType
+        ? isExistGivenFixedColKey({ fixedType, colKeys: totalColKeys, colgroups })
+        // middle normal area
+        : isExistNotFixedColKey({ colKeys: totalColKeys, colgroups })
 
-      const { currentCellRect, normalEndCellRect } = cellSelectionRect
+      if (!isRender)
+        return null
 
-      if (!currentCellRect.width)
-        return result
-
-      const borders = {
-        borderWidth: currentCellRect.width + 1,
-        borderHeight: currentCellRect.height,
-
-        topBorder: {
-          show: true,
-          width: 0,
-          height: 2,
-          top: currentCellRect.top - 1,
-          left: currentCellRect.left - 1,
-        },
-        rightBorder: {
-          show: true,
-          width: 2,
-          height: 0,
-          top: currentCellRect.top,
-          left: currentCellRect.left + currentCellRect.width - 2,
-        },
-        bottomBorder: {
-          show: true,
-          width: 0,
-          height: 2,
-          top: currentCellRect.top + currentCellRect.height - 2,
-          left: currentCellRect.left - 1,
-        },
-        leftBorder: {
-          show: true,
-          width: 2,
-          height: 0,
-          top: currentCellRect.top,
-          left: currentCellRect.left - 1,
-        },
-        corner: {
-          show: !normalEndCellRect.width,
-          top: 0,
-          left: 0,
-        },
-      }
-
-      borders.corner.top = borders.bottomBorder.top - 3
-      borders.corner.left = borders.rightBorder.left - 3
-
-      // cell selection single autofill
-      if (!normalEndCellRect.width) {
-        result.autoFillArea = this.getSelectionAutofillArea({
-          areaPostions: borders,
-          fixedType,
-        })
-      }
-
-      const totalColKeys = [cellSelectionData.currentCell.colKey]
-
-      const fixedColKeys = getColKeysByFixedTypeWithinColKeys({
+      // isRender 为 true 时 totalColKeys 一定是数组，结果不会是 null
+      const fixedColKeys: any[] = getColKeysByFixedTypeWithinColKeys({
         colKeys: totalColKeys,
         fixedType,
         colgroups,
-      })
+      }) ?? []
 
-      result.selectionCurrent = this.getBorders({
-        ...borders,
-        showCorner: !normalEndCellRect.width,
-        className: 'selection-current',
+      // fixed columns total width
+      const fixedColsTotalWidth = fixedColKeys.length
+        ? getTotalWidthByColKeys({ colKeys: fixedColKeys, colgroups })
+        : 0
+
+      // 在 isRender 判断之后再读取这些计算属性，不渲染时不必计算（SEL-01）
+      return adjustSelectionBorders(borders, {
         fixedType,
-        totalColKeys,
-        fixedColKeys,
+        fixedColsTotalWidth,
+        isAllColsFixed: (totalColKeys as any[]).length === fixedColKeys.length,
+        isFirstSelectionRow: isFirstSelectionRow.value,
+        isFirstSelectionCol: isFirstSelectionCol.value,
+        isFirstNotFixedSelectionCol: isFirstNotFixedSelectionCol.value,
+        showCorner: showCorner.value,
+      })
+    }
+
+    // 边框与角标
+    function getBorders({ className, ...params }: BordersParams) {
+      const resolved = resolveBorders(params)
+      if (!resolved)
+        return null
+
+      return (
+        <SelectionBorders
+          className={className}
+          borders={resolved}
+          cornerPosition={getCornerPosition(resolved.corner, cornerCellInfo.value)}
+          onCornerMousedown={(event: MouseEvent) => {
+            tableEvents.emit(EMIT_EVENTS.SELECTION_CORNER_MOUSEDOWN, { event })
+          }}
+          onCornerMouseup={(event: MouseEvent) => {
+            tableEvents.emit(EMIT_EVENTS.SELECTION_CORNER_MOUSEUP, { event })
+          }}
+        />
+      )
+    }
+
+    // 区域浮层：与边框围成的矩形一致（SEL-07）
+    function getAreaLayer({ className, ...params }: BordersParams) {
+      const resolved = resolveBorders(params)
+      if (!resolved)
+        return null
+
+      return <SelectionAreaLayer className={className} rect={getAreaLayerRect(resolved)} />
+    }
+
+    /*
+    填充预览。填充方向由表格根据选区与结束单元格的行列位置计算（FILL-01），这里只负责绘制；
+    方向为 null（在选区内或方向不被允许）时不显示
+    area：选区（当前单元格或区域）未经固定列修正的边框
+    */
+    function getSelectionAutofillArea({ area, fixedType }: { area: SelectionBordersData, fixedType: string }) {
+      const { isAutofillStarting, autofillingDirection, currentCellSelectionType, colgroups } = props
+
+      if (!isAutofillStarting || !autofillingDirection)
+        return null
+
+      const { currentCellRect, autoFillEndCellRect } = cellSelectionRect
+      if (!currentCellRect.width || !autoFillEndCellRect.width)
+        return null
+
+      const isSingleSelection = currentCellSelectionType === CURRENT_CELL_SELECTION_TYPES.SINGLE
+      const { currentCell, autoFillEndCell } = props.cellSelectionData
+
+      let { leftColKey, rightColKey } = props.cellSelectionRangeData
+      if (isSingleSelection) {
+        leftColKey = currentCell.colKey
+        rightColKey = currentCell.colKey
+      }
+
+      const borders = getAutofillAreaBorders({
+        direction: autofillingDirection,
+        area,
+        autoFillEndCellRect,
+        isSingleSelection,
+      })
+      const colKeyRange = getAutofillAreaColKeys({
+        direction: autofillingDirection,
+        leftColKey,
+        rightColKey,
+        autoFillEndColKey: autoFillEndCell.colKey,
+        colgroups,
+      })
+      if (!borders || !colKeyRange)
+        return null
+
+      return getBorders({
+        className: 'selection-autofill-area',
+        borders,
+        fixedType,
+        totalColKeys: getColKeysByRangeColKeys({
+          colKey1: colKeyRange[0],
+          colKey2: colKeyRange[1],
+          colgroups,
+        }),
+      })
+    }
+
+    /*
+    get selection current
+    1、selection current
+    2、auto fill area（单个单元格选择时）
+    */
+    function getSelectionCurrent({ fixedType }: { fixedType: string }) {
+      const result = {
+        selectionCurrent: null as VNode | null,
+        autoFillArea: null as VNode | null,
+      }
+
+      const { currentCellRect, normalEndCellRect } = cellSelectionRect
+      if (!currentCellRect.width)
+        return result
+
+      // 存在结束单元格时角标由区域边框显示（SEL-13：角标是否允许显示统一由 resolveBorders 处理）
+      const hasNormalEndCell = !!normalEndCellRect.width
+      const borders = getCurrentCellBorders(currentCellRect, { hasNormalEndCell })
+
+      // cell selection single autofill
+      if (!hasNormalEndCell)
+        result.autoFillArea = getSelectionAutofillArea({ area: borders, fixedType })
+
+      result.selectionCurrent = getBorders({
+        className: 'selection-current',
+        borders,
+        fixedType,
+        totalColKeys: [props.cellSelectionData.currentCell.colKey],
       })
 
       return result
-    },
+    }
 
     /*
-        get selection areas
-        1、normal area
-        2、auto fill area
-        */
-    getSelectionAreas({ fixedType }) {
+    get selection areas
+    1、normal area 与 area layer
+    2、auto fill area（区域选择时）
+    */
+    function getSelectionAreas({ fixedType }: { fixedType: string }) {
       const result = {
-        normalArea: null,
-        autoFillArea: null,
+        normalArea: null as VNode | null,
+        normalAreaLayer: null as VNode | null,
+        autoFillArea: null as VNode | null,
       }
 
-      const { currentCell, normalEndCell } = this.cellSelectionData
-
-      const { cellSelectionRect, cellSelectionRangeData, colgroups }
-                = this
-
+      const { currentCell, normalEndCell } = props.cellSelectionData as { currentCell: SelectionCell, normalEndCell: SelectionCell }
       const { currentCellRect, normalEndCellRect } = cellSelectionRect
 
       if (!currentCellRect.width || !normalEndCellRect.width)
         return result
 
-      const borders = {
-        borderWidth: 0,
-        borderHeight: 0,
-
-        topBorder: {
-          show: true,
-          width: 0,
-          height: 1,
-          top: 0,
-          left: 0,
-        },
-        rightBorder: {
-          show: true,
-          width: 1,
-          height: 0,
-          top: 0,
-          left: 0,
-        },
-        bottomBorder: {
-          show: true,
-          width: 0,
-          height: 1,
-          top: 0,
-          left: 0,
-        },
-        leftBorder: {
-          show: true,
-          width: 1,
-          height: 0,
-          top: 0,
-          left: 0,
-        },
-        corner: {
-          show: true,
-          top: 0,
-          left: 0,
-        },
-      }
-
+      // 需要用列的位置判断左右，不能根据单元格的 left 判断（固定列时）
       const leftmostColKey = getLeftmostColKey({
-        colgroups: this.colgroups,
+        colgroups: props.colgroups,
         colKeys: [currentCell.colKey, normalEndCell.colKey],
       })
+      const leftmostCell = leftmostColKey === currentCell.colKey
+        ? 'current'
+        : leftmostColKey === normalEndCell.colKey ? 'normalEnd' : null
 
-      // end cell column key right
-      if (leftmostColKey === currentCell.colKey) {
-        borders.borderWidth
-                    = normalEndCellRect.left
-                      - currentCellRect.left
-                      + normalEndCellRect.width
-                      + 1
+      const borders = getRangeBorders({ currentCellRect, normalEndCellRect, leftmostCell })
 
-        borders.topBorder.left = currentCellRect.left - 1
-        borders.bottomBorder.left = currentCellRect.left - 1
-        borders.leftBorder.left = currentCellRect.left - 1
-        borders.rightBorder.left
-                    = normalEndCellRect.left + normalEndCellRect.width - 1
-      }
-      // end cell column key left or equal
-      else if (leftmostColKey === normalEndCell.colKey) {
-        borders.borderWidth
-                    = currentCellRect.left
-                      - normalEndCellRect.left
-                      + currentCellRect.width
-                      + 1
+      result.autoFillArea = getSelectionAutofillArea({ area: borders, fixedType })
 
-        borders.topBorder.left = normalEndCellRect.left - 1
-        borders.rightBorder.left
-                    = currentCellRect.left + currentCellRect.width - 1
-        borders.bottomBorder.left = normalEndCellRect.left - 1
-        borders.leftBorder.left = normalEndCellRect.left - 1
-      }
-
-      // end cell below
-      if (normalEndCellRect.top > currentCellRect.top) {
-        borders.borderHeight
-                    = normalEndCellRect.top
-                      - currentCellRect.top
-                      + normalEndCellRect.height
-
-        borders.topBorder.top = currentCellRect.top - 1
-        borders.rightBorder.top = currentCellRect.top
-        borders.bottomBorder.top
-                    = normalEndCellRect.top + normalEndCellRect.height - 1
-        borders.leftBorder.top = currentCellRect.top
-      }
-      // end cell above or equal
-      else if (normalEndCellRect.top <= currentCellRect.top) {
-        borders.borderHeight
-                    = currentCellRect.top
-                      - normalEndCellRect.top
-                      + currentCellRect.height
-
-        borders.topBorder.top = normalEndCellRect.top - 1
-        borders.rightBorder.top = normalEndCellRect.top
-        borders.bottomBorder.top
-                    = currentCellRect.top + currentCellRect.height - 1
-        borders.leftBorder.top = normalEndCellRect.top
-      }
-
-      borders.corner.top = borders.bottomBorder.top - 4
-      borders.corner.left = borders.rightBorder.left - 4
-
-      if (normalEndCellRect.width) {
-        result.autoFillArea = this.getSelectionAutofillArea({
-          areaPostions: borders,
-          fixedType,
-        })
-      }
-
-      const { leftColKey, rightColKey } = cellSelectionRangeData
-      const totalColKeys = getColKeysByRangeColKeys({
-        colKey1: leftColKey,
-        colKey2: rightColKey,
-        colgroups,
-      })
-
-      const fixedColKeys = getColKeysByFixedTypeWithinColKeys({
-        colKeys: totalColKeys,
+      const { leftColKey, rightColKey } = props.cellSelectionRangeData
+      const params = {
+        borders,
         fixedType,
-        colgroups,
-      })
+        totalColKeys: getColKeysByRangeColKeys({
+          colKey1: leftColKey,
+          colKey2: rightColKey,
+          colgroups: props.colgroups,
+        }),
+      }
 
-      result.normalArea = this.getBorders({
-        ...borders,
-        className: 'selection-normal-area',
-        fixedType,
-        totalColKeys,
-        fixedColKeys,
-      })
-
-      result.normalAreaLayer = this.getAreaLayer({
-        ...borders,
-        className: 'selection-normal-area-layer',
-        fixedType,
-        totalColKeys,
-        fixedColKeys,
-      })
+      result.normalArea = getBorders({ className: 'selection-normal-area', ...params })
+      result.normalAreaLayer = getAreaLayer({ className: 'selection-normal-area-layer', ...params })
 
       return result
-    },
-
-    // get selection auto fill
-    getSelectionAutofillArea({ areaPostions, fixedType }) {
-      let result = null
-
-      const {
-        cellAutofillOption,
-        cellSelectionRangeData,
-        cellSelectionRect,
-        cellSelectionData,
-        isAutofillStarting,
-        currentCellSelectionType,
-        colgroups,
-      } = this
-
-      if (!isAutofillStarting)
-        return result
-
-      const { currentCellRect, autoFillEndCellRect } = cellSelectionRect
-
-      if (!currentCellRect.width || !autoFillEndCellRect.width)
-        return result
-
-      if (!areaPostions)
-        return result
-
-      const borders = {
-        borderWidth: 0,
-        borderHeight: 0,
-
-        topBorder: {
-          show: true,
-          width: 0,
-          height: 1,
-          top: 0,
-          left: 0,
-        },
-        rightBorder: {
-          show: true,
-          width: 1,
-          height: 0,
-          top: 0,
-          left: 0,
-        },
-        bottomBorder: {
-          show: true,
-          width: 0,
-          height: 1,
-          top: 0,
-          left: 0,
-        },
-        leftBorder: {
-          show: true,
-          width: 1,
-          height: 0,
-          top: 0,
-          left: 0,
-        },
-        corner: {
-          show: false,
-          top: 0,
-          left: 0,
-        },
-      }
-
-      const { currentCell, autoFillEndCell } = cellSelectionData
-
-      let { leftColKey, rightColKey } = cellSelectionRangeData
-      if (
-        currentCellSelectionType === CURRENT_CELL_SELECTION_TYPES.SINGLE
-      ) {
-        leftColKey = currentCell.colKey
-        rightColKey = currentCell.colKey
-      }
-
-      let leftmostColKey
-      if (leftColKey !== autoFillEndCell.colKey) {
-        leftmostColKey = getLeftmostColKey({
-          colgroups,
-          colKeys: [leftColKey, autoFillEndCell.colKey],
-        })
-      }
-
-      let rightmostColKey
-      if (rightColKey !== autoFillEndCell.colKey) {
-        rightmostColKey = getRightmostColKey({
-          colgroups,
-          colKeys: [rightColKey, autoFillEndCell.colKey],
-        })
-      }
-
-      // autofilling direction
-      let autofillingDirection
-
-      let rangeColKey1
-      let rangeColKey2
-
-      // auto fill end cell below
-      if (autoFillEndCellRect.top > areaPostions.bottomBorder.top) {
-        autofillingDirection = AUTOFILLING_DIRECTION.DOWN
-
-        rangeColKey1 = leftColKey
-        rangeColKey2 = rightColKey
-
-        borders.topBorder.show = false
-
-        borders.borderWidth = areaPostions.borderWidth
-        borders.borderHeight
-                    = autoFillEndCellRect.top
-                      - areaPostions.bottomBorder.top
-                      + autoFillEndCellRect.height
-
-        borders.rightBorder.top = areaPostions.bottomBorder.top
-        borders.rightBorder.left = areaPostions.rightBorder.left
-        if (
-          currentCellSelectionType
-          === CURRENT_CELL_SELECTION_TYPES.SINGLE
-        ) {
-          borders.rightBorder.left++
-        }
-
-        borders.leftBorder.top = areaPostions.bottomBorder.top
-        borders.leftBorder.left = areaPostions.leftBorder.left
-
-        borders.bottomBorder.top
-                    = autoFillEndCellRect.top + autoFillEndCellRect.height - 1
-        borders.bottomBorder.left = areaPostions.bottomBorder.left
-      }
-      // end cell above
-      else if (autoFillEndCellRect.top < areaPostions.topBorder.top) {
-        autofillingDirection = AUTOFILLING_DIRECTION.UP
-
-        rangeColKey1 = leftColKey
-        rangeColKey2 = rightColKey
-
-        borders.bottomBorder.show = false
-
-        borders.borderWidth = areaPostions.borderWidth
-        borders.borderHeight
-                    = areaPostions.topBorder.top - autoFillEndCellRect.top
-
-        borders.topBorder.top = autoFillEndCellRect.top - 1
-        borders.topBorder.left = areaPostions.topBorder.left
-
-        borders.rightBorder.top = autoFillEndCellRect.top
-        borders.rightBorder.left = areaPostions.rightBorder.left
-        if (
-          currentCellSelectionType
-          === CURRENT_CELL_SELECTION_TYPES.SINGLE
-        ) {
-          borders.rightBorder.left++
-        }
-
-        borders.leftBorder.top = autoFillEndCellRect.top
-        borders.leftBorder.left = areaPostions.leftBorder.left
-      }
-      // auto fill end cell right
-      else if (
-        rightmostColKey === autoFillEndCell.colKey
-        && !isEmptyValue(rightmostColKey)
-      ) {
-        autofillingDirection = AUTOFILLING_DIRECTION.RIGHT
-
-        rangeColKey1 = getNextColKey({
-          colgroups,
-          currentColKey: rightColKey,
-        })
-        rangeColKey2 = autoFillEndCell.colKey
-
-        borders.leftBorder.show = false
-
-        borders.borderWidth
-                    = autoFillEndCellRect.left
-                      - areaPostions.rightBorder.left
-                      + autoFillEndCellRect.width
-                      + 1
-        borders.borderHeight = areaPostions.borderHeight
-
-        borders.topBorder.top = areaPostions.topBorder.top
-        borders.topBorder.left = areaPostions.rightBorder.left - 1
-
-        borders.rightBorder.top = areaPostions.topBorder.top
-        borders.rightBorder.left
-                    = autoFillEndCellRect.left + autoFillEndCellRect.width - 1
-
-        borders.bottomBorder.top = areaPostions.bottomBorder.top
-        borders.bottomBorder.left = areaPostions.rightBorder.left - 1
-      }
-      // auto fill end cell left
-      else if (
-        leftmostColKey === autoFillEndCell.colKey
-        && !isEmptyValue(leftmostColKey)
-      ) {
-        autofillingDirection = AUTOFILLING_DIRECTION.LEFT
-
-        rangeColKey1 = getPreviewColKey({
-          colgroups,
-          currentColKey: leftColKey,
-        })
-        rangeColKey2 = autoFillEndCell.colKey
-
-        borders.rightBorder.show = false
-
-        borders.borderWidth
-                    = areaPostions.leftBorder.left - autoFillEndCellRect.left + 1
-        borders.borderHeight = areaPostions.borderHeight
-
-        borders.topBorder.top = areaPostions.topBorder.top
-        borders.topBorder.left = autoFillEndCellRect.left
-
-        borders.rightBorder.left = areaPostions.topBorder.left
-
-        borders.bottomBorder.top = areaPostions.bottomBorder.top
-        borders.bottomBorder.left = autoFillEndCellRect.left
-
-        borders.leftBorder.top = areaPostions.topBorder.top
-        borders.leftBorder.left = autoFillEndCellRect.left
-      }
-      else {
-        return result
-      }
-
-      const { directionX, directionY } = cellAutofillOption
-      if (isBoolean(directionX) && !directionX) {
-        if (
-          autofillingDirection === AUTOFILLING_DIRECTION.LEFT
-          || autofillingDirection === AUTOFILLING_DIRECTION.RIGHT
-        ) {
-          return false
-        }
-      }
-
-      if (isBoolean(directionY) && !directionY) {
-        if (
-          autofillingDirection === AUTOFILLING_DIRECTION.UP
-          || autofillingDirection === AUTOFILLING_DIRECTION.DOWN
-        ) {
-          return false
-        }
-      }
-
-      const totalColKeys = getColKeysByRangeColKeys({
-        colKey1: rangeColKey1,
-        colKey2: rangeColKey2,
-        colgroups,
-      })
-
-      const fixedColKeys = getColKeysByFixedTypeWithinColKeys({
-        colKeys: totalColKeys,
-        fixedType,
-        colgroups,
-      })
-
-      result = this.getBorders({
-        className: 'selection-autofill-area',
-        ...borders,
-        fixedType,
-        totalColKeys,
-        fixedColKeys,
-      })
-
-      if (result) {
-        this.dispatch(
-          COMPS_NAME.VE_TABLE,
-          EMIT_EVENTS.AUTOFILLING_DIRECTION_CHANGE,
-          autofillingDirection,
-        )
-      }
-
-      return result
-    },
-
-    // get borders
-    getBorders({
-      borderWidth,
-      borderHeight,
-      topBorder,
-      rightBorder,
-      bottomBorder,
-      leftBorder,
-      corner,
-      className,
-      fixedType,
-      totalColKeys,
-      fixedColKeys,
-    }) {
-      const { colgroups } = this
-
-      let isRender = true
-
-      if (fixedType) {
-        isRender = isExistGivenFixedColKey({
-          fixedType,
-          colKeys: totalColKeys,
-          colgroups,
-        })
-      }
-      // middle normal area
-      else {
-        isRender = isExistNotFixedColKey({
-          colKeys: totalColKeys,
-          colgroups,
-        })
-      }
-
-      if (!isRender)
-        return null
-
-      // 在 isRender 判断之后再读取这些计算属性，不渲染时不必计算（SEL-01）
-      const {
-        cornerCellInfo,
-        isFirstSelectionRow,
-        isFirstSelectionCol,
-        isFirstNotFixedSelectionCol,
-        showCorner,
-      } = this
-
-      // fixed columns total width
-      let fixedColsTotalWidth = 0
-      if (fixedColKeys.length) {
-        fixedColsTotalWidth = getTotalWidthByColKeys({
-          colKeys: fixedColKeys,
-          colgroups,
-        })
-      }
-
-      if (fixedType) {
-        borderWidth = fixedColsTotalWidth
-        if (fixedType === COLUMN_FIXED_TYPE.LEFT)
-          borderWidth += 1
-      }
-
-      if (fixedType === COLUMN_FIXED_TYPE.LEFT) {
-        if (totalColKeys.length !== fixedColKeys.length) {
-          rightBorder.show = false
-          corner.show = false
-        }
-      }
-
-      if (fixedType === COLUMN_FIXED_TYPE.RIGHT) {
-        if (totalColKeys.length !== fixedColKeys.length)
-          leftBorder.show = false
-
-        topBorder.left = rightBorder.left - borderWidth + 1
-        bottomBorder.left = rightBorder.left - borderWidth + 1
-      }
-
-      // solved first row、first column、first not fixed column selection border hidden
-      if (isFirstSelectionRow)
-        topBorder.top += 1
-
-      if (isFirstSelectionCol)
-        leftBorder.left += 1
-
-      if (isFirstNotFixedSelectionCol)
-        leftBorder.left += 1
-
-      let cornerTop = corner.top
-      let cornerLeft = corner.left
-      let cornerBorderRightWidth = '1px'
-      let cornerBorderBottomtWidth = '1px'
-
-      if (cornerCellInfo.isLastRow) {
-        cornerTop -= 3
-        cornerBorderBottomtWidth = '0px'
-      }
-
-      if (cornerCellInfo.isLastColumn) {
-        cornerLeft -= 3
-        cornerBorderRightWidth = '0px'
-      }
-
-      if (!showCorner)
-        corner.show = false
-
-      // corner props
-      const cornerProps = {
-        class: clsName('selection-corner'),
-        style: {
-          display: corner.show ? 'block' : 'none',
-          top: `${cornerTop}px`,
-          left: `${cornerLeft}px`,
-          borderWidth: `1px ${cornerBorderRightWidth} ${cornerBorderBottomtWidth} 1px`,
-        },
-        onMousedown: (e) => {
-          this.dispatch(
-            COMPS_NAME.VE_TABLE,
-            EMIT_EVENTS.SELECTION_CORNER_MOUSEDOWN,
-            {
-              event: e,
-            },
-          )
-        },
-        onMouseup: (e) => {
-          this.dispatch(
-            COMPS_NAME.VE_TABLE,
-            EMIT_EVENTS.SELECTION_CORNER_MOUSEUP,
-            {
-              event: e,
-            },
-          )
-        },
-      }
-
-      return (
-        <div class={clsName(className)}>
-          {/* top */}
-          <div
-            style={{
-              display: topBorder.show ? 'block' : 'none',
-              width: `${borderWidth}px`,
-              height: `${topBorder.height}px`,
-              top: `${topBorder.top}px`,
-              left: `${topBorder.left}px`,
-            }}
-            class={clsName('selection-border')}
-          >
-          </div>
-          {/* right */}
-          <div
-            style={{
-              display: rightBorder.show ? 'block' : 'none',
-              width: `${rightBorder.width}px`,
-              height: `${borderHeight}px`,
-              top: `${rightBorder.top}px`,
-              left: `${rightBorder.left}px`,
-            }}
-            class={clsName('selection-border')}
-          >
-          </div>
-          {/* bottom */}
-          <div
-            style={{
-              display: bottomBorder.show ? 'block' : 'none',
-              width: `${borderWidth}px`,
-              height: `${bottomBorder.height}px`,
-              top: `${bottomBorder.top}px`,
-              left: `${bottomBorder.left}px`,
-            }}
-            class={clsName('selection-border')}
-          >
-          </div>
-          {/* left */}
-          <div
-            style={{
-              display: leftBorder.show ? 'block' : 'none',
-              width: `${leftBorder.width}px`,
-              height: `${borderHeight}px`,
-              top: `${leftBorder.top}px`,
-              left: `${leftBorder.left}px`,
-            }}
-            class={clsName('selection-border')}
-          >
-          </div>
-          {/* corner */}
-          <div {...cornerProps}></div>
-        </div>
-      )
-    },
-
-    // get area rect
-    getAreaLayer({
-      borderWidth,
-      borderHeight,
-      topBorder,
-      className,
-      fixedType,
-      totalColKeys,
-      fixedColKeys,
-    }) {
-      const { colgroups } = this
-
-      let isRender = true
-
-      if (fixedType) {
-        isRender = isExistGivenFixedColKey({
-          fixedType,
-          colKeys: totalColKeys,
-          colgroups,
-        })
-      }
-      // middle normal area
-      else {
-        isRender = isExistNotFixedColKey({
-          colKeys: totalColKeys,
-          colgroups,
-        })
-      }
-
-      if (!isRender)
-        return null
-
-      // fixed columns total width
-      let fixedColsTotalWidth = 0
-      if (fixedColKeys.length) {
-        fixedColsTotalWidth = getTotalWidthByColKeys({
-          colKeys: fixedColKeys,
-          colgroups,
-        })
-      }
-
-      if (fixedType) {
-        borderWidth = fixedColsTotalWidth
-        if (fixedType === COLUMN_FIXED_TYPE.LEFT)
-          borderWidth += 1
-      }
-
-      return (
-        <div
-          class={clsName(className)}
-          style={{
-            top: `${topBorder.top}px`,
-            left: `${topBorder.left}px`,
-            width: `${borderWidth}px`,
-            height: `${borderHeight}px`,
-          }}
-        >
-        </div>
-      )
-    },
-
-    /*
-        get table first row cell by col key
-        用作跨页单元格选择，表格大小变化或者存在横向滚动条时，区域选择位置自动校准
-        */
-    getTableFirstRowCellByColKey(colKey) {
-      return queryFirstRowCell(this.tableEl, colKey)
-    },
-
-    /*
-        get table last row cell by col key
-        用作跨页单元格选择，表格大小变化或者存在横向滚动条时，区域选择位置自动校准
-        */
-    getTableLastRowCellByColKey(colKey) {
-      return queryLastRowCell(this.tableEl, colKey)
-    },
-
-    // get table el（普通模式与虚拟滚动模式通用，key 会被转义，找不到返回 null）
-    getTableCellEl({ rowKey, colKey }) {
-      return queryCell(this.tableEl, rowKey, colKey)
-    },
-
-    // set current cell el
-    setCurrentCellEl() {
-      const { cellSelectionData } = this
-
-      const { rowKey, colKey } = cellSelectionData.currentCell
-
-      if (!isEmptyValue(rowKey) && !isEmptyValue(colKey)) {
-        const cellEl = this.getTableCellEl({
-          rowKey,
-          colKey,
-        })
-        if (cellEl)
-          this.currentCellEl = cellEl
-      }
-    },
-
-    // set normal end cell el
-    setNormalEndCellEl() {
-      const { cellSelectionData } = this
-
-      const { rowKey, colKey } = cellSelectionData.normalEndCell
-
-      if (!isEmptyValue(rowKey) && !isEmptyValue(colKey)) {
-        const cellEl = this.getTableCellEl({
-          rowKey,
-          colKey,
-        })
-        if (cellEl)
-          this.normalEndCellEl = cellEl
-      }
-    },
-
-    // set auto fill cell el
-    setAutofillEndCellEl() {
-      const { cellSelectionData } = this
-
-      const { rowKey, colKey } = cellSelectionData.autoFillEndCell
-
-      const autoFillEndCellEl = this.getTableCellEl({ rowKey, colKey })
-
-      if (autoFillEndCellEl)
-        this.autoFillEndCellEl = autoFillEndCellEl
-    },
-
-    // clear auto fill end cell rect
-    clearAutofillEndCellRect() {
-      this.autoFillEndCellEl = null
-      this.cellSelectionRect.autoFillEndCellRect = {
-        left: 0,
-        top: 0,
-        width: 0,
-        height: 0,
-      }
-    },
-
-    // clear current cell rect
-    [INSTANCE_METHODS.CLEAR_CURRENT_CELL_RECT]() {
-      this.currentCellEl = null
-      this.cellSelectionRect.currentCellRect = {
-        left: 0,
-        top: 0,
-        width: 0,
-        height: 0,
-      }
-    },
-
-    // clear normal end cell rect
-    [INSTANCE_METHODS.CLEAR_NORMAL_END_CELL_RECT]() {
-      this.normalEndCellEl = null
-      this.cellSelectionRect.normalEndCellRect = {
-        left: 0,
-        top: 0,
-        width: 0,
-        height: 0,
-      }
-    },
-
-    // 移除本组件注册的所有 hooks
-    removeHooks() {
-      this.hookDisposers.forEach(dispose => dispose())
-      this.hookDisposers = []
-    },
-  },
-
-  created() {
-    // debounce reset cell positions
-    this.debounceResetCellPositions = debounce(
-      this.resetCellPositions,
-      210,
-    )
-    // debounce set cell els
-    this.debounceSetCellEls = debounce(this.setCellEls, 200)
-  },
-
-  beforeUnmount() {
-    // 卸载后不再响应表格 hooks（否则已卸载实例仍会被滚动等事件触发）
-    this.removeHooks()
-    // 取消未执行的防抖调用
-    ;(this.debounceResetCellPositions as unknown as ReturnType<typeof debounce>).cancel()
-    ;(this.debounceSetCellEls as unknown as ReturnType<typeof debounce>).cancel()
+    }
+
+    return {
+      // 计算属性（测试与调试中通过实例访问）
+      selectionBordersVisibility,
+      showCorner,
+      cornerCellInfo,
+      isFirstSelectionRow,
+      isFirstSelectionCol,
+      isFirstNotFixedSelectionCol,
+      // 位置跟踪
+      ...positions,
+      setCellSelectionRangeData,
+      // 渲染
+      getSelectionCurrent,
+      getSelectionAreas,
+      // 表格通过 ref 调用
+      [INSTANCE_METHODS.CLEAR_CURRENT_CELL_RECT]: positions.clearCurrentCellRect,
+      [INSTANCE_METHODS.CLEAR_NORMAL_END_CELL_RECT]: positions.clearNormalEndCellRect,
+    }
   },
 
   render() {
@@ -1557,8 +414,8 @@ export default defineComponent({
     })
 
     const fixedLeftAutoFillArea
-            = fixedLeftSelectionCurrent.autoFillArea
-              || fixedLeftSelectionArea.autoFillArea
+      = fixedLeftSelectionCurrent.autoFillArea
+        || fixedLeftSelectionArea.autoFillArea
 
     // middle
     const middleSelectionCurrent = this.getSelectionCurrent({
@@ -1569,8 +426,8 @@ export default defineComponent({
     })
 
     const middleAutoFillArea
-            = middleSelectionCurrent.autoFillArea
-              || middleSelectionArea.autoFillArea
+      = middleSelectionCurrent.autoFillArea
+        || middleSelectionArea.autoFillArea
 
     // fixed right
     const fixedRightSelectionCurrent = this.getSelectionCurrent({
@@ -1581,13 +438,16 @@ export default defineComponent({
     })
 
     const fixedRightAutoFillArea
-            = fixedRightSelectionCurrent.autoFillArea
-              || fixedRightSelectionArea.autoFillArea
+      = fixedRightSelectionCurrent.autoFillArea
+        || fixedRightSelectionArea.autoFillArea
+
+    // 编辑时隐藏选区（空字符串表示不设置；SSR 输出保持不变）
+    const wrapperStyle: Record<string, string> = { visibility: this.isCellEditing ? 'hidden' : '' }
 
     return (
       <div
         class={clsName('selection-wrapper')}
-        style={{ visibility: this.isCellEditing ? 'hidden' : '' }}
+        style={wrapperStyle}
       >
         <div class={clsName('selection-fixed-left')}>
           {/* current */}

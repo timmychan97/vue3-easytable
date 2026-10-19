@@ -33,11 +33,6 @@ export default defineComponent({
       type: String,
       default: null,
     },
-    // row expand click event
-    cellClick: {
-      type: Function,
-      default: null,
-    },
   },
   setup(props) {
     // is row expanded
@@ -61,13 +56,17 @@ export default defineComponent({
       }
     })
 
+    /*
+     * 图标本身不处理点击：点击冒泡到 td，由 body-td 的 cellClick 统一处理（先调用用户的
+     * bodyCellEvents.click，再派发 BODY_CELL_CLICK，icon / cell 触发时展开并阻止冒泡），
+     * trigger 为 row 时继续冒泡到 tr 展开行。
+     * ROW-06：之前图标和 td 各派发一次 BODY_CELL_CLICK；
+     * ROW-09：之前 icon / cell 触发时图标调用 cellClick 并阻止冒泡，用户的 bodyCellEvents.click 被跳过。
+     */
     return () => {
       if (props.column.type === COLUMN_TYPES.EXPAND) {
         return (
-          <span
-            onClick={e => props.cellClick(e)}
-            class={expandRowIconContainerClass.value}
-          >
+          <span class={expandRowIconContainerClass.value}>
             <VeIcon name={ICON_NAMES.RIGHT_ARROW} />
           </span>
         )

@@ -1,5 +1,7 @@
-import emitter from '@vue3-easytable/common/mixins/emitter'
+import type { ColgroupData } from '../ve-table-types'
+import { caf, raf } from '@vue3-easytable/common/utils/animation-frame'
 import { computed, defineComponent, nextTick, onUnmounted, ref, watch } from 'vue'
+import { useTableContext } from '../features/table-context'
 import { clsName } from '../util'
 import { queryBodyRows } from '../util/cell-dom'
 import { COMPS_NAME, EMIT_EVENTS, HOOKS_NAME } from '../util/constant'
@@ -8,80 +10,42 @@ import { COMPS_NAME, EMIT_EVENTS, HOOKS_NAME } from '../util/constant'
 // Displays a horizontal line and add button when hovering near row boundaries
 export default defineComponent({
   name: COMPS_NAME.VE_TABLE_ROW_INSERT_INDICATOR,
-  mixins: [emitter()],
   props: {
     // Parent rendered flag
     parentRendered: {
       type: Boolean,
       required: true,
     },
-    // Hooks instance for table events
-    hooks: {
-      type: Object,
-      required: true,
-    },
     // Table container element reference
     tableContainerEl: {
-      type: HTMLElement,
+      // SSR：不能在模块顶层引用 HTMLElement（Node 中不存在）
+      type: Object as PropType<HTMLElement | null>,
       default: null,
     },
     // Table element reference
     tableEl: {
-      type: HTMLTableElement,
+      // SSR：不能在模块顶层引用 HTMLTableElement（Node 中不存在）
+      type: Object as PropType<HTMLTableElement | null>,
       default: null,
-    },
-    // All row keys
-    allRowKeys: {
-      type: Array,
-      required: true,
     },
     // Column groups (for detecting operation column width)
     colgroups: {
-      type: Array,
+      // 声明元素类型，operationColumn._realTimeWidth 才能通过类型检查（INS-04）
+      type: Array as PropType<ColgroupData[]>,
       required: true,
-    },
-    // Row key field name
-    rowKeyFieldName: {
-      type: String,
-      default: null,
-    },
-    // Table data
-    tableData: {
-      type: Array,
-      required: true,
-    },
-    // Virtual scroll option
-    virtualScrollOption: {
-      type: Object,
-      default: null,
-    },
-    // Is virtual scroll enabled
-    isVirtualScroll: {
-      type: Boolean,
-      default: false,
-    },
-    // Virtual scroll positions (for calculating row positions)
-    virtualScrollPositions: {
-      type: Array,
-      default: () => [],
-    },
-    // Virtual scroll visible indexes
-    virtualScrollVisibleIndexs: {
-      type: Object,
-      default: () => ({ start: 0, end: 0 }),
     },
     // Row insert option
     rowInsertOption: {
       type: Object,
       default: null,
     },
-    // Fixed header
+    // 固定表头（th 吸顶，遮住容器顶部的行）
     fixedHeader: {
       type: Boolean,
       default: true,
     },
-    // Show header
-    showHeader: {
+    // 固定表尾（td 吸底，遮住容器底部的行）
+    fixedFooter: {
       type: Boolean,
       default: true,
     },
@@ -90,6 +54,9 @@ export default defineComponent({
   emits: [EMIT_EVENTS.ROW_INSERT],
 
   setup(props, { emit }) {
+    // 表格上下文（MOD-01）：订阅表格滚动，卸载时自动注销
+    const tableEvents = useTableContext()
+
     // State
     const isVisible = ref(false)
     const indicatorTop = ref(0)
@@ -100,7 +67,7 @@ export default defineComponent({
 
     // Get the operation column (index column) if exists
     const operationColumn = computed(() => {
-      return props.colgroups.find((col: any) => col.operationColumn)
+      return props.colgroups.find(col => col.operationColumn)
     })
 
     // Get the actual column width (not including extra padding for detection)
@@ -115,18 +82,6 @@ export default defineComponent({
     const actualDetectionZoneWidth = computed(() => {
       return indexColumnWidth.value + 10
     })
-
-    // Get header height
-    const getHeaderHeight = () => {
-      if (!props.showHeader || !props.tableEl)
-        return 0
-
-      const thead = props.tableEl.querySelector('thead')
-      if (thead)
-        return thead.getBoundingClientRect().height
-
-      return 0
-    }
 
     // Clear hide timeout
     const clearHideTimeout = () => {
@@ -162,85 +117,142 @@ export default defineComponent({
       return el
     }
 
-    // Find the closest row boundary to the mouse position
-    const findClosestRowBoundary = (mouseY: number, containerRect: DOMRect) => {
-      if (!props.tableEl || !props.tableContainerEl)
-        return { index: -1, top: 0 }
+    /*
+     * 可视区（视口坐标）：滚动容器的内容区，去掉固定表头 / 表尾遮住的部分（INS-01）
+     * - 固定表头吸顶的是 th 单元格，<thead> 本身仍随内容滚走，所以用它的高度而不是位置
+     * - 非固定表头随内容滚动：只有还没滚走的部分遮住行
+     */
+    const getVisibleRange = (containerEl: HTMLElement, containerRect: DOMRect, tableEl: HTMLTableElement) => {
+      const contentTop = containerRect.top + containerEl.clientTop
+      // clientHeight 不含横向滚动条；没有布局（为 0）时退回容器高度
+      const contentBottom = contentTop + (containerEl.clientHeight || containerRect.height)
 
-      const rootEl = getRootElement()
-      const rootRect = rootEl ? rootEl.getBoundingClientRect() : containerRect
-      const headerHeight = getHeaderHeight()
+      let top = contentTop
+      let bottom = contentBottom
 
-      // Get relative Y position within the table body area (relative to container)
-      const relativeY = mouseY - containerRect.top
-
-      // Calculate offset from root to container for positioning
-      const containerOffsetTop = containerRect.top - rootRect.top
-
-      // If mouse is in header area, return first row boundary
-      if (relativeY < headerHeight) {
-        return { index: 0, top: headerHeight + containerOffsetTop }
+      const thead = tableEl.tHead
+      if (thead) {
+        const theadRect = thead.getBoundingClientRect()
+        top = Math.max(top, theadRect.bottom)
+        if (props.fixedHeader)
+          top = Math.max(top, contentTop + theadRect.height)
       }
 
-      // 本表格所有已渲染的 body 行（虚拟滚动时分布在多个 <tbody> 中，不含占位行与展开行）
-      const rows = queryBodyRows(props.tableEl)
-      if (rows.length === 0)
-        return { index: -1, top: 0 }
+      const tfoot = tableEl.tFoot
+      if (tfoot && props.fixedFooter)
+        bottom = Math.min(bottom, contentBottom - tfoot.getBoundingClientRect().height)
 
-      let closestIndex = -1
-      let closestTop = 0
-      let minDistance = Number.POSITIVE_INFINITY
-
-      // Check top of first row (for inserting before first row)
-      const firstRowRect = rows[0].getBoundingClientRect()
-      const firstRowTop = firstRowRect.top - containerRect.top
-      const distanceToFirstTop = Math.abs(relativeY - firstRowTop)
-
-      if (distanceToFirstTop < minDistance) {
-        minDistance = distanceToFirstTop
-        closestIndex = 0
-        closestTop = firstRowTop + containerOffsetTop
-      }
-
-      // Check bottom of each row
-      rows.forEach((row, index) => {
-        const rowRect = row.getBoundingClientRect()
-        const rowBottom = rowRect.bottom - containerRect.top
-        const distance = Math.abs(relativeY - rowBottom)
-
-        if (distance < minDistance) {
-          minDistance = distance
-          // Insert after this row means index + 1
-          closestIndex = index + 1
-          closestTop = rowBottom + containerOffsetTop
-        }
-      })
-
-      // Only show if within reasonable distance (30px threshold)
-      if (minDistance > 30) {
-        return { index: -1, top: 0 }
-      }
-
-      // For virtual scroll, we need to get the actual data index
-      if (props.isVirtualScroll) {
-        const { start } = props.virtualScrollVisibleIndexs
-        // Adjust index based on virtual scroll start
-        if (closestIndex > 0) {
-          closestIndex = start + closestIndex
-        }
-      }
-
-      return { index: closestIndex, top: closestTop }
+      return { top, bottom }
     }
 
-    // Mouse move handler
-    const handleMouseMove = (event: MouseEvent) => {
+    // 行对应的数据下标：虚拟滚动时每行在自己的 <tbody data-index> 中，普通模式下 DOM 顺序即数据顺序
+    const getRowDataIndex = (row: HTMLTableRowElement, domIndex: number) => {
+      const dataIndex = row.parentElement?.getAttribute('data-index')
+      return dataIndex == null ? domIndex : Number(dataIndex)
+    }
+
+    // 行（含紧随其后的展开行）的底部
+    const getRowBlockBottom = (row: HTMLTableRowElement) => {
+      const next = row.nextElementSibling
+      const last = next && next.classList.contains(clsName('expand-tr')) ? next : row
+      return last.getBoundingClientRect().bottom
+    }
+
+    /*
+     * 找到离鼠标最近的、可见的行边界（INS-01、INS-02）
+     * 边界 k（0 <= k < n）是第 k 个已渲染行的顶部，即插入到该行之前；边界 n 是最后一行（含展开行）的底部。
+     * 已渲染的行按 DOM 顺序从上到下排列，按顶部二分查找，每次只读取 O(log n) 个行的 rect。
+     * 返回的 index 是数据下标（虚拟滚动时不等于 DOM 下标），top 相对于根元素。
+     */
+    const findClosestRowBoundary = (mouseY: number, containerRect: DOMRect) => {
+      const { tableEl, tableContainerEl } = props
+      const none = { index: -1, top: 0 }
+      if (!tableEl || !tableContainerEl)
+        return none
+
+      // 本表格所有已渲染的 body 行（虚拟滚动时分布在多个 <tbody> 中，不含占位行与展开行）
+      const rows = queryBodyRows(tableEl)
+      const rowCount = rows.length
+      if (rowCount === 0)
+        return none
+
+      const visible = getVisibleRange(tableContainerEl, containerRect, tableEl)
+      if (visible.bottom <= visible.top)
+        return none
+
+      // 鼠标在固定表头 / 表尾上：取离它最近的可见边界（第一个 / 最后一个可见行的边界），不受距离阈值限制
+      const isOverHeaderOrFooter = mouseY < visible.top || mouseY > visible.bottom
+      const y = Math.min(Math.max(mouseY, visible.top), visible.bottom)
+
+      // 本次查找中已读取过的边界位置
+      const boundaryYs = new Map<number, number>()
+      const getBoundaryY = (k: number) => {
+        let value = boundaryYs.get(k)
+        if (value === undefined) {
+          value = k < rowCount
+            ? rows[k].getBoundingClientRect().top
+            : getRowBlockBottom(rows[rowCount - 1])
+          boundaryYs.set(k, value)
+        }
+        return value
+      }
+
+      // 二分查找：最后一个顶部 <= y 的行（没有则为 -1）
+      let low = 0
+      let high = rowCount - 1
+      let rowAbove = -1
+      while (low <= high) {
+        const mid = (low + high) >> 1
+        if (getBoundaryY(mid) <= y) {
+          rowAbove = mid
+          low = mid + 1
+        }
+        else {
+          high = mid - 1
+        }
+      }
+
+      // 候选：y 上方的边界（该行顶部）与下方的边界（下一行顶部或最后一行底部）；
+      // 被固定表头 / 表尾遮住的边界不算（允许 1px 的亚像素误差）
+      let closest = -1
+      let closestY = 0
+      let minDistance = Number.POSITIVE_INFINITY
+      for (const k of [rowAbove, rowAbove + 1]) {
+        if (k < 0 || k > rowCount)
+          continue
+        const boundaryY = getBoundaryY(k)
+        if (boundaryY < visible.top - 1 || boundaryY > visible.bottom + 1)
+          continue
+        const distance = Math.abs(y - boundaryY)
+        if (distance < minDistance) {
+          minDistance = distance
+          closest = k
+          closestY = boundaryY
+        }
+      }
+
+      // Only show if within reasonable distance (30px threshold)
+      if (closest < 0 || (!isOverHeaderOrFooter && minDistance > 30))
+        return none
+
+      const index = closest < rowCount
+        ? getRowDataIndex(rows[closest], closest)
+        : getRowDataIndex(rows[rowCount - 1], rowCount - 1) + 1
+
+      // 指示线相对于根元素定位
+      const rootEl = getRootElement()
+      const rootTop = rootEl ? rootEl.getBoundingClientRect().top : containerRect.top
+
+      return { index, top: closestY - rootTop }
+    }
+
+    // 处理一次鼠标移动（每帧最多一次，见 handleMouseMove）
+    const processMouseMove = ({ clientX, clientY }: { clientX: number, clientY: number }) => {
       if (!props.tableContainerEl || !props.rowInsertOption?.enable)
         return
 
       const containerRect = props.tableContainerEl.getBoundingClientRect()
-      const mouseX = event.clientX - containerRect.left
-      const mouseY = event.clientY
+      const mouseX = clientX - containerRect.left
 
       // Check if mouse is within the detection zone on the left
       if (mouseX > actualDetectionZoneWidth.value || mouseX < 0) {
@@ -254,7 +266,7 @@ export default defineComponent({
       // Clear any pending hide - mouse is in detection zone
       clearHideTimeout()
 
-      const { index, top } = findClosestRowBoundary(mouseY, containerRect)
+      const { index, top } = findClosestRowBoundary(clientY, containerRect)
 
       if (index >= 0) {
         isVisible.value = true
@@ -268,8 +280,40 @@ export default defineComponent({
       }
     }
 
+    // INS-02：mousemove 只记录最新位置，布局读取放到下一帧，每帧最多处理一次
+    let pendingMove: { clientX: number, clientY: number } | null = null
+    let moveFrameId: number | null = null
+
+    const cancelPendingMove = () => {
+      if (moveFrameId !== null) {
+        caf(moveFrameId)
+        moveFrameId = null
+      }
+      pendingMove = null
+    }
+
+    const handleMouseMove = (event: MouseEvent) => {
+      if (!props.tableContainerEl || !props.rowInsertOption?.enable)
+        return
+
+      pendingMove = { clientX: event.clientX, clientY: event.clientY }
+      if (moveFrameId !== null)
+        return
+
+      moveFrameId = raf(() => {
+        moveFrameId = null
+        const move = pendingMove
+        pendingMove = null
+        if (move)
+          processMouseMove(move)
+      })
+    }
+
     // Mouse leave handler for container
     const handleMouseLeave = (event: MouseEvent) => {
+      // 离开容器后，尚未处理的移动不再显示指示线
+      cancelPendingMove()
+
       // Check if we're moving to the button (which is outside container)
       const relatedTarget = event.relatedTarget as HTMLElement
       if (relatedTarget && relatedTarget.closest('.ve-table-row-insert-indicator-button')) {
@@ -306,7 +350,10 @@ export default defineComponent({
       event.stopPropagation()
       event.preventDefault()
 
-      if (insertRowIndex.value < 0)
+      // 点击时的插入下标：beforeInsertRow、on-row-insert 与 afterInsertRow 都使用它（INS-03），
+      // afterInsertRow 在下一个 tick 才调用，期间 insertRowIndex 可能已被更新
+      const index = insertRowIndex.value
+      if (index < 0)
         return
 
       const { beforeInsertRow, afterInsertRow } = props.rowInsertOption || {}
@@ -314,7 +361,7 @@ export default defineComponent({
       // Call before insert hook if defined
       if (typeof beforeInsertRow === 'function') {
         const shouldContinue = beforeInsertRow({
-          insertRowIndex: insertRowIndex.value,
+          insertRowIndex: index,
         })
         if (shouldContinue === false)
           return
@@ -322,14 +369,14 @@ export default defineComponent({
 
       // Emit the insert event
       emit(EMIT_EVENTS.ROW_INSERT, {
-        insertRowIndex: insertRowIndex.value,
+        insertRowIndex: index,
       })
 
       // Call after insert hook if defined
       if (typeof afterInsertRow === 'function') {
         nextTick(() => {
           afterInsertRow({
-            insertRowIndex: insertRowIndex.value,
+            insertRowIndex: index,
           })
         })
       }
@@ -353,6 +400,9 @@ export default defineComponent({
 
     // Handle scroll to reposition indicator
     const handleScroll = () => {
+      // 滚动时隐藏：滚动前记录的移动也不再处理
+      cancelPendingMove()
+
       if (!isVisible.value)
         return
 
@@ -383,7 +433,7 @@ export default defineComponent({
 
     // 组件是否已卸载（nextTick 回调可能在卸载之后才执行）
     let isUnmounted = false
-    // scroll hook 的注销函数
+    // 滚动订阅的注销函数（重新订阅前先注销）
     let removeScrollHook: (() => void) | null = null
 
     // Watch for parent rendered
@@ -397,9 +447,9 @@ export default defineComponent({
 
             setupEventListeners()
 
-            // Add scroll hook
+            // 订阅表格滚动
             removeScrollHook?.()
-            removeScrollHook = props.hooks.addHook(HOOKS_NAME.TABLE_CONTAINER_SCROLL, handleScroll)
+            removeScrollHook = tableEvents.on(HOOKS_NAME.TABLE_CONTAINER_SCROLL, handleScroll)
           })
         }
       },
@@ -423,11 +473,11 @@ export default defineComponent({
     // Cleanup on unmount
     onUnmounted(() => {
       isUnmounted = true
-      // 卸载后不再响应表格滚动 hook
-      removeScrollHook?.()
-      removeScrollHook = null
+      // 滚动订阅由表格上下文在组件卸载时自动注销（INFRA-01）
       removeEventListeners()
       clearHideTimeout()
+      // INS-02：卸载后不再执行已排队的帧
+      cancelPendingMove()
       document.removeEventListener('mousemove', handleDocumentMouseMove)
     })
 

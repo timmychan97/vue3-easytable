@@ -1,3 +1,4 @@
+import type { ColumnOption } from '@/ve-table/src/ve-table-types'
 import veTable from '@/ve-table'
 import { queryBodyRows } from '@/ve-table/src/util/cell-dom'
 import {
@@ -91,7 +92,7 @@ describe('veTable virtual scroll', () => {
     await later()
   }
 
-  const COLUMNS = [
+  const COLUMNS: ColumnOption[] = [
     {
       field: 'name',
       key: 'b',
@@ -677,7 +678,7 @@ describe('veTable virtual scroll', () => {
     await settle()
 
     // minRowHeight 作为 TanStack 的预估行高
-    expect((wrapper.vm as any)._vs.virtualizer.options.estimateSize(0)).toBe(minRowHeight)
+    expect((wrapper.vm as any).virtualScroll.virtualizer.options.estimateSize(0)).toBe(minRowHeight)
 
     const rowCount = getExpectedRowCount({ rowHeight: () => minRowHeight })
     expect(wrapper.findAll('.ve-table-body-tr').length).toBe(rowCount)
@@ -838,6 +839,89 @@ describe('veTable virtual scroll', () => {
       rectSpy.mockRestore()
     })
 
+    // EDIT-03：目标单元格未渲染（在虚拟窗口之外）时，编辑框不能留在上一个单元格上
+    it('the editor drops the previous cell when the selected cell is not rendered', async () => {
+      const rectSpy = mockCellRects()
+
+      const wrapper = mountVirtual({
+        columns: COLUMNS.map(x => ({ ...x, edit: true })),
+        editOption: {},
+      })
+      wrapper.triggerResizeObserver({ width: MAX_HEIGHT })
+      await settle()
+
+      await wrapper.find('tbody[data-index="5"] td[col-key="b"]').trigger('mousedown')
+      await settle()
+
+      const editor = wrapper.findComponent({ name: 'VeTableEditInput' })
+      expect((editor.vm as any).cellEl).not.toBe(null)
+
+      const vm = wrapper.vm as any
+      vm.setCellSelection({ rowKey: 900, colKey: 'b', isScrollToRow: false })
+      await settle()
+
+      expect(wrapper.find('tbody[data-index="900"]').exists()).toBe(false)
+      expect((editor.vm as any).cellEl).toBe(null)
+      expect((editor.vm as any).overflowViewport).toBe(true)
+
+      // 编辑未渲染的单元格：编辑框不显示（之前显示在第 5 行的单元格上）
+      vm.startEditingCell({ rowKey: 900, colKey: 'b' })
+      await settle()
+      expect(vm.isCellEditing).toBe(true)
+      expect(wrapper.find('.ve-table-edit-input-container').classes())
+        .not
+        .toContain('ve-table-edit-input-container-show')
+
+      // 滚动到该行后，编辑框重新找到单元格并显示（滚动停止后的防抖查找与定位）
+      await scrollContainer(wrapper, 900 * MIN_ROW_HEIGHT)
+      await later(250)
+      const tdEl = wrapper.find('tbody[data-index="900"] td[col-key="b"]')
+      expect(tdEl.exists()).toBe(true)
+      expect((editor.vm as any).cellEl).toBe(tdEl.element)
+      expect((editor.vm as any).overflowViewport).toBe(false)
+      expect(wrapper.find('.ve-table-edit-input-container').classes())
+        .toContain('ve-table-edit-input-container-show')
+
+      wrapper.unmount()
+      rectSpy.mockRestore()
+    })
+
+    // EDIT-03：先滚动到未渲染的活动单元格，再开始编辑，编辑框也要找到它
+    it('the editor finds the cell when editing starts after scrolling to it', async () => {
+      const rectSpy = mockCellRects()
+
+      const wrapper = mountVirtual({
+        columns: COLUMNS.map(x => ({ ...x, edit: true })),
+        editOption: {},
+      })
+      wrapper.triggerResizeObserver({ width: MAX_HEIGHT })
+      await settle()
+
+      await wrapper.find('tbody[data-index="5"] td[col-key="b"]').trigger('mousedown')
+      await settle()
+
+      const vm = wrapper.vm as any
+      vm.setCellSelection({ rowKey: 900, colKey: 'b', isScrollToRow: false })
+      await settle()
+
+      // 未编辑时滚动不会重新查找单元格
+      await scrollContainer(wrapper, 900 * MIN_ROW_HEIGHT)
+      await later(250)
+      const tdEl = wrapper.find('tbody[data-index="900"] td[col-key="b"]')
+      expect(tdEl.exists()).toBe(true)
+
+      vm.startEditingCell({ rowKey: 900, colKey: 'b' })
+      await settle()
+
+      const editor = wrapper.findComponent({ name: 'VeTableEditInput' })
+      expect((editor.vm as any).cellEl).toBe(tdEl.element)
+      expect(wrapper.find('.ve-table-edit-input-container').classes())
+        .toContain('ve-table-edit-input-container-show')
+
+      wrapper.unmount()
+      rectSpy.mockRestore()
+    })
+
     it('the row insert indicator sees every rendered row', async () => {
       const wrapper = mountVirtual({
         rowInsertOption: { enable: true },
@@ -961,7 +1045,7 @@ describe('veTable virtual scroll', () => {
       await scrollTo(wrapper, 4000)
       await scrollTo(wrapper, 0)
 
-      const vs = (wrapper.vm as any)._vs
+      const vs = (wrapper.vm as any).virtualScroll
       const virtualizer = vs.virtualizer
       const measuredMiddleKeys = [...virtualizer.itemSizeCache.keys()].filter((key: number) => key > 50)
       expect(measuredMiddleKeys.length).toBeGreaterThan(0)
@@ -994,7 +1078,7 @@ describe('veTable virtual scroll', () => {
       wrapper.triggerResizeObserver({ width: MAX_HEIGHT })
       await settle()
 
-      const vs = (wrapper.vm as any)._vs
+      const vs = (wrapper.vm as any).virtualScroll
       const totalSizeBefore = vs.getTotalSize()
       expect(vs.virtualizer.itemSizeCache.get(2)).toBe(TALL_ROW_HEIGHT)
 
@@ -1024,7 +1108,7 @@ describe('veTable virtual scroll', () => {
       wrapper.triggerResizeObserver({ width: MAX_HEIGHT })
       await settle()
 
-      const vs = (wrapper.vm as any)._vs
+      const vs = (wrapper.vm as any).virtualScroll
       expect(vs.virtualizer.options.count).toBe(1000)
 
       // 原地追加
@@ -1081,9 +1165,9 @@ describe('veTable virtual scroll', () => {
       await settle()
 
       const vm = wrapper.vm as any
-      expect(vm._vs).toBeTruthy()
-      expect(isProxy(vm._vs)).toBe(false)
-      expect(isProxy(vm._vs.virtualizer)).toBe(false)
+      expect(vm.virtualScroll).toBeTruthy()
+      expect(isProxy(vm.virtualScroll)).toBe(false)
+      expect(isProxy(vm.virtualScroll.virtualizer)).toBe(false)
       expect(isProxy(vm.measureColsWidths)).toBe(false)
 
       wrapper.unmount()
@@ -1094,7 +1178,7 @@ describe('veTable virtual scroll', () => {
       wrapper.triggerResizeObserver({ width: MAX_HEIGHT })
       await settle()
 
-      const virtualizer = (wrapper.vm as any)._vs.virtualizer
+      const virtualizer = (wrapper.vm as any).virtualScroll.virtualizer
       expect(virtualizer.options.overscan).toBe(getOverscan())
 
       const scrolling = vi.fn()
@@ -1129,7 +1213,7 @@ describe('veTable virtual scroll', () => {
       ;(wrapper.vm as any).headerRowHeightChange({ rowIndex: 0, height: HEADER_HEIGHT })
       await settle()
 
-      const virtualizer = (wrapper.vm as any)._vs.virtualizer
+      const virtualizer = (wrapper.vm as any).virtualScroll.virtualizer
       expect(virtualizer.options.scrollMargin).toBe(0)
       expect(virtualizer.getSize()).toBe(MAX_HEIGHT - HEADER_HEIGHT)
 
@@ -1164,7 +1248,7 @@ describe('veTable virtual scroll', () => {
       ;(wrapper.vm as any).headerRowHeightChange({ rowIndex: 0, height: HEADER_HEIGHT })
       await settle()
 
-      const virtualizer = (wrapper.vm as any)._vs.virtualizer
+      const virtualizer = (wrapper.vm as any).virtualScroll.virtualizer
       expect(virtualizer.options.scrollMargin).toBe(HEADER_HEIGHT)
       expect(virtualizer.getSize()).toBe(MAX_HEIGHT)
 
@@ -1196,7 +1280,7 @@ describe('veTable virtual scroll', () => {
       const wrapper = mountVirtual()
 
       // 虚拟滚动实例在 mounted 之后的 nextTick 才创建；首次渲染也应按预估行高渲染首屏
-      expect((wrapper.vm as any)._vs).toBeNull()
+      expect((wrapper.vm as any).virtualScroll).toBeNull()
       const firstRows = wrapper.findAll('tbody[data-index]')
       expect(firstRows.length).toBe(getExpectedRowCount())
       expect(getSpacerHeights(wrapper)).toEqual([(1000 - getExpectedRowCount()) * MIN_ROW_HEIGHT])
@@ -1205,12 +1289,87 @@ describe('veTable virtual scroll', () => {
       wrapper.triggerResizeObserver({ width: MAX_HEIGHT })
       await settle()
 
-      expect((wrapper.vm as any)._vs).toBeTruthy()
+      expect((wrapper.vm as any).virtualScroll).toBeTruthy()
       expect(wrapper.findAll('tbody[data-index]').length).toBe(getExpectedRowCount())
       // 同一个 key 的行不重新挂载
       expect(wrapper.find('tbody[data-index="0"]').element).toBe(firstRowEl)
 
       wrapper.unmount()
+    })
+  })
+
+  // VS-08：开启虚拟滚动但没有 maxHeight 时只提示一次，不在每次重新计算容器样式时都打印
+  describe('missing maxHeight warning (VS-08)', () => {
+    const MESSAGE = 'maxHeight prop is required when \'virtualScrollOption.enable = true\''
+
+    function countWarnings(spy: { mock: { calls: unknown[][] } }) {
+      return spy.mock.calls.filter(args => args[0] === MESSAGE).length
+    }
+
+    it('is logged once, not again on re-renders, layout changes or another empty maxHeight', async () => {
+      const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+      const wrapper = mount(veTable, {
+        propsData: {
+          columns: COLUMNS,
+          tableData: TABLE_DATA_SAME_ROW_HEIGHT.slice(0, 20),
+          virtualScrollOption: { enable: true },
+          rowKeyFieldName: 'rowKey',
+        },
+      })
+      await later()
+      expect(countWarnings(errorSpy)).toBe(1)
+
+      const vm = wrapper.vm as any
+      // 表格高度、横向滚动条、数据和虚拟滚动配置的变化都不再重复提示
+      vm.hasXScrollBar = !vm.hasXScrollBar
+      await later()
+      expect(countWarnings(errorSpy)).toBe(1)
+      wrapper.triggerResizeObserver({ width: MAX_HEIGHT })
+      await later()
+      expect(countWarnings(errorSpy)).toBe(1)
+      await wrapper.setProps({ tableData: TABLE_DATA_SAME_ROW_HEIGHT.slice(0, 30) })
+      expect(countWarnings(errorSpy)).toBe(1)
+      await wrapper.setProps({ virtualScrollOption: { enable: true, minRowHeight: 50 } })
+      expect(countWarnings(errorSpy)).toBe(1)
+      // maxHeight 仍然为空（undefined → ''）
+      await wrapper.setProps({ maxHeight: '' })
+      await later()
+      expect(countWarnings(errorSpy)).toBe(1)
+
+      wrapper.unmount()
+      errorSpy.mockRestore()
+    })
+
+    it('is logged each time virtual scroll is turned on without maxHeight, and not with maxHeight', async () => {
+      const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+      const wrapper = mount(veTable, {
+        propsData: {
+          columns: COLUMNS,
+          tableData: TABLE_DATA_SAME_ROW_HEIGHT.slice(0, 20),
+          rowKeyFieldName: 'rowKey',
+        },
+      })
+      await later()
+      expect(countWarnings(errorSpy)).toBe(0)
+
+      await wrapper.setProps({ virtualScrollOption: { enable: true } })
+      await later()
+      expect(countWarnings(errorSpy)).toBe(1)
+
+      // 关闭后再次开启（仍然没有 maxHeight）是一次新的错误配置，再提示一次
+      await wrapper.setProps({ virtualScrollOption: { enable: false } })
+      await wrapper.setProps({ virtualScrollOption: { enable: true } })
+      await later()
+      expect(countWarnings(errorSpy)).toBe(2)
+
+      // 补上 maxHeight 后不再提示
+      await wrapper.setProps({ maxHeight: MAX_HEIGHT })
+      await wrapper.setProps({ tableData: TABLE_DATA_SAME_ROW_HEIGHT.slice(0, 30) })
+      await later()
+      expect(countWarnings(errorSpy)).toBe(2)
+
+      wrapper.unmount()
+      errorSpy.mockRestore()
     })
   })
 })
