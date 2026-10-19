@@ -108,11 +108,10 @@ export default defineComponent({
       default: 5,
     },
     // popper append to element
+    // 不传时在挂载后使用 document.body（不能在默认值里访问 document，否则 SSR 导入会崩溃）
     popperAppendTo: {
-      type: [String, HTMLElement],
-      default() {
-        return document.body
-      },
+      type: [String, Object] as PropType<string | HTMLElement>,
+      default: undefined,
     },
     /*
         before visible change
@@ -128,8 +127,6 @@ export default defineComponent({
       internalVisible: false,
       internalOptions: [] as VeDropdownItem[],
       inputValue: '',
-      // 是否显示触发器被点击了（被点击将忽略 clickOutside 事件）
-      isDropdownShowTriggerClicked: false,
       // root id
       rootId: '',
       // dropdown items panel id
@@ -188,25 +185,9 @@ export default defineComponent({
     modelValue() {
       this.init()
     },
-    visible: {
-      async handler(visible) {
-        const { isControlled, showDropDown, hideDropDown } = this
-        // deal after mounted hook
-        await nextTick()
-        nextTick(() => {
-          // 组件可能已在等待期间卸载
-          if (this.$.isUnmounted)
-            return
-          if (isControlled) {
-            if (visible)
-              showDropDown()
-
-            else
-              hideDropDown()
-          }
-        })
-      },
-      immediate: true,
+    // 初始值在 mounted 中处理：不能用 immediate，否则 SSR 渲染时也会执行并访问 document
+    visible(visible: boolean) {
+      this.syncControlledVisible(visible)
     },
   },
 
@@ -215,6 +196,7 @@ export default defineComponent({
   },
   mounted() {
     this.addRootElementToElement()
+    this.syncControlledVisible(this.visible)
 
     this.$nextTick(() => {
       const targetEl
@@ -251,7 +233,8 @@ export default defineComponent({
   },
   methods: {
     init() {
-      this.internalOptions = Object.assign([], this.modelValue)
+      // 复制每个选项对象：用户确认之前不能修改调用方传入的对象（例如 ve-table 的 column.filter.filterList）
+      this.internalOptions = (this.modelValue ?? []).map(x => ({ ...x }))
 
       if (this.isInput)
         this.setInputValue()
@@ -268,12 +251,7 @@ export default defineComponent({
     // operation filter reset
     reset() {
       if (this.internalOptions.some(x => x.selected)) {
-        this.internalOptions.map((x) => {
-          if (x.selected)
-            x.selected = false
-
-          return x
-        })
+        this.internalOptions = this.internalOptions.map(x => ({ ...x, selected: false }))
 
         // 使用户传入的v-model 生效
         this.$emit('update:modelValue', this.internalOptions)
@@ -282,6 +260,24 @@ export default defineComponent({
       }
 
       this.hideDropDown()
+    },
+
+    // 受控模式：根据 visible 显示或隐藏（只在挂载后调用）
+    async syncControlledVisible(visible: boolean) {
+      if (!this.isControlled)
+        return
+      // 等待 addRootElementToElement 在 nextTick 中创建容器
+      await nextTick()
+      nextTick(() => {
+        // 组件可能已在等待期间卸载
+        if (this.$.isUnmounted)
+          return
+        if (visible)
+          this.showDropDown()
+
+        else
+          this.hideDropDown()
+      })
     },
 
     showDropDown() {
@@ -458,7 +454,6 @@ export default defineComponent({
     },
 
     dropdownPanelClick() {
-      this.isDropdownShowTriggerClicked = true
       this.dropdownShowToggle()
     },
 
@@ -470,15 +465,11 @@ export default defineComponent({
     },
 
     singleSelectOptionClick(e: MouseEvent, item: VeDropdownItem) {
-      this.internalOptions = this.internalOptions.map((x) => {
-        if (item.label === x.label)
-          x.selected = true
-
-        else
-          x.selected = false
-
-        return x
-      })
+      // 生成新的选项对象，不修改原对象（它们可能已通过 update:modelValue 交给了调用方）
+      this.internalOptions = this.internalOptions.map(x => ({
+        ...x,
+        selected: item.label === x.label,
+      }))
 
       if (this.hideByItemClick)
         this.hideDropDown()
@@ -497,32 +488,57 @@ export default defineComponent({
       return clsName(`items-li-a-${this.textAlign}`)
     },
 
-    dropdownClickOutside() {
-      // 是否显示触发器被点击了（被点击将忽略 clickOutside 事件）
+    dropdownClickOutside(e?: MouseEvent) {
+      // 已关闭的下拉框不需要处理（否则页面上每个下拉框在每次点击时都会发出隐藏事件）
+      if (!this.isDropdownVisible)
+        return
+
+      // 点击触发器时由 dropdownPanelClick 负责切换。
+      // clickoutside 在捕获阶段执行，早于触发器自身的 click 事件，所以这里直接判断事件目标
+      const triggerEl = this.$refs.dropdownTrigger as HTMLElement | undefined
+      const target = e?.target as Node | null | undefined
+      if (triggerEl && target && triggerEl.contains(target))
+        return
+
       this.clearClickOutsideTimer()
       this.clickOutsideTimer = setTimeout(() => {
         this.clickOutsideTimer = null
-        if (this.isDropdownShowTriggerClicked)
-          this.isDropdownShowTriggerClicked = false
-        else
+        // 等待期间可能已经被关闭（例如受控模式下父组件已修改 visible）
+        if (this.isDropdownVisible)
           this.hideDropDown()
       })
     },
 
     // checbox 受控属性管理
     checkedChangeControl(item: VeDropdownItem, isChecked: boolean) {
-      this.internalOptions = this.internalOptions.map((i) => {
-        if (i.label === item.label)
-          i.selected = isChecked
-
-        return i
-      })
+      this.internalOptions = this.internalOptions.map(i =>
+        i.label === item.label ? { ...i, selected: isChecked } : i,
+      )
 
       this.$emit(EMIT_EVENTS.ITEM_SELECT_CHANGE, this.internalOptions)
     },
 
     getRandomIdWithPrefix() {
       return clsName(getRandomId())
+    },
+
+    // 解析弹出层的挂载目标：字符串按选择器查找，元素直接使用，其余情况（未传、找不到）使用 document.body
+    resolvePopperAppendTo(popperAppendTo: string | HTMLElement | undefined): HTMLElement {
+      if (typeof popperAppendTo === 'string' && popperAppendTo.length > 0) {
+        const el = document.querySelector<HTMLElement>(popperAppendTo)
+        if (el)
+          return el
+
+        console.warn(
+          `[${COMPS_NAME.VE_DROPDOWN}] popperAppendTo "${popperAppendTo}" does not match any element; falling back to document.body.`,
+        )
+        return document.body
+      }
+
+      if (popperAppendTo && typeof (popperAppendTo as HTMLElement).appendChild === 'function')
+        return popperAppendTo as HTMLElement
+
+      return document.body
     },
 
     /*
@@ -552,20 +568,10 @@ export default defineComponent({
 
           containerEl.setAttribute('id', this.rootId)
 
-          if (
-            typeof popperAppendTo === 'string'
-            && popperAppendTo.length > 0
-          ) {
-            this.popperAppendToEl
-                            = document.querySelector<HTMLElement>(popperAppendTo)
-          }
-          else {
-            this.popperAppendToEl = popperAppendTo as HTMLElement
-          }
+          this.popperAppendToEl = this.resolvePopperAppendTo(popperAppendTo)
+          this.appendToElTagName = this.popperAppendToEl.tagName
 
-          this.appendToElTagName = this.popperAppendToEl!.tagName
-
-          this.popperAppendToEl?.appendChild(containerEl)
+          this.popperAppendToEl.appendChild(containerEl)
         })
       }
     },
@@ -662,7 +668,7 @@ export default defineComponent({
 
     return (
       <dl {...dropdownProps}>
-        <dt class="ve-dropdown-dt" onClick={dropdownPanelClick}>
+        <dt ref="dropdownTrigger" class="ve-dropdown-dt" onClick={dropdownPanelClick}>
           <a
             class={[isSelect ? clsName('dt-selected') : '']}
             style={{ width: `${width}px` }}

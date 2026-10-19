@@ -603,4 +603,181 @@ describe('veDropdown', () => {
       expect(hideSpy).not.toHaveBeenCalled()
     })
   })
+
+  describe('click outside (DD-03)', () => {
+    afterEach(() => {
+      vi.useRealTimers()
+    })
+
+    it('a document click does nothing for closed dropdowns (DD-03)', async () => {
+      const wrappers = [0, 1].map(() =>
+        mount(veDropdown, {
+          props: { modelValue: DROPDOWN_ITEMS },
+          slots: { default: `<div class="btn">click me</div>` },
+        }),
+      )
+      await later()
+
+      vi.useFakeTimers()
+      document.body.click()
+      // 关闭状态的下拉框不应排任何定时器
+      expect(vi.getTimerCount()).toBe(0)
+      vi.advanceTimersByTime(100)
+
+      wrappers.forEach((wrapper) => {
+        expect(wrapper.emitted('on-dropdown-visible-change')).toBeUndefined()
+        wrapper.unmount()
+      })
+    })
+
+    it('a click outside still hides an open dropdown (DD-03)', async () => {
+      const wrapper = mount(veDropdown, {
+        props: { modelValue: DROPDOWN_ITEMS },
+        slots: { default: `<div class="btn">click me</div>` },
+      })
+      await later()
+
+      // 第一次打开 → 点击外部关闭
+      wrapper.find('.btn').element.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      await later()
+      document.body.click()
+      await later()
+      expect(wrapper.emitted('on-dropdown-visible-change')).toEqual([[true], [false]])
+
+      // 再次打开 → 点击触发器关闭 → 之后的外部点击不再触发事件
+      wrapper.find('.btn').element.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      await later()
+      wrapper.find('.btn').element.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      await later()
+      document.body.click()
+      await later()
+      expect(wrapper.emitted('on-dropdown-visible-change')).toEqual([[true], [false], [true], [false]])
+
+      // 再次打开 → 第一次外部点击就能关闭
+      wrapper.find('.btn').element.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      await later()
+      document.body.click()
+      await later()
+      expect(wrapper.emitted('on-dropdown-visible-change')).toEqual([[true], [false], [true], [false], [true], [false]])
+      expect((wrapper.vm as any).isDropdownVisible).toBe(false)
+      wrapper.unmount()
+    })
+  })
+
+  describe('option objects (DD-04)', () => {
+    function createItems() {
+      return [
+        { value: 0, label: 'Apple', selected: false },
+        { value: 1, label: 'Orange', selected: true },
+        { value: 2, label: 'Banana', selected: false },
+      ]
+    }
+
+    it('ticking a checkbox and clicking outside leaves the caller options unchanged (DD-04)', async () => {
+      const items = createItems()
+      const wrapper = mount(veDropdown, {
+        props: { modelValue: items, isMultiple: true, showOperation: true },
+        slots: { default: `<div class="btn">click me</div>` },
+      })
+      await later()
+      wrapper.find('.btn').trigger('click')
+      await later()
+
+      const root = document.getElementById((wrapper.vm as any).rootId)!
+      ;(root.querySelectorAll('.ve-checkbox')[2] as HTMLElement).click()
+      await later()
+      document.body.click()
+      await later()
+
+      expect(items).toEqual(createItems())
+      wrapper.unmount()
+    })
+
+    it('clicking a single-select item leaves the caller options unchanged (DD-04)', async () => {
+      const items = createItems()
+      const wrapper = mount(veDropdown, {
+        props: { modelValue: items, showOperation: true },
+        slots: { default: `<div class="btn">click me</div>` },
+      })
+      await later()
+      wrapper.find('.btn').trigger('click')
+      await later()
+
+      const root = document.getElementById((wrapper.vm as any).rootId)!
+      ;(root.querySelectorAll('.ve-dropdown-items-li')[0] as HTMLElement).click()
+      await later()
+
+      expect(items).toEqual(createItems())
+      // 发出的 v-model 值是新的对象，包含新的选中状态
+      const emitted = wrapper.emitted('update:modelValue')![0][0] as any[]
+      expect(emitted.find(x => x.selected).label).toBe('Apple')
+      expect(emitted.every(x => !items.includes(x))).toBe(true)
+      wrapper.unmount()
+    })
+
+    it('reset leaves the caller options unchanged (DD-04)', async () => {
+      const items = createItems()
+      const wrapper = mount(veDropdown, {
+        props: { modelValue: items, isMultiple: true, showOperation: true },
+        slots: { default: `<div class="btn">click me</div>` },
+      })
+      await later()
+      wrapper.find('.btn').trigger('click')
+      await later()
+
+      const root = document.getElementById((wrapper.vm as any).rootId)!
+      ;(root.querySelectorAll('.ve-dropdown-operation-item')[0] as HTMLElement).click()
+      await later()
+
+      expect(items).toEqual(createItems())
+      expect((wrapper.emitted('on-filter-reset')![0][0] as any[]).some(x => x.selected)).toBe(false)
+      wrapper.unmount()
+    })
+  })
+
+  describe('popperAppendTo (DD-06, INFRA-05)', () => {
+    it('appends the container to body by default', async () => {
+      const wrapper = mount(veDropdown, {
+        props: { modelValue: DROPDOWN_ITEMS },
+        slots: { default: `<div class="btn">click me</div>` },
+      })
+      await later()
+
+      expect(document.getElementById((wrapper.vm as any).rootId)!.parentElement).toBe(document.body)
+      wrapper.unmount()
+    })
+
+    it('accepts an element', async () => {
+      const target = document.createElement('section')
+      document.body.appendChild(target)
+      const wrapper = mount(veDropdown, {
+        props: { modelValue: DROPDOWN_ITEMS, popperAppendTo: target },
+        slots: { default: `<div class="btn">click me</div>` },
+      })
+      await later()
+
+      expect(document.getElementById((wrapper.vm as any).rootId)!.parentElement).toBe(target)
+      wrapper.unmount()
+      target.remove()
+    })
+
+    it('falls back to body and warns when the selector matches nothing (DD-06)', async () => {
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+      const wrapper = mount(veDropdown, {
+        props: { modelValue: DROPDOWN_ITEMS, popperAppendTo: '#no-such-element' },
+        slots: { default: `<div class="btn">click me</div>` },
+      })
+      await later()
+
+      expect(document.getElementById((wrapper.vm as any).rootId)!.parentElement).toBe(document.body)
+      expect(warn).toHaveBeenCalledWith(expect.stringContaining('#no-such-element'))
+
+      // 仍然可以正常打开
+      wrapper.find('.btn').trigger('click')
+      await later()
+      expect(wrapper.emitted('on-dropdown-visible-change')).toEqual([[true]])
+      wrapper.unmount()
+      warn.mockRestore()
+    })
+  })
 })

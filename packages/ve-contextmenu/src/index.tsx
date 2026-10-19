@@ -50,7 +50,8 @@ export default defineComponent({
       contextmenu event will register on it
       */
     eventTarget: {
-      type: [String, HTMLElement],
+      // 不能直接引用 HTMLElement：Node（SSR）中没有该全局变量，导入时会崩溃
+      type: [String, Object] as PropType<string | HTMLElement>,
       required: true,
     },
   },

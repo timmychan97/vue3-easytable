@@ -495,4 +495,109 @@ describe('vePagination', () => {
       expect(wrapper.emitted('on-page-number-change')).toBeFalsy()
     })
   })
+
+  describe('edge cases (PAG-01)', () => {
+    async function pressEnter(wrapper: any, value: string) {
+      const input = wrapper.find('.ve-pagination-goto-input')
+      await input.setValue(value)
+      input.element.dispatchEvent(new KeyboardEvent('keyup', { key: 'Enter' }))
+      await later()
+    }
+
+    it('jumping with total = 0 emits page 1, not 0 (PAG-01)', async () => {
+      const wrapper = mount(vePagination, { props: { total: 0 } })
+      await pressEnter(wrapper, '3')
+
+      expect(wrapper.emitted('on-page-number-change')).toEqual([[1]])
+      expect((wrapper.find('.ve-pagination-goto-input').element as HTMLInputElement).value).toBe('1')
+    })
+
+    it('total = 0 disables prev and next (PAG-01)', () => {
+      const wrapper = mount(vePagination, { props: { total: 0 } })
+
+      expect(wrapper.find('.ve-pagination-prev button').attributes('disabled')).toBeDefined()
+      expect(wrapper.find('.ve-pagination-next button').attributes('disabled')).toBeDefined()
+    })
+
+    it('next is disabled when total shrinks below the current page (PAG-01)', async () => {
+      const wrapper = mount(vePagination, { props: { total: 100, pageSize: 10, pageIndex: 8 } })
+      expect(wrapper.find('.ve-pagination-next button').attributes('disabled')).toBeUndefined()
+
+      await wrapper.setProps({ total: 50 })
+
+      expect(wrapper.find('.ve-pagination-next button').attributes('disabled')).toBeDefined()
+      wrapper.find('.ve-pagination-next').trigger('click')
+      expect(wrapper.emitted('on-page-number-change')).toBeFalsy()
+    })
+
+    it('prev from a page beyond the last page goes to the last page (PAG-01)', async () => {
+      const wrapper = mount(vePagination, { props: { total: 100, pageSize: 10, pageIndex: 8 } })
+      await wrapper.setProps({ total: 50 })
+
+      wrapper.find('.ve-pagination-prev').trigger('click')
+
+      expect(wrapper.emitted('on-page-number-change')).toEqual([[5]])
+    })
+
+    it('pageSize = 0 does not display Infinity (PAG-01)', () => {
+      const wrapper = mount(vePagination, { props: { total: 30, pageSize: 0 } })
+
+      expect(wrapper.text()).not.toContain('Infinity')
+      expect(wrapper.text()).not.toContain('NaN')
+    })
+
+    it('an invalid pageIndex prop update falls back to page 1 (PAG-01)', async () => {
+      const wrapper = mount(vePagination, { props: { total: 100, pageIndex: 3 } })
+
+      await wrapper.setProps({ pageIndex: 0 })
+      expect(wrapper.find('.ve-pagination-li-active').text()).toBe('1')
+
+      await wrapper.setProps({ pageIndex: Number.NaN })
+      expect(wrapper.find('.ve-pagination-li-active').text()).toBe('1')
+    })
+  })
+
+  it('two paginations get distinct element ids (PAG-02)', () => {
+    const wrapper = mount({
+      render() {
+        return (
+          <div>
+            <vePagination total={100} />
+            <vePagination total={100} />
+          </div>
+        )
+      },
+    })
+
+    const inputs = wrapper.findAll('.ve-pagination-goto-input')
+    const gotoLabels = wrapper.findAll('.ve-pagination-goto-label')
+    const sizeLabels = wrapper.findAll('.ve-pagination-select-label')
+    const selects = wrapper.findAll('.ve-pagination-select')
+    expect(inputs).toHaveLength(2)
+
+    const inputIds = inputs.map(x => x.attributes('id'))
+    const sizeLabelIds = sizeLabels.map(x => x.attributes('id'))
+    expect(new Set(inputIds).size).toBe(2)
+    expect(new Set(sizeLabelIds).size).toBe(2)
+
+    // 每个 label / aria-labelledby 指向自己实例中的元素
+    gotoLabels.forEach((label, i) => {
+      expect(label.attributes('for')).toBe(inputIds[i])
+    })
+    selects.forEach((select, i) => {
+      expect(select.attributes('aria-labelledby')).toBe(sizeLabelIds[i])
+    })
+  })
+
+  it('pageSizeChangeHandler uses its argument (PAG-03)', async () => {
+    const wrapper = mount(vePagination, {
+      props: { total: 600, pageSizeOption: [5, 10, 15], pageSize: 5, pageIndex: 3 },
+    })
+
+    ;(wrapper.vm as any).pageSizeChangeHandler(15)
+    await nextTick()
+
+    expect(wrapper.emitted('on-page-size-change')).toEqual([[15]])
+    expect(wrapper.find('.ve-pagination-li-active').text()).toBe('1')
+  })
 })
