@@ -15,10 +15,23 @@
  *    after* 回调，after* 抛出异常只会被记录，不影响表格状态。粘贴、剪切、删除都会
  *    触发该 hook（CLIP-08），以便单元格内容变化后重新定位选区边框。
  *
+ * 设置了 editOption 时（CLIP-10，D12）：粘贴、剪切、删除（含右键菜单的剪切、清空）
+ * 只写入 edit: true 的列，并对每个值有变化（!==）的单元格调用编辑回调，参数与单元格
+ * 编辑相同（{ row, column, changeValue }，before 中的 row 为修改前的副本）。完整顺序：
+ *   before*（整个操作，可取消）
+ *   → 逐单元格 beforeCellValueChange 并写入（返回 false 或抛出异常只跳过该单元格）
+ *   → 选区更新、CLIPBOARD_CELL_VALUE_CHANGE hook
+ *   → 逐单元格 cellValueChange、afterCellValueChange（只针对实际写入的单元格）
+ *   → after*（最后）
+ * before* 收到的 data 已去掉不可编辑的列（粘贴）；剪切仍把整个选区写入剪贴板。
+ * 未设置 editOption 时保持原行为：写入所有数据列，不调用编辑回调。
+ *
  * 右键菜单的复制、剪切（contextmenuCopyOrCut，CLIP-06）没有 copy 事件，
  * 通过 writeClipboardText 主动写入，开关、校验和回调与键盘操作相同，见该方法的说明。
  */
+import type { AppliedCellChange, CanChangeCell } from '../util/clipboard/index.js'
 import { isBoolean } from '@vue3-easytable/common/utils'
+import { cloneDeep } from 'lodash'
 import {
   clearRangeValues,
   encodeToSpreadsheetStr,
@@ -50,6 +63,47 @@ const COPY_KINDS = {
 function isCancelledByCallback(name: string, callback: any, response: any): boolean {
   const { value, threw } = safeCall(name, callback, response)
   return threw || (isBoolean(value) && !value)
+}
+
+/**
+ * 设置了 editOption 时的逐单元格编辑回调（CLIP-10）
+ * - editableOnly：只写入 edit: true 的列；
+ * - canChange：调用 beforeCellValueChange，返回 false 或抛出异常时跳过该单元格（INFRA-07）；
+ * - fireAfter：内部状态更新完成后，对实际写入的单元格调用 cellValueChange、afterCellValueChange。
+ * 未设置 editOption 时不过滤列，也不调用任何编辑回调。
+ */
+function getCellValueCallbacks(vm: any): {
+  editableOnly: boolean
+  canChange?: CanChangeCell
+  fireAfter: (applied: AppliedCellChange[]) => void
+} {
+  const { editOption } = vm
+
+  if (!editOption)
+    return { editableOnly: false, fireAfter: () => {} }
+
+  const { beforeCellValueChange, cellValueChange, afterCellValueChange } = editOption
+
+  // 没有 beforeCellValueChange 时不必为每个单元格复制整行
+  const canChange: CanChangeCell | undefined = typeof beforeCellValueChange === 'function'
+    ? (change, row) => !isCancelledByCallback('beforeCellValueChange', beforeCellValueChange, {
+        row: cloneDeep(row),
+        column: change.column,
+        changeValue: change.value,
+      })
+    : undefined
+
+  return {
+    editableOnly: true,
+    canChange,
+    fireAfter(applied) {
+      applied.forEach(({ row, column, value }) => {
+        // 同 afterCellValueChange，未来被移除（与单元格编辑一致）
+        safeCall('cellValueChange', cellValueChange, { row, column, changeValue: value })
+        safeCall('afterCellValueChange', afterCellValueChange, { row, column, changeValue: value })
+      })
+    },
+  }
 }
 
 /**
@@ -157,12 +211,15 @@ export const clipboardMethods = {
     if (isBoolean(paste) && !paste)
       return false
 
+    const cellValueCallbacks = getCellValueCallbacks(this)
+
     const response = onBeforePaste({
       event,
       cellSelectionRangeData: this.cellSelectionRangeData,
       colgroups: this.colgroups,
       allRowKeys: this.allRowKeys,
       rowKeyFieldName: this.rowKeyFieldName,
+      editableOnly: cellValueCallbacks.editableOnly,
     })
 
     if (!response || !response.data.length) {
@@ -179,10 +236,12 @@ export const clipboardMethods = {
     if (isCancelledByCallback('beforePaste', beforePasteCallback, response))
       return false
 
-    // change table cell data
-    onAfterPaste({
+    // change table cell data（逐单元格 beforeCellValueChange，CLIP-10）
+    const applied = onAfterPaste({
       tableData: this.tableData,
+      colgroups: this.colgroups,
       beforePasteResponse: response,
+      canChange: cellValueCallbacks.canChange,
     })
 
     const { startColKey, endColKey, startRowKey, endRowKey }
@@ -202,6 +261,7 @@ export const clipboardMethods = {
     this.hooks.triggerHook(HOOKS_NAME.CLIPBOARD_CELL_VALUE_CHANGE)
 
     // 内部状态已更新完毕，after 回调抛出异常不会留下“改了一半”的状态（INFRA-07）
+    cellValueCallbacks.fireAfter(applied)
     safeCall('afterPaste', afterPasteCallback, response)
   },
 
@@ -220,17 +280,22 @@ export const clipboardMethods = {
     if (isCancelledByCallback('beforeCut', option.beforeCut, response))
       return false
 
-    onAfterCut({
+    const { editableOnly, canChange, fireAfter } = getCellValueCallbacks(this)
+
+    const applied = onAfterCut({
       event,
       tableData: this.tableData,
       colgroups: this.colgroups,
       selectionRangeData,
       selectionRangeIndexes: response.selectionRangeIndexes,
+      editableOnly,
+      canChange,
     })
 
     // 单元格内容已清空，刷新选区位置（CLIP-08）
     this.hooks.triggerHook(HOOKS_NAME.CLIPBOARD_CELL_VALUE_CHANGE)
 
+    fireAfter(applied)
     safeCall('afterCut', option.afterCut, response)
   },
 
@@ -272,12 +337,16 @@ export const clipboardMethods = {
           })
 
           if (current) {
-            clearRangeValues({
+            const { editableOnly, canChange, fireAfter } = getCellValueCallbacks(this)
+            const applied = clearRangeValues({
               tableData: this.tableData,
               colgroups: this.colgroups,
               selectionRangeIndexes: current.selectionRangeIndexes,
+              editableOnly,
+              canChange,
             })
             this.hooks.triggerHook(HOOKS_NAME.CLIPBOARD_CELL_VALUE_CHANGE)
+            fireAfter(applied)
           }
         }
 
@@ -342,15 +411,20 @@ export const clipboardMethods = {
     if (isCancelledByCallback('beforeDelete', beforeDeleteCallback, response))
       return false
 
-    onAfterDelete({
+    const { editableOnly, canChange, fireAfter } = getCellValueCallbacks(this)
+
+    const applied = onAfterDelete({
       tableData,
       colgroups,
       selectionRangeIndexes: response.selectionRangeIndexes,
+      editableOnly,
+      canChange,
     })
 
     // 单元格内容已清空，刷新选区位置（CLIP-08）
     this.hooks.triggerHook(HOOKS_NAME.CLIPBOARD_CELL_VALUE_CHANGE)
 
+    fireAfter(applied)
     safeCall('afterDelete', afterDeleteCallback, response)
   },
 }

@@ -8,8 +8,30 @@ interface ClipboardColumn {
   key: RowKey
   field?: string
   operationColumn?: boolean
+  edit?: boolean
   [key: string]: any
 }
+
+/**
+ * 粘贴、剪切、删除要写入的一个单元格（CLIP-10）
+ */
+export interface ClipboardCellChange {
+  rowIndex: number
+  column: ClipboardColumn
+  value: any
+}
+
+/**
+ * 已写入的单元格，row 为写入时的行对象（after 回调使用）
+ */
+export interface AppliedCellChange extends ClipboardCellChange {
+  row: Record<string, any>
+}
+
+/**
+ * 写入前的逐单元格检查，返回 false 时跳过该单元格（CLIP-10：beforeCellValueChange）
+ */
+export type CanChangeCell = (change: ClipboardCellChange, row: Record<string, any>) => boolean
 
 export interface SelectionRangeIndexes {
   startColIndex: number
@@ -70,13 +92,55 @@ function setClipboardText(event: any, text: string) {
  * 操作列（即使配置了 field）和没有 field 的列只用于展示，写入会在用户的行数据里
  * 生成 "undefined"、"index" 之类的多余属性，因此跳过。
  * 复制时这些列仍按位置输出空字符串（或其值），保证粘贴回来时列对齐。
+ * @param editableOnly 设置了 editOption 时为 true：只有 edit: true 的列可写入（CLIP-10）
  */
-export function isClipboardWritableColumn(column: ClipboardColumn | undefined): boolean {
+export function isClipboardWritableColumn(
+  column: ClipboardColumn | undefined,
+  editableOnly = false,
+): boolean {
   if (!column || column.operationColumn)
+    return false
+
+  if (editableOnly && !column.edit)
     return false
 
   const { field } = column
   return field !== undefined && field !== null && field !== ''
+}
+
+/**
+ * 依次写入单元格（粘贴、剪切、删除共用，CLIP-10）
+ * - 值没有变化（===）的单元格不写入，也不调用 canChange；
+ * - canChange 返回 false 时只跳过该单元格，其余单元格照常写入；
+ * - 按顺序逐个检查并写入，后面单元格的 canChange 能看到同一次操作中前面已写入的值。
+ * @return 实际写入的单元格
+ */
+export function applyCellChanges({
+  tableData,
+  changes,
+  canChange,
+}: {
+  tableData: Record<string, any>[]
+  changes: ClipboardCellChange[]
+  canChange?: CanChangeCell
+}): AppliedCellChange[] {
+  const applied: AppliedCellChange[] = []
+
+  changes.forEach((change) => {
+    const row = tableData[change.rowIndex]
+    const field = change.column.field as string
+
+    if (!row || row[field] === change.value)
+      return
+
+    if (canChange && !canChange(change, row))
+      return
+
+    row[field] = change.value
+    applied.push({ ...change, row })
+  })
+
+  return applied
 }
 
 /**
@@ -108,33 +172,40 @@ function getRangeResponse({
   }
 }
 
+interface ClearRangeParams {
+  tableData: Record<string, any>[]
+  colgroups: ClipboardColumn[]
+  selectionRangeIndexes: SelectionRangeIndexes
+  /** 只清空 edit: true 的列（设置了 editOption 时，CLIP-10） */
+  editableOnly?: boolean
+  canChange?: CanChangeCell
+}
+
 /**
  * 清空选区内的单元格（剪切、删除共用），跳过不对应数据字段的列（CLIP-07）
+ * @return 实际清空的单元格（CLIP-10）
  */
 export function clearRangeValues({
   tableData,
   colgroups,
   selectionRangeIndexes,
-}: {
-  tableData: Record<string, any>[]
-  colgroups: ClipboardColumn[]
-  selectionRangeIndexes: SelectionRangeIndexes
-}) {
+  editableOnly = false,
+  canChange,
+}: ClearRangeParams): AppliedCellChange[] {
   const { endColIndex, endRowIndex, startColIndex, startRowIndex }
     = selectionRangeIndexes
 
-  const fieldNames = colgroups
+  // 同一字段只写一次（多个列可能指向同一个 field）
+  const columns = colgroups
     .slice(startColIndex, endColIndex + 1)
-    .filter(isClipboardWritableColumn)
-    .map(x => x.field as string)
+    .filter(x => isClipboardWritableColumn(x, editableOnly))
+    .filter((x, index, list) => list.findIndex(y => y.field === x.field) === index)
 
-  tableData.forEach((rowData, rowIndex) => {
-    if (rowIndex >= startRowIndex && rowIndex <= endRowIndex) {
-      fieldNames.forEach((fieldName) => {
-        rowData[fieldName] = ''
-      })
-    }
-  })
+  const changes: ClipboardCellChange[] = []
+  for (let rowIndex = startRowIndex; rowIndex <= endRowIndex; rowIndex++)
+    columns.forEach(column => changes.push({ rowIndex, column, value: '' }))
+
+  return applyCellChanges({ tableData, changes, canChange })
 }
 
 /**
@@ -171,11 +242,14 @@ export function onBeforePaste({
   cellSelectionRangeData,
   colgroups,
   allRowKeys,
+  editableOnly = false,
 }: {
   event: any
   cellSelectionRangeData: CellSelectionRangeData | null | undefined
   colgroups: ClipboardColumn[]
   allRowKeys: RowKey[]
+  /** 设置了 editOption 时为 true：不可编辑的列同样跳过（CLIP-10） */
+  editableOnly?: boolean
   [key: string]: any
 }): ClipboardRangeResponse<Record<string, string>[]> | null {
   const pastedData = getClipboardText(event)
@@ -217,10 +291,11 @@ export function onBeforePaste({
     allRowKeys.length - 1,
   )
 
-  // 不对应数据字段的列记为 null：粘贴时跳过该位置的值，其余列保持原位（CLIP-07）
+  // 不对应数据字段（CLIP-07）或不可编辑（CLIP-10）的列记为 null：
+  // 粘贴时跳过该位置的值，其余列保持原位
   const sourceFieldNames = colgroups
     .slice(startColIndex, endColIndex + 1)
-    .map(x => (isClipboardWritableColumn(x) ? (x.field as string) : null))
+    .map(x => (isClipboardWritableColumn(x, editableOnly) ? (x.field as string) : null))
 
   const data = decodePasteData
     .slice(0, endRowIndex - startRowIndex + 1)
@@ -255,22 +330,38 @@ export function onBeforePaste({
 /**
  * @onAfterPaste
  * @desc on after paste
+ * 按 beforePasteResponse.data 写入（beforePaste 中对 data 的修改同样生效），
+ * 字段按选区内的列顺序对应到列，用于逐单元格回调（CLIP-10）
+ * @return 实际写入的单元格
  */
 export function onAfterPaste({
   tableData,
+  colgroups,
   beforePasteResponse,
+  canChange,
 }: {
   tableData: Record<string, any>[]
+  colgroups: ClipboardColumn[]
   beforePasteResponse: ClipboardRangeResponse<Record<string, string>[]>
-}) {
+  canChange?: CanChangeCell
+}): AppliedCellChange[] {
   const { data: pasteData, selectionRangeIndexes } = beforePasteResponse
+  const { startColIndex, endColIndex, startRowIndex } = selectionRangeIndexes
 
-  pasteData.forEach((rowData, rowIndex) => {
-    Object.assign(
-      tableData[selectionRangeIndexes.startRowIndex + rowIndex],
-      rowData,
-    )
+  const rangeColumns = colgroups.slice(startColIndex, endColIndex + 1)
+  const changes: ClipboardCellChange[] = []
+
+  pasteData.forEach((rowData, index) => {
+    Object.keys(rowData).forEach((field) => {
+      // 优先选区内、可编辑的列；字段不在选区的列中（如 beforePaste 中新增的字段）时
+      // 仍照常写入，回调中的 column 为找到的同字段列，找不到时为 { key: field, field }
+      const candidates = [...rangeColumns, ...colgroups].filter(x => x.field === field)
+      const column = candidates.find(x => x.edit) || candidates[0] || { key: field, field }
+      changes.push({ rowIndex: startRowIndex + index, column, value: rowData[field] })
+    })
   })
+
+  return applyCellChanges({ tableData, changes, canChange })
 }
 
 /**
@@ -288,23 +379,20 @@ export function onBeforeCut(params: BeforeRangeParams) {
  */
 export function onAfterCut({
   event,
-  tableData,
-  colgroups,
   selectionRangeData,
-  selectionRangeIndexes,
-}: {
+  ...clearParams
+}: ClearRangeParams & {
   event: any
-  tableData: Record<string, any>[]
-  colgroups: ClipboardColumn[]
   selectionRangeData: any
-  selectionRangeIndexes: SelectionRangeIndexes
-}) {
+}): AppliedCellChange[] {
   const spreadsheetStr = encodeToSpreadsheetStr(selectionRangeData)
 
-  // 移除指定的表格数据
-  clearRangeValues({ tableData, colgroups, selectionRangeIndexes })
+  // 移除指定的表格数据（剪贴板仍写入整个选区，包括被跳过的单元格）
+  const applied = clearRangeValues(clearParams)
 
   setClipboardText(event, spreadsheetStr)
+
+  return applied
 }
 
 /**
@@ -320,15 +408,7 @@ export function onBeforeDelete(params: BeforeRangeParams) {
  * @onAfterDelete
  * @desc on after delete
  */
-export function onAfterDelete({
-  tableData,
-  colgroups,
-  selectionRangeIndexes,
-}: {
-  tableData: Record<string, any>[]
-  colgroups: ClipboardColumn[]
-  selectionRangeIndexes: SelectionRangeIndexes
-}) {
+export function onAfterDelete(params: ClearRangeParams): AppliedCellChange[] {
   // 移除指定的表格数据
-  clearRangeValues({ tableData, colgroups, selectionRangeIndexes })
+  return clearRangeValues(params)
 }

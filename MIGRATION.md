@@ -1,6 +1,6 @@
 # Migration Guide
 
-- **Library users:** [Locale message keys renamed](#locale-message-keys-renamed-breaking-change-deprecated-aliases), [Language per app](#language-per-app-usevetable-locale--no-longer-changes-the-global-language), [Norwegian language pack renamed](#norwegian-language-pack-renamed-no-nb--nb-no)
+- **Library users:** [Locale message keys renamed](#locale-message-keys-renamed-breaking-change-deprecated-aliases), [Language per app](#language-per-app-usevetable-locale--no-longer-changes-the-global-language), [Norwegian language pack renamed](#norwegian-language-pack-renamed-no-nb--nb-no), [Clipboard respects `editOption`](#clipboard-respects-editoption-paste-cut-and-delete-skip-non-editable-columns)
 - **Contributors:** [Development setup improvements](#migration-guide-development-setup-improvements)
 
 ## Locale message keys renamed (breaking change, deprecated aliases)
@@ -44,6 +44,20 @@ import noNB from '@vue3-easytable/vue/libs/locale/lang/no-NB'
 // After
 import nbNO from '@vue3-easytable/vue/libs/locale/lang/nb-NO'
 ```
+
+## Clipboard respects `editOption`: paste, cut and delete skip non-editable columns
+
+**What changed:** when the table has an `editOption`, paste, cut and delete (including the context menu "Cut" and the "empty" actions) only write to columns with `edit: true`. A column without `edit: true` can't be edited by typing, and now can't be changed through the clipboard either. For every cell whose value changes, `editOption.beforeCellValueChange`, `cellValueChange` and `afterCellValueChange` are called with the same `{ row, column, changeValue }` as cell editing. A `beforeCellValueChange` that returns `false` (or throws) skips that cell only. Cells whose value doesn't change (`===`) don't trigger the callbacks.
+
+**Order:** `beforePaste` / `beforeCut` / `beforeDelete` → per cell: `beforeCellValueChange`, then the write → per written cell: `cellValueChange`, `afterCellValueChange` → `afterPaste` / `afterCut` / `afterDelete`. With `editOption`, the `data` passed to `beforePaste` / `afterPaste` no longer contains the non-editable columns. Cut still copies the whole selection, including non-editable cells.
+
+**Unchanged:** without `editOption`, every data column is written as before and the cell value callbacks are not called. Copy is not affected.
+
+**What to do:**
+
+- If users should paste into a column, mark it `edit: true` (this also allows editing it by typing).
+- If your `beforeCellValueChange` / `afterCellValueChange` assume they only run for typed edits (for example, they focus the edited cell or show a toast), check how they behave for a paste into many cells. Each changed cell gets its own call.
+- If you validated or saved clipboard changes in `afterPaste` / `afterCut` / `afterDelete`, you can now do it in `afterCellValueChange` instead. Keep only one of the two, or each change is handled twice.
 
 ---
 
