@@ -12,7 +12,7 @@ import {
   isEmptyValue,
 } from '@vue3-easytable/common/utils'
 import VeContextmenu from '@vue3-easytable/ve-contextmenu'
-import { computed, defineComponent, inject, markRaw, nextTick, onMounted, provide, ref, shallowRef } from 'vue'
+import { computed, defineComponent, inject, markRaw, nextTick, onMounted, provide, ref, shallowRef, watch } from 'vue'
 import Body from './body'
 import Colgroup from './colgroup'
 import ColumnResizer from './column-resizer'
@@ -90,17 +90,13 @@ export default defineComponent({
       rowKeyFieldName: () => props.rowKeyFieldName,
       allRowKeys,
     }))
-    // 模板 ref（render 中以同名字符串引用）
+    // 模板 ref（render 中以同名字符串引用）。RENDER-15：只保留有代码读取的 ref
     const tableRootRef = shallowRef<HTMLElement | null>(null)
-    const tableContainerWrapperRef = shallowRef<ComponentPublicInstance | null>(null)
     const tableContainerRef = shallowRef<HTMLElement | null>(null)
     const tableRef = shallowRef<HTMLTableElement | null>(null)
-    const tableBodyRef = shallowRef<ComponentPublicInstance | null>(null)
     const tableContentWrapperRef = shallowRef<ComponentPublicInstance | null>(null)
-    const virtualPhantomRef = shallowRef<HTMLElement | null>(null)
     const editInputRef = shallowRef<EditorInstance | null>(null)
     const cellSelectionRef = shallowRef<SelectionInstance | null>(null)
-    const contextmenuRef = shallowRef<ComponentPublicInstance | null>(null)
 
     // 列：cloneColumns、分组表头、colgroups，隐藏 / 显示列，拖动列宽
     const columns = useColumns({
@@ -272,15 +268,25 @@ export default defineComponent({
 
     const tableContainerWrapperStyle = computed(() => ({ width: '100%' }))
 
+    // VS-08：开启虚拟滚动但没有 maxHeight 时提示一次（进入这种配置时），不在计算属性里打印：
+    // 之前每次重新计算容器样式（例如 maxHeight 仍为空但值变了）都会再打印一次
+    watch(
+      () => virtualScroll.isVirtualScroll.value && !getValByUnit(props.maxHeight),
+      (isMaxHeightMissing) => {
+        if (isMaxHeightMissing)
+          console.error('maxHeight prop is required when \'virtualScrollOption.enable = true\'')
+      },
+      { immediate: true },
+    )
+
     const tableContainerStyle = computed(() => {
       const maxHeight = getValByUnit(props.maxHeight)
 
       let tableContainerHeight: string | number | undefined
       if (virtualScroll.isVirtualScroll.value) {
+        // 没有 maxHeight 时不设置高度（提示见上面的 watch）
         if (maxHeight)
           tableContainerHeight = maxHeight as string | number
-        else
-          console.error('maxHeight prop is required when \'virtualScrollOption.enable = true\'')
       }
       else {
         let h = layout.tableHeight.value
@@ -374,7 +380,6 @@ export default defineComponent({
 
       return (
         <div
-          ref="virtualPhantomRef"
           class={[
             clsName('virtual-phantom'),
           ]}
@@ -428,15 +433,11 @@ export default defineComponent({
       tableContainerScroll,
       getVirtualViewPhantom,
       tableRootRef,
-      tableContainerWrapperRef,
       tableContainerRef,
       tableRef,
-      tableBodyRef,
       tableContentWrapperRef,
-      virtualPhantomRef,
       editInputRef,
       cellSelectionRef,
-      contextmenuRef,
     }
   },
   render() {
@@ -504,7 +505,6 @@ export default defineComponent({
 
     // body props
     const bodyProps = {
-      ref: 'tableBodyRef',
       // 虚拟滚动时 Body 渲染多个 <tbody>（片段根节点），class 无法 fall-through，因此作为 prop 显式传入
       bodyClass: [clsName('body'), this.tableBodyClass],
       stripe: this.tableBodyClass[clsName('stripe')],
@@ -575,7 +575,6 @@ export default defineComponent({
 
     // table container wrapper props
     const tableContainerWrapperProps = {
-      ref: 'tableContainerWrapperRef',
       style: this.tableContainerWrapperStyle,
       class: {
         've-table': true,
@@ -683,7 +682,6 @@ export default defineComponent({
 
     // 直接在组件上写事件，单元测试无法通过。如 on={{"on-node-click":()=>{}}}
     const contextmenuProps = {
-      ref: 'contextmenuRef',
       eventTarget: this.contextmenuEventTarget,
       options: contextmenuOptions,
       onOnNodeClick: (type: string) => {

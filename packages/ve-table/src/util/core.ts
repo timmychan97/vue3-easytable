@@ -48,24 +48,6 @@ export function isLastRowByRowKey(rowKey: RowKey | null | undefined, allRowKeys:
 }
 
 /**
- * @getDomResizeObserverCompKey
- * @desc  get dom resize observer comp key
- * @param {Any} originalKey - original key
- * @param {number} columnsOptionResetTime - columns option change time
- */
-export function getDomResizeObserverCompKey(
-  originalKey: any,
-  columnsOptionResetTime: number,
-) {
-  let result = originalKey
-
-  if (result || result === 0)
-    result = `${originalKey}@${columnsOptionResetTime}`
-
-  return result
-}
-
-/**
  * 转换 vue2 的事件名为 vue3
  * @param event emit 事件名 `on-aaa-bbb`
  * @returns 转换后 Vue3 jsx 的事件名 `onOnAaaBbb`

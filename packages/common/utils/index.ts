@@ -57,9 +57,12 @@ export function scrollTo(el: Element, option: ScrollToOptions) {
     el.scrollTo(option)
   }
   else {
+    // INFRA-20：只写入给出的坐标，未给出的方向保持当前位置（与 Element.scrollTo 一致）
     const { top, left } = option
-    el.scrollTop = top ?? 0
-    el.scrollLeft = left ?? 0
+    if (isDefined(top))
+      el.scrollTop = top as number
+    if (isDefined(left))
+      el.scrollLeft = left as number
   }
 }
 

@@ -1992,15 +1992,13 @@ describe('veTable cell edit', () => {
     // set cell selection
     firstCell.trigger('mousedown')
 
-    await later(100)
-    expect(cellEditor.vm.isEditCellFocus).toBe(true)
+    // 编辑框在 nextTick 之后的 setTimeout 中才获得焦点：等待条件成立，而不是固定等待 100ms（负载高时会超时）
+    await vi.waitFor(() => expect(cellEditor.vm.isEditCellFocus).toBe(true))
 
     // click outside
     wrapper.find('#outsideButton').trigger('click')
 
-    await later()
-
-    expect(cellEditor.vm.isEditCellFocus).toBe(false)
+    await vi.waitFor(() => expect(cellEditor.vm.isEditCellFocus).toBe(false))
   })
 
   it('disable editing columns', async () => {
