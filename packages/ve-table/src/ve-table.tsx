@@ -1651,6 +1651,9 @@ export default defineComponent({
          * @param {object} column - column data
          */
     bodyCellMouseover({ event, rowData, column }) {
+      // 拖动选择时没有按住左键：mouseup 已丢失，先结束拖动（SEL-18）
+      this.endLostSelectionDrag(event)
+
       const {
         rowKeyFieldName,
         isBodyCellMousedown,
@@ -1875,7 +1878,10 @@ export default defineComponent({
     },
 
     // header cell mouseover
-    headerCellMouseover({ event: _event, column }) {
+    headerCellMouseover({ event, column }) {
+      // 拖动选择时没有按住左键：mouseup 已丢失，先结束拖动（SEL-18）
+      this.endLostSelectionDrag(event)
+
       const {
         colgroups,
         isGroupHeader,
@@ -1968,8 +1974,7 @@ export default defineComponent({
         return false
 
       if (!isEmptyValue(rowKey) && !isEmptyValue(colKey)) {
-        // 不用 getColumnByColkey：它把 0 当作空 key
-        const column = this.colgroups.find(x => x.key === colKey)
+        const column = getColumnByColkey(colKey, this.colgroups)
 
         // 未知的行或列：不改变选区（SEL-06）
         if (!column || !this.allRowKeys.includes(rowKey))

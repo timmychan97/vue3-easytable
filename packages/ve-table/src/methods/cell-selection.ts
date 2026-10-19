@@ -14,6 +14,7 @@ import {
 } from '../util/constant.js'
 import {
   cellAutofill,
+  getAutofillChanges,
   getRowKey,
   isCellInSelectionRange,
 } from '../util/index.js'
@@ -281,10 +282,13 @@ export const cellSelectionMethods = {
       beforeAutofill（可取消）
       → 逐单元格 beforeCellValueChange 并写入（设置了 editOption 时只写入 edit: true 的列；
         返回 false 或抛出异常只跳过该单元格）
-      → 选区更新
+      → 选区更新、CLIPBOARD_CELL_VALUE_CHANGE hook（FILL-06）
       → 逐单元格 cellValueChange、afterCellValueChange（只针对实际写入的单元格）
       → afterAutofill（最后）
     操作列、没有 field 的列始终不写入（FILL-04）。
+    没有任何可写入的单元格时（目标列都不能写入，或横向填充的源列都没有数据）不执行填充：
+    不调用 beforeAutofill / afterAutofill，选区保持不变（FILL-05，与粘贴的 CLIP-11 相同）。
+    值已经相同的单元格仍算可写入（只是写入时跳过），这样的填充照常执行。
     */
     let autofillResponse: any = null
     let appliedChanges: AppliedCellChange[] = []
@@ -293,12 +297,24 @@ export const cellSelectionMethods = {
     if (cellAutofillOption) {
       const { beforeAutofill } = cellAutofillOption
 
+      // 源区域、目标区域（也是 beforeAutofill 的参数）
+      const { response: beforeAutofillResponse } = cellAutofill({
+        isReplaceData: false,
+        ...cellAutofillParams,
+      })
+
+      const changes = getAutofillChanges({
+        tableData: this.tableData,
+        colgroups,
+        direction: autofillingDirection,
+        sourceSelectionRangeIndexes: beforeAutofillResponse.sourceSelectionRangeIndexes,
+        targetSelectionRangeIndexes: beforeAutofillResponse.targetSelectionRangeIndexes,
+        editableOnly: cellValueCallbacks.editableOnly,
+      })
+      if (!changes.length)
+        return false
+
       if (isFunction(beforeAutofill)) {
-        // before autofill
-        const { response: beforeAutofillResponse } = cellAutofill({
-          isReplaceData: false,
-          ...cellAutofillParams,
-        })
         // beforeAutofill 抛出异常时视为“取消填充”（INFRA-07）
         const { value: callback, threw } = safeCall(
           'beforeAutofill',
@@ -334,6 +350,9 @@ export const cellSelectionMethods = {
         colKey: normalEndCellData.colKey,
       })
     }
+
+    // 单元格内容已变化，刷新选区位置（FILL-06，与粘贴、剪切、删除相同）
+    this.hooks.triggerHook(HOOKS_NAME.CLIPBOARD_CELL_VALUE_CHANGE)
 
     // 内部状态已更新完毕，再调用逐单元格的 after 回调（FILL-03）
     cellValueCallbacks.fireAfter(appliedChanges)
@@ -532,18 +551,21 @@ export const cellSelectionMethods = {
    * @addSelectionDragListener
    * @desc 拖动选择（单元格区域、整行、整列）期间在 document 上监听 mouseup（捕获阶段），结束拖动（SEL-11）。
    *       在表格外松开时，浏览器在公共祖先上触发的 click 不再清除选区（clickoutside 忽略从表格内开始的拖动），
-   *       所以拖动状态不能再依赖 tableClickOutside 重置
+   *       所以拖动状态不能再依赖 tableClickOutside 重置。
+   *       同时监听 window blur：拖动中窗口失焦（如 Alt+Tab）时 mouseup 可能永远不会到达，失焦即结束拖动（SEL-18，与填充的 FILL-02 相同）
    */
   addSelectionDragListener(this: any) {
     this.removeSelectionDragListener()
 
-    const onMouseup = () => {
+    const onEnd = () => {
       this.endSelectionDrag()
     }
-    document.addEventListener('mouseup', onMouseup, true)
+    document.addEventListener('mouseup', onEnd, true)
+    window.addEventListener('blur', onEnd)
 
     this.selectionDragListenerDisposer = () => {
-      document.removeEventListener('mouseup', onMouseup, true)
+      document.removeEventListener('mouseup', onEnd, true)
+      window.removeEventListener('blur', onEnd)
     }
   },
 
@@ -561,6 +583,20 @@ export const cellSelectionMethods = {
     this.isHeaderCellMousedown = false
     this.isBodyCellMousedown = false
     this.isBodyOperationColumnMousedown = false
+  },
+
+  /*
+   * @endLostSelectionDrag
+   * @desc 拖动选择中，鼠标经过单元格 / 表头时没有按住左键：mouseup 已丢失（例如在窗口外释放且浏览器没有派发），
+   *       结束拖动，不再扩展选区（SEL-18，与填充的 FILL-02 相同）
+   */
+  endLostSelectionDrag(this: any, event: unknown) {
+    const isDragging = this.isBodyCellMousedown
+      || this.isHeaderCellMousedown
+      || this.isBodyOperationColumnMousedown
+
+    if (isDragging && event instanceof MouseEvent && (event.buttons & 1) === 0)
+      this.endSelectionDrag()
   },
 
   /*

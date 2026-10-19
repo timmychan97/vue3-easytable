@@ -13,6 +13,7 @@ import {
   getAreaLayerRect,
   getAutofillDirection,
 } from '@/ve-table/src/selection/geometry'
+import { HOOKS_NAME } from '@/ve-table/src/util/constant'
 import { later } from '@test-utils'
 import { mount } from '@vue/test-utils'
 import { cloneDeep } from 'lodash'
@@ -420,15 +421,15 @@ describe('veTable cell autofill', () => {
       const isRemoved = ([type, fn, options]: any[]) =>
         remove.mock.calls.some(([t, f, o]) => t === type && f === fn && !!(o as any)?.capture === !!options?.capture)
 
-      // 拖动结束后移除
+      // 拖动结束后移除（每次点击单元格还会加一个拖动选择的 blur 监听，松开时移除，SEL-18）
       await fill(['r1', 'name'], ['r2', 'name'])
-      expect(added().length).toBe(2)
+      expect(added().length).toBe(3)
       expect(added().every(isRemoved)).toBe(true)
 
       // 拖动中卸载也要移除
       await select('r1', 'date')
       await dragCorner(['r2', 'date'])
-      expect(added().length).toBe(4)
+      expect(added().length).toBe(6)
       wrapper.unmount()
       wrapper = null
       expect(added().every(isRemoved)).toBe(true)
@@ -689,6 +690,184 @@ describe('veTable cell autofill', () => {
       // toStrictEqual：值为 undefined 的 "undefined" 键也算不相等
       expect(sourceSelectionData).toStrictEqual([{ rowKey: 'r1', name: 'n1' }])
       expect(targetSelectionData).toStrictEqual([{ rowKey: 'r2', name: 'n1' }])
+    })
+  })
+
+  /*
+  FILL-05：没有任何可写入的单元格时（目标列都不能写入，或横向填充的源列都没有数据）不执行填充：
+  不调用 beforeAutofill / afterAutofill，选区保持不变（与粘贴的 CLIP-11 相同）
+  */
+  describe('an autofill with nothing to write (FILL-05)', () => {
+    // x 没有 field；设置了 editOption 时只有 name、hobby 可写入
+    const COLUMNS_WITHOUT_DATA: Record<string, any>[] = [
+      { field: 'name', key: 'name', title: 'Name', width: COL_WIDTH, edit: true },
+      { key: 'x', title: 'Actions', width: COL_WIDTH },
+      { field: 'date', key: 'date', title: 'Date', width: COL_WIDTH },
+      { field: 'hobby', key: 'hobby', title: 'Hobby', width: COL_WIDTH, edit: true },
+    ]
+
+    function mountColumns(props: Record<string, any> = {}) {
+      mockTableLayout(COLUMNS_WITHOUT_DATA.map(x => x.key))
+      const callbacks = { beforeAutofill: vi.fn(), afterAutofill: vi.fn() }
+      mountTable({
+        columns: cloneDeep(COLUMNS_WITHOUT_DATA),
+        cellAutofillOption: callbacks,
+        ...props,
+      })
+      return callbacks
+    }
+
+    function expectSelection(currentCell: Record<string, any>, normalEndCell: Record<string, any>) {
+      expect(wrapper.vm.cellSelectionData.currentCell).toMatchObject(currentCell)
+      expect(wrapper.vm.cellSelectionData.normalEndCell).toMatchObject(normalEndCell)
+      expect(wrapper.vm.cellSelectionData.autoFillEndCell).toMatchObject({ rowKey: '', colKey: '' })
+    }
+
+    it('a fill into a column without field runs no autofill flow', async () => {
+      const { beforeAutofill, afterAutofill } = mountColumns()
+
+      await fill(['r1', 'name'], ['r1', 'x'])
+
+      expect(vueErrors).toEqual([])
+      expect(beforeAutofill).not.toHaveBeenCalled()
+      expect(afterAutofill).not.toHaveBeenCalled()
+      expectSelection({ rowKey: 'r1', colKey: 'name' }, { rowKey: '', colKey: '' })
+      expect(rowOf('r1')).toEqual(TABLE_DATA[0])
+    })
+
+    it('a horizontal fill whose source columns hold no data runs no autofill flow', async () => {
+      const { beforeAutofill, afterAutofill } = mountColumns()
+
+      // 源：x（没有数据）；目标：date
+      await fill(['r2', 'x'], ['r2', 'date'])
+
+      expect(beforeAutofill).not.toHaveBeenCalled()
+      expect(afterAutofill).not.toHaveBeenCalled()
+      expectSelection({ rowKey: 'r2', colKey: 'x' }, { rowKey: '', colKey: '' })
+      expect(rowOf('r2')).toEqual(TABLE_DATA[1])
+    })
+
+    it('with editOption, a fill that only covers non-editable columns runs no autofill flow', async () => {
+      const editOption = { beforeCellValueChange: vi.fn(), afterCellValueChange: vi.fn() }
+      const { beforeAutofill, afterAutofill } = mountColumns({ editOption })
+
+      // date 不可编辑：向下填充只覆盖 date
+      await selectRange('r1', 'date', 'r2', 'date')
+      await dragCorner(['r3', 'date'], ['r4', 'date'])
+      await releaseInTable('r4', 'date')
+
+      expect(beforeAutofill).not.toHaveBeenCalled()
+      expect(afterAutofill).not.toHaveBeenCalled()
+      expect(editOption.beforeCellValueChange).not.toHaveBeenCalled()
+      // 区域选择保持不变，没有扩展到 r4
+      expectSelection({ rowKey: 'r1', colKey: 'date' }, { rowKey: 'r2', colKey: 'date' })
+      expect([rowOf('r3').date, rowOf('r4').date]).toEqual(['d3', 'd4'])
+    })
+
+    it('a fill that covers one writable column still runs', async () => {
+      const editOption = { beforeCellValueChange: vi.fn(), afterCellValueChange: vi.fn() }
+      const { beforeAutofill, afterAutofill } = mountColumns({ editOption })
+
+      // 目标 date（不可编辑）、hobby（可编辑）
+      await fill(['r1', 'name'], ['r1', 'x'], ['r1', 'date'], ['r1', 'hobby'])
+
+      expect(beforeAutofill).toHaveBeenCalledTimes(1)
+      expect(afterAutofill).toHaveBeenCalledTimes(1)
+      expect(rowOf('r1')).toMatchObject({ date: 'd1', hobby: 'n1' })
+      expectSelection({ rowKey: 'r1', colKey: 'name' }, { rowKey: 'r1', colKey: 'hobby' })
+    })
+
+    it('a fill whose values are already in place still runs', async () => {
+      const { beforeAutofill, afterAutofill } = mountColumns()
+      rowOf('r2').name = 'n1'
+
+      await fill(['r1', 'name'], ['r2', 'name'])
+
+      expect(beforeAutofill).toHaveBeenCalledTimes(1)
+      expect(afterAutofill).toHaveBeenCalledTimes(1)
+      expectSelection({ rowKey: 'r1', colKey: 'name' }, { rowKey: 'r2', colKey: 'name' })
+    })
+  })
+
+  /*
+  FILL-06：填充与粘贴、剪切、删除一样触发 CLIPBOARD_CELL_VALUE_CHANGE，
+  单元格内容变化导致行高变化时，选区边框会重新定位
+  */
+  describe('autofill refreshes the selection (FILL-06)', () => {
+    // 记录 CLIPBOARD_CELL_VALUE_CHANGE（连同当时的选区结束单元格）与回调的调用顺序
+    function recordHook(calls: string[]) {
+      const original = wrapper.vm.hooks.triggerHook.bind(wrapper.vm.hooks)
+      return vi.spyOn(wrapper.vm.hooks, 'triggerHook').mockImplementation((name: any, ...args: any[]) => {
+        if (name === HOOKS_NAME.CLIPBOARD_CELL_VALUE_CHANGE)
+          calls.push(`hook:${wrapper.vm.cellSelectionData.normalEndCell.rowKey}`)
+        return original(name, ...args)
+      })
+    }
+
+    it('triggers the cell value change hook after the selection update and before the after callbacks', async () => {
+      const calls: string[] = []
+      mockTableLayout()
+      mountTable({
+        columns: cloneDeep(COLUMNS).map(x => ({ ...x, edit: true })),
+        editOption: {
+          afterCellValueChange: ({ row }: any) => calls.push(`afterCellValueChange:${row.rowKey}`),
+        },
+        cellAutofillOption: {
+          beforeAutofill: () => {
+            calls.push('beforeAutofill')
+          },
+          afterAutofill: () => {
+            calls.push('afterAutofill')
+          },
+        },
+      })
+
+      await select('r1', 'name')
+      recordHook(calls)
+      await dragCorner(['r2', 'name'], ['r3', 'name'])
+      await releaseInTable('r3', 'name')
+
+      expect(calls).toEqual([
+        'beforeAutofill',
+        'hook:r3',
+        'afterCellValueChange:r2',
+        'afterCellValueChange:r3',
+        'afterAutofill',
+      ])
+    })
+
+    it('triggers the hook once without editOption', async () => {
+      const calls: string[] = []
+      mockTableLayout()
+      mountTable({ cellAutofillOption: { afterAutofill: () => calls.push('afterAutofill') } })
+
+      await select('r1', 'name')
+      recordHook(calls)
+      await dragCorner(['r2', 'name'])
+      await releaseInTable('r2', 'name')
+
+      expect(calls).toEqual(['hook:r2', 'afterAutofill'])
+    })
+
+    it('a cancelled autofill or one with nothing to write does not trigger the hook', async () => {
+      const calls: string[] = []
+      mockTableLayout()
+      mountTable({ cellAutofillOption: { beforeAutofill: () => false } })
+
+      await select('r1', 'name')
+      recordHook(calls)
+      await dragCorner(['r2', 'name'])
+      await releaseInTable('r2', 'name')
+      expect(rowOf('r2').name).toBe('n2')
+
+      // editOption 下没有 edit: true 的列：没有可写入的单元格（FILL-05）
+      await wrapper.setProps({ editOption: {}, cellAutofillOption: {} })
+      await select('r1', 'name')
+      await dragCorner(['r2', 'name'])
+      await releaseInTable('r2', 'name')
+      expect(rowOf('r2').name).toBe('n2')
+
+      expect(calls).toEqual([])
     })
   })
 

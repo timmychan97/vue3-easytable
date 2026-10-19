@@ -448,7 +448,8 @@ describe('veTable keyboard', () => {
       await selectCell(0, 0)
 
       await clickCellInput(2)
-      getCell(3, 2).trigger('mouseover')
+      // 按住左键经过（没有按住左键的 mouseover 本身就会结束拖动，SEL-18）
+      getCell(3, 2).trigger('mouseover', { buttons: 1 })
       await later()
 
       expect(wrapper.vm.cellSelectionData.normalEndCell.colKey).toBe('')

@@ -294,10 +294,10 @@ describe('veTable cell selection', () => {
     it('right-clicking inside a row selection dragged upwards keeps it (SEL-15)', async () => {
       const vm = mountTable()
 
-      // 从第 4 行拖到第 2 行
+      // 按住左键从第 4 行拖到第 2 行（没有按住左键的 mouseover 会结束拖动，SEL-18）
       await operationTd('4').trigger('mousedown')
-      await operationTd('3').trigger('mouseover')
-      await operationTd('2').trigger('mouseover')
+      await operationTd('3').trigger('mouseover', { buttons: 1 })
+      await operationTd('2').trigger('mouseover', { buttons: 1 })
       await wrapper.find('.ve-table-container').trigger('mouseup')
       await later()
       expect(vm.bodyIndicatorRowKeys).toMatchObject({ startRowKey: '4', endRowKey: '2' })
@@ -320,10 +320,10 @@ describe('veTable cell selection', () => {
     it('right-clicking inside a column selection dragged leftwards keeps it (SEL-15)', async () => {
       const vm = mountTable()
 
-      // 从 c 列拖到 a 列
+      // 按住左键从 c 列拖到 a 列
       await headerTh('c').trigger('mousedown')
-      await headerTh('b').trigger('mouseover')
-      await headerTh('a').trigger('mouseover')
+      await headerTh('b').trigger('mouseover', { buttons: 1 })
+      await headerTh('a').trigger('mouseover', { buttons: 1 })
       await wrapper.find('.ve-table-container').trigger('mouseup')
       await later()
       expect(vm.headerIndicatorColKeys).toMatchObject({ startColKey: 'c', endColKey: 'a' })

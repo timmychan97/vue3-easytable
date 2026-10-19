@@ -716,6 +716,150 @@ describe('veTable cell selection', () => {
       add.mockRestore()
       remove.mockRestore()
     })
+
+    /*
+    SEL-18：拖动中窗口失焦（例如 Alt+Tab），mouseup 可能永远不会到达。
+    失焦或经过单元格时没有按住左键，都要结束拖动，否则之后鼠标经过单元格仍会扩展选区
+    */
+    it('a window blur ends a range drag (SEL-18)', async () => {
+      const vm = mountInPage()
+
+      mouse('mousedown', td(1, 1))
+      mouse('mouseover', td(3, 2))
+      await later()
+      expect(vm.isBodyCellMousedown).toBe(true)
+
+      window.dispatchEvent(new Event('blur'))
+      // 即使事件仍报告按住左键，拖动也已结束
+      mouse('mouseover', td(4, 3))
+      await later()
+
+      expect(vm.isBodyCellMousedown).toBe(false)
+      expect(vm.cellSelectionData.currentCell).toMatchObject({ rowKey: '2', colKey: 'b' })
+      expect(vm.cellSelectionData.normalEndCell).toMatchObject({ rowKey: '4', colKey: 'c' })
+    })
+
+    it('a window blur ends a column drag over the header (SEL-18)', async () => {
+      const vm = mountInPage()
+      const ths = wrapper.findAll('.ve-table-header-th')
+
+      mouse('mousedown', ths[0].element)
+      mouse('mouseover', ths[1].element)
+      await later()
+
+      window.dispatchEvent(new Event('blur'))
+      mouse('mouseover', ths[3].element)
+      await later()
+
+      expect(vm.isHeaderCellMousedown).toBe(false)
+      expect(vm.headerIndicatorColKeys).toMatchObject({ startColKey: 'a', endColKey: 'b' })
+    })
+
+    it('hovering a cell with no button held ends a drag whose mouseup was lost (SEL-18)', async () => {
+      const vm = mountInPage()
+
+      mouse('mousedown', td(1, 1))
+      mouse('mouseover', td(3, 2))
+      await later()
+
+      // mouseup 没有到达（没有 document mouseup，也没有 blur）
+      mouse('mouseover', td(4, 3), { buttons: 0 })
+      await later()
+
+      expect(vm.isBodyCellMousedown).toBe(false)
+      expect(vm.cellSelectionData.normalEndCell).toMatchObject({ rowKey: '4', colKey: 'c' })
+      // 之后再按住左键经过单元格也不会恢复拖动
+      mouse('mouseover', td(4, 3))
+      await later()
+      expect(vm.cellSelectionData.normalEndCell).toMatchObject({ rowKey: '4', colKey: 'c' })
+    })
+
+    it('hovering a header cell with no button held ends a column drag whose mouseup was lost (SEL-18)', async () => {
+      const vm = mountInPage()
+      const ths = wrapper.findAll('.ve-table-header-th')
+
+      mouse('mousedown', ths[0].element)
+      mouse('mouseover', ths[1].element)
+      await later()
+
+      mouse('mouseover', ths[3].element, { buttons: 0 })
+      await later()
+
+      expect(vm.isHeaderCellMousedown).toBe(false)
+      expect(vm.headerIndicatorColKeys).toMatchObject({ startColKey: 'a', endColKey: 'b' })
+    })
+
+    it('removes its window blur listener when the drag ends and on unmount (SEL-18)', async () => {
+      const add = vi.spyOn(window, 'addEventListener')
+      const remove = vi.spyOn(window, 'removeEventListener')
+      mountInPage()
+      const added = () => add.mock.calls.filter(([type]) => type === 'blur')
+      const isRemoved = ([type, fn]: any[]) =>
+        remove.mock.calls.some(([t, f]) => t === type && f === fn)
+
+      // mouseup 结束拖动
+      mouse('mousedown', td(1, 1))
+      expect(added().length).toBe(1)
+      await releaseOutside()
+      expect(added().every(isRemoved)).toBe(true)
+
+      // blur 结束拖动
+      mouse('mousedown', td(2, 1))
+      expect(added().length).toBe(2)
+      window.dispatchEvent(new Event('blur'))
+      expect(added().every(isRemoved)).toBe(true)
+
+      // 拖动中卸载
+      mouse('mousedown', td(3, 1))
+      expect(added().length).toBe(3)
+      wrapper.unmount()
+      wrapper = null
+      expect(added().every(isRemoved)).toBe(true)
+
+      add.mockRestore()
+      remove.mockRestore()
+    })
+
+    // SEL-19：点击右键菜单项时结束拖动，同时移除 document 上的 mouseup 监听
+    it('a contextmenu item click ends the drag and removes its document listener (SEL-19)', async () => {
+      const ParentComp = {
+        template: `
+          <veTable
+            :columns="columns"
+            :tableData="tableData"
+            rowKeyFieldName="rowKey"
+            :contextmenuBodyOption="contextmenuBodyOption"
+          />
+        `,
+        data() {
+          return {
+            columns: COLUMNS,
+            tableData: TABLE_DATA,
+            // 返回 false：只测试拖动状态，不执行菜单动作
+            contextmenuBodyOption: { contextmenus: [{ type: 'CUSTOM' }], afterMenuClick: () => false },
+          }
+        },
+      }
+      const add = vi.spyOn(document, 'addEventListener')
+      const remove = vi.spyOn(document, 'removeEventListener')
+      wrapper = mount(ParentComp, { attachTo: document.body })
+      const vm = wrapper.findComponent(veTable).vm as any
+      const added = () => add.mock.calls.filter(([type]) => type === 'mouseup')
+      const isRemoved = ([type, fn, options]: any[]) =>
+        remove.mock.calls.some(([t, f, o]) => t === type && f === fn && o === options)
+
+      mouse('mousedown', td(1, 1))
+      expect(vm.isBodyCellMousedown).toBe(true)
+      expect(added().length).toBe(1)
+
+      vm.contextmenuItemClick('CUSTOM')
+
+      expect(vm.isBodyCellMousedown).toBe(false)
+      expect(added().every(isRemoved)).toBe(true)
+
+      add.mockRestore()
+      remove.mockRestore()
+    })
   })
 
   // SEL-12：区域选择之后调用 setCellSelection 应该得到单个单元格，而不是从新单元格到旧结束单元格的区域
@@ -825,6 +969,30 @@ describe('veTable cell selection', () => {
     it('columnToVisible tolerates a missing column', () => {
       const wrapper = mountWithXScrollBar()
       expect(() => (wrapper.vm as any).columnToVisible(undefined)).not.toThrow()
+      wrapper.unmount()
+    })
+
+    // SEL-16：setCellSelection 改回使用 getColumnByColkey（SEL-14 之后 0 是有效的列 key）
+    it('setCellSelection accepts colKey 0 and scrolls that column into view', async () => {
+      const wrapper = mount(veTable, {
+        propsData: {
+          columns: [
+            { field: 'name', key: 'a', title: 'Name', width: 100 },
+            { field: 'date', key: 0, title: 'Date', width: 100 },
+          ],
+          tableData: TABLE_DATA,
+          rowKeyFieldName: 'rowKey',
+        },
+      })
+      const vm = wrapper.vm as any
+      vm.hasXScrollBar = true
+      const columnToVisible = vi.spyOn(vm, 'columnToVisible')
+
+      expect(vm.setCellSelection({ rowKey: '2', colKey: 0 })).not.toBe(false)
+      await later()
+
+      expect(vm.cellSelectionData.currentCell).toMatchObject({ rowKey: '2', colKey: 0 })
+      expect(columnToVisible).toHaveBeenCalledWith(expect.objectContaining({ key: 0, field: 'date' }))
       wrapper.unmount()
     })
   })
