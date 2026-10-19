@@ -176,10 +176,12 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
   - **Done:** both go through `safeCall`. A throwing `beforeStartCellEditing` cancels editing, like returning `false` (the INFRA-07 rule for `before*` callbacks). As before, a previous edit has already been saved and closed at that point. `fireScrolling` in `virtual-scroll.ts` calls `scrolling` through `safeCall`, so `onChange()` still runs after a throw.
   - **Verified:** `ve-table-callback-guards.spec.tsx` › "throwing callbacks go through safeCall (INFRA-11)": "a throwing beforeStartCellEditing cancels editing and is logged" (before: `start boom` escaped `startEditingCell`) and "a throwing scrolling callback still lets the rows follow the scroll" (before: unhandled `scrolling boom` rejections, and the rendered rows stayed at the top after scrolling to 4000px), plus "beforeStartCellEditing returning false still cancels, other values allow editing" as a guard.
 
-- [ ] **INFRA-12** 🟢 lint-staged runs `eslint . --fix` on the whole repo on every commit (found in batch 7)
+- [x] ✅ 2026-10-19 · refactor/audit-wave2-misc · **INFRA-12** 🟢 lint-staged runs `eslint . --fix` on the whole repo on every commit (found in batch 7)
   - **Where:** root `package.json` › `lint-staged`: `"*.{ts,tsx,vue}": "eslint . --fix"`.
   - **Effect:** lint-staged appends the staged paths, but the `.` still makes eslint lint and auto-fix every file in the repo. Commits are slow, and the hook can modify files that are not part of the commit.
   - **Fix:** `"eslint --fix"`, so only the staged files are linted.
+  - **Done:** `"*.{ts,tsx,vue}": "eslint --fix --no-warn-ignored"`. `--no-warn-ignored` keeps eslint quiet when a staged file matches an ignore pattern (with an explicit file list, flat-config eslint warns about each ignored file).
+  - **Verified:** in this worktree, a staged `.ts` probe and an unstaged `.ts` probe, both with double-quoted strings: `npx lint-staged --debug` ran `eslint --fix --no-warn-ignored <staged probe>` only, fixed and re-staged the staged probe, and left the unstaged one untouched. The commits on this branch then ran through the husky `pre-commit` hook as usual.
 
 - [ ] **INFRA-13** 🟢 More user callbacks called without `safeCall` (found in batch 7)
   - **Where:**
