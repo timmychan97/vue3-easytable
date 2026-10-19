@@ -972,6 +972,19 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
   - **Done:** the class is removed; the `li` keeps `ve-pagination-li ve-pagination-jump-prev`.
   - **Verified:** the rendered HTML is unchanged: Vue already dropped the empty string, and every snapshot shows `class="ve-pagination-li ve-pagination-jump-prev"`. The ve-pagination and ve-locale specs pass without `-u` (67 tests, no snapshot written).
 
+- [x] ✅ 2026-10-19 · fix/audit-wave3-small-types · **PAG-05** 🟢 `pagingCount` is never validated (found in wave 3)
+  - **Where:** `ve-pagination/src/index.tsx` (the `pagingCount` prop, default 5, was passed to the pager as is) and `ve-pagination/src/pager.tsx` (`numOffset`, `showJumpPrev` / `showJumpNext`, the jump targets `pageIndex ± pagingCount`, and the `向前N页` / `向后N页` locale functions, legacy `prev5` / `next5`).
+  - **Trigger:** with more than two pages:
+    - `pagingCount = 0`: both jump buttons render, jump by 0 pages, and are labelled "向后 0 页".
+    - `pagingCount < 0`: the jump buttons move the wrong way, and the number range is empty, so not even the current page is shown.
+    - A non-integer such as `3.7`: the jump buttons emit `on-page-number-change(13.7)` and the labels say "3.7".
+    - `NaN`: both jump buttons are hidden and every page gets a number button.
+  - **Done:** new `toValidPagingCount()` in `ve-pagination/src/util` floors the value and clamps it to at least 1; `NaN` falls back to the default (new `DEFAULT_PAGING_COUNT`, also used as the prop default). The pagination computes `validPagingCount` from it and passes that to the pager, so the pager, the jump targets and the locale functions only ever see an integer ≥ 1. `Infinity` is kept: it hides the jump buttons and shows every page, which is a meaningful "show all". The pager itself still trusts its prop (it is internal).
+  - **Verified:** `ve-pagination.spec.tsx` › "pagingCount is clamped to an integer >= 1 (PAG-05)", all four failed before the fix:
+    - "pagingCount = 0 behaves like 1" (before: `'向后 0 页'`), "pagingCount = -3 behaves like 1" (before: no active page). Both now jump to 11 and back to 10.
+    - "a non-integer pagingCount is floored" (before: `'向后 3.7 页'`); now 3 number buttons and a jump to 13.
+    - "a NaN pagingCount falls back to the default 5" (before: 60 buttons instead of 9).
+
 ---
 
 ## LOAD — loading service
