@@ -131,8 +131,6 @@ export const EMIT_EVENTS = {
   SELECTION_CORNER_MOUSEDOWN: 'selection-corner-mousedown',
   // selection corner mouseup
   SELECTION_CORNER_MOUSEUP: 'selection-corner-mouseup',
-  // autofilling direction change
-  AUTOFILLING_DIRECTION_CHANGE: 'autofilling-direction-change',
   // row insert
   ROW_INSERT: 'on-row-insert',
 }

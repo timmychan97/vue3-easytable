@@ -120,6 +120,13 @@ export const cellSelectionMethods = {
     if (isEmptyValue(rowKey) || isEmptyValue(colKey))
       return false
 
+    /*
+    方向为 null：结束单元格在选区内，或方向不被允许（directionX / directionY 为 false）。
+    此时不填充，也不调用 beforeAutofill / afterAutofill（FILL-01）
+    */
+    if (!autofillingDirection)
+      return false
+
     let currentCellData: any = {}
     let normalEndCellData: any = {}
 
@@ -310,11 +317,6 @@ export const cellSelectionMethods = {
     )
   },
 
-  // autofilling direction change
-  autofillingDirectionChange(this: any, direction: any) {
-    this.autofillingDirection = direction
-  },
-
   // set current cell selection type
   setCurrentCellSelectionType(this: any) {
     const { currentCell, normalEndCell } = this.cellSelectionData
@@ -406,6 +408,7 @@ export const cellSelectionMethods = {
    */
   cellSelectionCornerMousedown(this: any, { event: _event }: any) {
     this.isAutofillStarting = true
+    this.addAutofillWindowListeners()
   },
 
   /*
@@ -414,6 +417,78 @@ export const cellSelectionMethods = {
    */
   cellSelectionCornerMouseup(this: any, { event: _event }: any) {
     this.isAutofillStarting = false
+  },
+
+  /*
+   * @cancelAutofill
+   * @desc 取消正在进行的填充（FILL-02）：先清空 autofill 结束单元格，
+   *       isAutofillStarting 的 watcher 中 setCellSelectionByAutofill 因此不会提交
+   */
+  cancelAutofill(this: any) {
+    this.removeAutofillWindowListeners()
+    this.clearCellSelectionAutofillEndCell()
+    this.isAutofillStarting = false
+  },
+
+  /*
+   * @addAutofillWindowListeners
+   * @desc 拖动角标期间在 window 上监听（FILL-02）：
+   *  - mouseup（捕获阶段，先于表格内的处理）：在表格外或窗口外释放时取消，在表格内释放时提交
+   *  - blur：窗口失焦（如切换窗口）时取消
+   */
+  addAutofillWindowListeners(this: any) {
+    this.removeAutofillWindowListeners()
+
+    const onMouseup = (event: MouseEvent) => {
+      this.autofillWindowMouseup(event)
+    }
+    const onBlur = () => {
+      if (this.isAutofillStarting)
+        this.cancelAutofill()
+    }
+
+    window.addEventListener('mouseup', onMouseup, { capture: true })
+    window.addEventListener('blur', onBlur)
+
+    this.autofillWindowListenersDisposer = () => {
+      window.removeEventListener('mouseup', onMouseup, { capture: true })
+      window.removeEventListener('blur', onBlur)
+    }
+  },
+
+  // 移除拖动期间的 window 监听
+  removeAutofillWindowListeners(this: any) {
+    const dispose = this.autofillWindowListenersDisposer
+    this.autofillWindowListenersDisposer = null
+    if (isFunction(dispose))
+      dispose()
+  },
+
+  /*
+   * @autofillWindowMouseup
+   * @desc 拖动角标后释放鼠标。只有释放点在表格容器内（目标元素在容器内，且坐标在容器矩形内）才提交。
+   *       在窗口外释放时，浏览器会把 mouseup 派发给按下时的元素（角标），所以还要检查坐标
+   */
+  autofillWindowMouseup(this: any, event: MouseEvent) {
+    this.removeAutofillWindowListeners()
+
+    if (!this.isAutofillStarting)
+      return
+
+    const containerEl = this.$refs[this.tableContainerRef] as HTMLElement | undefined
+    const target = event.target as Node | null
+
+    let isInside = false
+    if (containerEl && target instanceof Node && containerEl.contains(target)) {
+      const { left, top, right, bottom } = containerEl.getBoundingClientRect()
+      const { clientX, clientY } = event
+      isInside = clientX >= left && clientX <= right && clientY >= top && clientY <= bottom
+    }
+
+    if (isInside)
+      this.isAutofillStarting = false
+    else
+      this.cancelAutofill()
   },
 
   /*
