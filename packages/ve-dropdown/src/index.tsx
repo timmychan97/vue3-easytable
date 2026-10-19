@@ -177,13 +177,13 @@ export default defineComponent({
         })
     },
     // operation buttons class
+    // 重置按钮只在未确认的勾选和 modelValue 中都没有选中项时显示为禁用（DD-08）
     operationFilterClass() {
-      let result = null
-      result = {
-        [clsName('filter-disable')]: this.selectedLabels.length === 0,
+      const hasSelection = this.selectedLabels.length > 0
+        || (this.modelValue ?? []).some(x => x.selected)
+      return {
+        [clsName('filter-disable')]: !hasSelection,
       }
-
-      return result
     },
     // dropdown items class
     dropdownItemsClass() {
@@ -234,15 +234,15 @@ export default defineComponent({
     },
 
     // operation filter reset
+    // 总是发出重置（DD-08）：未确认的勾选可能已全部取消，但已确认（已生效）的筛选仍需清除；
+    // 下拉框无法可靠地知道调用方已确认的状态，所以不根据勾选判断是否发出
     reset() {
-      if (this.internalOptions.some(x => x.selected)) {
-        this.internalOptions = this.internalOptions.map(x => ({ ...x, selected: false }))
+      this.internalOptions = this.internalOptions.map(x => ({ ...x, selected: false }))
 
-        // 使用户传入的v-model 生效
-        this.$emit('update:modelValue', this.internalOptions)
+      // 使用户传入的v-model 生效
+      this.$emit('update:modelValue', this.internalOptions)
 
-        this.$emit(EMIT_EVENTS.FILTER_RESET, this.internalOptions)
-      }
+      this.$emit(EMIT_EVENTS.FILTER_RESET, this.internalOptions)
 
       this.hideDropDown()
     },

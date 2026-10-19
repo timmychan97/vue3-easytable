@@ -908,6 +908,12 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
     - "a confirmed selection is still shown after reopening" (its last step failed before: an unconfirmed untick was kept)
     - Headless Chromium: tick, click outside and reopen shows only the original tick, and `filterConfirm` was not called. Tick, confirm and reopen shows both ticks.
 
+- [x] ✅ 2026-10-19 · fix/audit-wave3-dropdown-menu · **DD-08** 🟢 Reset with nothing ticked keeps the applied filter (found in wave 2)
+  - **Where:** `ve-dropdown/src/index.tsx` `reset()`. It emitted `update:modelValue` and `on-filter-reset` only when the *pending* options still had a selection. The reset button was also styled as disabled (`ve-dropdown-filter-disable`) whenever nothing was ticked.
+  - **Trigger:** confirm a filter, untick everything without confirming, then click reset. `filterReset` is not called and the filter stays applied. With DD-07 the old ticks come back on reopen, because the header's `confirmedFilterList` is never updated.
+  - **Done:** `reset()` always clears the options and emits `update:modelValue` and `on-filter-reset`, then hides. The dropdown can't reliably know the caller's confirmed state (a caller may not bind `update:modelValue`), so it no longer guesses. The reset button now looks disabled only when neither the pending options nor `modelValue` have a selection. ve-table's header filter needed no change: its `filterReset` already stores the emitted (empty) list as `confirmedFilterList`. Behaviour change: reset with no selection at all now also calls `filterReset` (with an all-unselected list).
+  - **Verified:** `ve-dropdown.spec.tsx` › "reset with nothing ticked (DD-08)": "reset after unticking the confirmed item still emits the reset" (failed before: no `on-filter-reset`), "reset is not shown as disabled while a confirmed selection exists" (failed before: the class was set after the untick), "reset with no selection at all still emits and closes" (failed before: no `on-filter-reset`). `ve-table-header-filter.spec.tsx` › "reset with nothing ticked (DD-08)" › "reset after unticking the applied filter calls filterReset and clears the ticks" (failed before: `filterReset` called 0 times).
+
 ---
 
 ## PAG — pagination
