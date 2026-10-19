@@ -200,7 +200,7 @@ describe('veTable cell rendering', () => {
       expect(getTextContentOfVNode([h('span', 'x'), 'y'])).toBe('xy')
       expect(getTextContentOfVNode(
         <span>
-          Hello
+          {'Hello '}
           <b>World</b>
         </span>,
       )).toBe('Hello World')

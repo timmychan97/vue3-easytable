@@ -54,7 +54,7 @@ describe('veTable select all keeps keys outside the current data (ROW-07)', () =
             selectedRowKeys: [2002, 1002],
             selectedAllChange: (params) => {
               selectedAllChange(params)
-              this.checkboxOption.selectedRowKeys = params.selectedRowKeys
+              ;(this as any).checkboxOption.selectedRowKeys = params.selectedRowKeys
             },
           },
         }

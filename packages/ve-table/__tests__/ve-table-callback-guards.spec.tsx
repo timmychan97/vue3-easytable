@@ -21,7 +21,7 @@ describe('veTable optional and throwing user callbacks', () => {
         tableData: TABLE_DATA,
         rowKeyFieldName: 'rowKey',
         ...props,
-      },
+      } as any,
       global: {
         config: {
           errorHandler: (err: unknown) => {
