@@ -126,7 +126,7 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
     - **Verified:** `ve-table-state-reconcile.spec.ts` › "throwing editing and autofill callbacks (INFRA-07)": "a throwing beforeCellValueChange cancels the change and still clears editing", "a throwing afterCellValueChange keeps the change and clears editing once", "after callbacks see the editing state already cleared", "a throwing afterAutofill still updates the selection and clears the autofill end cell" and "a throwing beforeAutofill cancels the fill and still clears the autofill end cell". Before the fix the errors escaped from `stopEditingCell()` (and editing stayed on), and the autofill errors escaped from the watcher.
   - **Closed** when both branches were merged into `refactor/all` (2026-10-16). Remaining unwrapped user callback found by batch 3b: `beforeStartCellEditing`, tracked as INFRA-11.
 
-- [ ] **INFRA-08** 🟠 Optional user callbacks are called without existence guards
+- [x] ✅ 2026-10-19 · fix/audit-batch7-render-rows · **INFRA-08** 🟠 Optional user callbacks are called without existence guards
   - **Where:**
     - `body/index.tsx:705`: `checkboxOption.selectedRowChange`
     - `body/index.tsx:779`: `radioOption.selectedRowChange`
@@ -136,6 +136,8 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
   - **Trigger:** e.g. a column with `sortBy` but no `sortOption` throws on click.
   - **Fix:** optional chaining plus `typeof fn === 'function'` checks.
   - **Progress (2026-10-16, `fix/audit-batch4-row-state`):** the row checkbox, radio and expand callbacks now go through the MOD-08 composables, which call `selectedRowChange`, `selectedAllChange` and the expand callbacks only when they exist (a missing `selectedRowChange` used to throw `selectedRowChange is not a function` on a checkbox click). The header `sortOption` sites and `hideSelectAll` are still open.
+  - **Done (2026-10-19, `fix/audit-batch7-render-rows`):** `header-th.tsx` `sortChange` reads `sortOption?.sortAlways`; `header/index.tsx` `sortChange` reads `sortOption?.multipleSort` / `sortOption?.sortChange` and calls `sortChange` only when it is a function (the sort state and the `SORT_CHANGE` dispatch to the table still happen); `header-th.tsx` uses `checkboxOption?.hideSelectAll`. Re-checked the body sites: `body/index.tsx` no longer reads `checkboxOption` / `radioOption` directly. Selection goes through `useRowSelection` / `useRowRadio`, which return early for a `null` option, treat an unset `selectedRowKeys` as uncontrolled, and call the callbacks only when they are functions. The remaining `expandOption.trigger` / `expandable` / `render` reads only run when an expand option exists (`isExpandRow`, `if (expandOption)`).
+  - **Verified:** `ve-table-callback-guards.spec.tsx` › "missing optional options and callbacks (INFRA-08)": "a sortable column without sortOption does not throw on click" (before: `Cannot destructure property 'sortAlways' of 'sortOption' as it is null`), "a sortOption without sortChange does not throw on click" (before: `sortChange is not a function`), "a checkbox column without checkboxOption renders the header" (before: `Cannot read properties of null (reading 'hideSelectAll')` on mount), plus "sortChange is still called with the sort columns" and "hideSelectAll still hides the header checkbox" as guards.
 
 - [ ] **INFRA-09** 🟢 Directive robustness
   - **Where:** `common/directives/clickoutside.ts` registers a handler even when the value isn't a function (it throws on every click), and has no `updated` hook (the callback captured at mount goes stale). `common/directives/events-outside.ts`: `beforeUnmount` calls `events.forEach` without checking `events`.
@@ -145,10 +147,12 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
   - **Where:** `common/utils/resize-event.ts:36-41`. `splice(indexOf(fn), 1)` with `-1` removes the **last** listener. After `disconnect()` the empty array is kept, so a later `addResizeListener` on the same element never observes again.
   - **Fix:** guard `idx > -1`, and delete the entry when the array is empty.
 
-- [ ] **INFRA-11** 🟢 User callbacks still called without `safeCall` (found in batches 3b and 6)
+- [x] ✅ 2026-10-19 · fix/audit-batch7-render-rows · **INFRA-11** 🟢 User callbacks still called without `safeCall` (found in batches 3b and 6)
   - **Where:** `beforeStartCellEditing` (`ve-table.tsx`, `startEditingCell`) and `virtualScrollOption.scrolling` (called from the virtual-scroll adapter's change handler).
   - **Effect:** a throw from `beforeStartCellEditing` escapes `startEditingCell` / the keyboard handler; a throw from `scrolling` escapes the virtualizer's change notification.
   - **Fix:** route both through `util/safe-call.ts`, as INFRA-07 did for the editing, autofill and clipboard callbacks.
+  - **Done:** both go through `safeCall`. A throwing `beforeStartCellEditing` cancels editing, like returning `false` (the INFRA-07 rule for `before*` callbacks). As before, a previous edit has already been saved and closed at that point. `fireScrolling` in `virtual-scroll.ts` calls `scrolling` through `safeCall`, so `onChange()` still runs after a throw.
+  - **Verified:** `ve-table-callback-guards.spec.tsx` › "throwing callbacks go through safeCall (INFRA-11)": "a throwing beforeStartCellEditing cancels editing and is logged" (before: `start boom` escaped `startEditingCell`) and "a throwing scrolling callback still lets the rows follow the scroll" (before: unhandled `scrolling boom` rejections, and the rendered rows stayed at the top after scrolling to 4000px), plus "beforeStartCellEditing returning false still cancels, other values allow editing" as a guard.
 
 ---
 

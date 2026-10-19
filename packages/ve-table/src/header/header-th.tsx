@@ -342,7 +342,8 @@ export default defineComponent({
       const { checkboxOption } = this
 
       if (this.groupColumnItem.type === COLUMN_TYPES.CHECKBOX) {
-        if (!checkboxOption.hideSelectAll) {
+        // INFRA-08：没有 checkboxOption 时也渲染全选
+        if (!checkboxOption?.hideSelectAll) {
           // RENDER-07：不传 column（组件未声明该 prop，会透传成 column="[object Object]"）
           result = <HeaderCheckboxContent />
         }
@@ -353,7 +354,8 @@ export default defineComponent({
     sortChange() {
       let sortResult = ''
       const { sortColumns, groupColumnItem, sortOption } = this
-      const { sortAlways } = sortOption
+      // INFRA-08：列设置了 sortBy 但没有 sortOption 时也能排序
+      const sortAlways = sortOption?.sortAlways
 
       const currentField = groupColumnItem.field
       const sortBy = sortColumns[currentField]

@@ -111,7 +111,9 @@ export default defineComponent({
     // sort change
     sortChange({ currentField, sortResult }) {
       const { sortColumns, sortOption } = this
-      const { multipleSort, sortChange } = sortOption
+      // INFRA-08：sortOption 和 sortChange 都是可选的
+      const multipleSort = sortOption?.multipleSort
+      const sortChange = sortOption?.sortChange
 
       this.sortColumns[currentField] = sortResult
 
@@ -129,7 +131,8 @@ export default defineComponent({
       )
 
       // invoke
-      sortChange(sortColumns)
+      if (typeof sortChange === 'function')
+        sortChange(sortColumns)
     },
 
     // init sort columns

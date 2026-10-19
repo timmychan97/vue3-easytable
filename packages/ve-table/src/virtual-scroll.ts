@@ -19,6 +19,7 @@ import {
 
   Virtualizer,
 } from '@tanstack/virtual-core'
+import { safeCall } from './util/safe-call.js'
 
 // Re-export for consumers
 export type { VirtualItem }
@@ -152,7 +153,8 @@ export function createVirtualScroll(config: VirtualScrollConfig): VirtualScrollI
       return
     const items = instance.getVirtualItems()
     const startRowIndex = items.length > 0 ? items[0].index : 0
-    currentOnScrolling({
+    // INFRA-11：用户回调抛出异常时只记录，不能打断 TanStack 的变更通知（否则 onChange 不会执行，行不再随滚动更新）
+    safeCall('virtualScrollOption.scrolling', currentOnScrolling, {
       startRowIndex,
       visibleStartIndex: range.startIndex,
       visibleEndIndex: range.endIndex,

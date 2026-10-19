@@ -76,6 +76,7 @@ import {
   isOperationColumn,
   recursiveRemoveColumnByKey,
 } from './util/index.js'
+import { safeCall } from './util/safe-call.js'
 import { createVirtualScroll } from './virtual-scroll'
 
 export default defineComponent({
@@ -2125,15 +2126,20 @@ export default defineComponent({
 
       const { beforeStartCellEditing } = editOption
 
+      // INFRA-11：通过 safeCall 调用；与其他 before* 回调一致，抛出异常等同于返回 false（取消编辑）
       if (isFunction(beforeStartCellEditing)) {
-        const allowContinue = beforeStartCellEditing({
-          row: cloneDeep(currentRow),
-          column: currentColumn,
-          cellValue: isDefined(defaultValue)
-            ? defaultValue
-            : currentRow[currentColumn.field],
-        })
-        if (isBoolean(allowContinue) && !allowContinue)
+        const { value: allowContinue, threw } = safeCall(
+          'beforeStartCellEditing',
+          beforeStartCellEditing,
+          {
+            row: cloneDeep(currentRow),
+            column: currentColumn,
+            cellValue: isDefined(defaultValue)
+              ? defaultValue
+              : currentRow[currentColumn.field],
+          },
+        )
+        if (threw || (isBoolean(allowContinue) && !allowContinue))
           return false
       }
 
