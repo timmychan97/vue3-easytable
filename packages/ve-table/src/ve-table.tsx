@@ -1,6 +1,5 @@
 import type { ComponentPublicInstance } from 'vue'
 import type {
-  ContextmenuOption,
   EditorInstance,
   SelectionInstance,
 } from './ve-table-types'
@@ -27,6 +26,7 @@ import { useSelectionDrag } from './features/cell-selection/useSelectionDrag'
 import { useClipboard } from './features/clipboard/useClipboard'
 import { useColumnMeasure } from './features/columns/useColumnMeasure'
 import { useColumns } from './features/columns/useColumns'
+import { useContextmenu } from './features/contextmenu/useContextmenu'
 import { useEditing } from './features/editing/useEditing'
 import { FIXED_COLUMNS_KEY, useFixedColumns } from './features/fixed-columns/useFixedColumns'
 import { useKeyboard } from './features/keyboard/useKeyboard'
@@ -37,13 +37,11 @@ import { createTableContext, provideTableContext, useTableContext } from './feat
 import { useVirtualScroll } from './features/virtual-scroll/useVirtualScroll'
 import Footer from './footer'
 import Header from './header'
-import { contextmenuMethods } from './methods/contextmenu'
 import RowInsertIndicator from './row-insert-indicator'
 import Selection from './selection'
 // Clipboard utils moved to methods/clipboard.ts
 import {
   COMPS_NAME,
-  CONTEXTMENU_TYPES,
   EMIT_EVENTS,
   HOOKS_NAME,
   INSTANCE_METHODS,
@@ -217,6 +215,23 @@ export default defineComponent({
       scrolling,
     })
 
+    // 表头 / 表体右键菜单
+    const contextmenu = useContextmenu({
+      props,
+      locale: veLocale,
+      rootElement: tableRootRef,
+      editor: editInputRef,
+      colgroups: columns.colgroups,
+      allRowKeys,
+      cloneColumns: columns.cloneColumns,
+      enableColumnResize: columns.enableColumnResize,
+      state: selectionState,
+      clipboard,
+      selectionDrag,
+      autofill,
+      tableContext,
+    })
+
     function refreshScrollBarStatusAfterRender() {
       nextTick(() => scrolling.setScrollBarStatus())
     }
@@ -238,6 +253,7 @@ export default defineComponent({
       ...autofill,
       ...clipboard,
       ...keyboard,
+      ...contextmenu,
       tableRootRef,
       tableContainerWrapperRef,
       tableContainerRef,
@@ -256,10 +272,6 @@ export default defineComponent({
 
       // Highlight
       highlightRowKey: '' as string | number,
-
-      // Context menu
-      contextmenuEventTarget: '' as string | EventTarget,
-      contextmenuOptions: [] as ContextmenuOption[],
     }
   },
   computed: {
@@ -359,40 +371,6 @@ export default defineComponent({
 
       return result
     },
-    // enable header contextmenu
-    enableHeaderContextmenu() {
-      let result = false
-
-      const { contextmenuHeaderOption } = this
-      if (contextmenuHeaderOption) {
-        const { contextmenus } = contextmenuHeaderOption
-
-        if (Array.isArray(contextmenus) && contextmenus.length)
-          result = true
-      }
-      return result
-    },
-    // enable body contextmenu
-    enableBodyContextmenu() {
-      let result = false
-
-      const { contextmenuBodyOption } = this
-      if (contextmenuBodyOption) {
-        const { contextmenus } = contextmenuBodyOption
-
-        if (Array.isArray(contextmenus) && contextmenus.length)
-          result = true
-      }
-      return result
-    },
-    // contextmenu type
-    contextMenuType() {
-      if (!isEmptyValue(this.headerIndicatorColKeys.startColKey))
-        return CONTEXTMENU_TYPES.HEADER_CONTEXTMENU
-
-      else
-        return CONTEXTMENU_TYPES.BODY_CONTEXTMENU
-    },
     // row insert indicator props
     rowInsertIndicatorProps() {
       return {
@@ -413,11 +391,6 @@ export default defineComponent({
   },
   mounted() {
     this.parentRendered = true
-
-    // set contextmenu event target
-    this.contextmenuEventTarget = this.tableRootRef.querySelector(
-      `.${clsName('content')}`,
-    )
 
     // 接收子组件通过表格上下文发出的事件（MOD-01）：事件名 → 处理方法
     this.tableEvents.onMany({
@@ -1032,7 +1005,6 @@ export default defineComponent({
     },
 
     // ── Extracted method modules (override any inline stubs above) ──
-    ...contextmenuMethods,
   },
   render() {
     const {

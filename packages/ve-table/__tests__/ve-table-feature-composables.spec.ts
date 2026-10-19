@@ -5,6 +5,7 @@ import { useCellSelectionState } from '@/ve-table/src/features/cell-selection/us
 import { useSelectionDrag } from '@/ve-table/src/features/cell-selection/useSelectionDrag'
 import { useClipboard } from '@/ve-table/src/features/clipboard/useClipboard'
 import { useColumns } from '@/ve-table/src/features/columns/useColumns'
+import { useContextmenu } from '@/ve-table/src/features/contextmenu/useContextmenu'
 import { useEditing } from '@/ve-table/src/features/editing/useEditing'
 import { useKeyboard } from '@/ve-table/src/features/keyboard/useKeyboard'
 import { useTableLayout } from '@/ve-table/src/features/layout/useTableLayout'
@@ -807,5 +808,92 @@ describe('useKeyboard', () => {
 
     outside.remove()
     cleanup()
+  })
+})
+
+describe('useContextmenu', () => {
+  function setup() {
+    const calls: any[] = []
+    const props = reactive({
+      contextmenuHeaderOption: {
+        contextmenus: [{ type: 'LEFT_FIXED_COLUMN_TO' }],
+        afterMenuClick: ({ type }: any) => { calls.push(['header', type]) },
+      },
+      contextmenuBodyOption: {
+        contextmenus: [{ type: 'INSERT_ROW_ABOVE' }, { type: 'EMPTY_CELL' }],
+        afterMenuClick: ({ type }: any) => { calls.push(['body', type]) },
+      },
+      tableData: [{ id: 'r0', a: 1 }, { id: 'r1', a: 2 }],
+      rowKeyFieldName: 'id',
+      cellSelectionOption: null,
+    }) as any
+    const root = document.createElement('div')
+    root.innerHTML = '<table class="ve-table-content"></table>'
+    // initGroupColumns 生成的叶子列带 _level
+    const columns = [{ key: 'a', field: 'a', title: 'A', _level: 1 }, { key: 'b', field: 'b', title: 'B', _level: 1 }]
+    const cloneColumns = ref<any[]>(columns)
+    const colgroups = ref<any[]>(columns)
+    const allRowKeys = computed(() => props.tableData.map((x: any) => x.id))
+    const { result } = withSetup(() => {
+      const state = useCellSelectionState({ props, colgroups, allRowKeys })
+      const contextmenu = useContextmenu({
+        props,
+        locale: ref({} as any),
+        rootElement: shallowRef(root),
+        editor: shallowRef(null),
+        colgroups,
+        allRowKeys,
+        cloneColumns,
+        enableColumnResize: computed(() => false),
+        state,
+        clipboard: {
+          contextmenuCopyOrCut: async () => true,
+          deleteCellSelectionRangeValue: () => { calls.push(['delete']) },
+        },
+        selectionDrag: { endSelectionDrag: () => { calls.push(['endDrag']) } },
+        autofill: { isAutofillStarting: ref(false), cancelAutofill: () => {} },
+        tableContext: createTableContext(),
+      })
+      return { state, contextmenu }
+    })
+    return { ...result, props, root, cloneColumns, calls }
+  }
+
+  it('listens on the table content and builds the body or header menu by the indicator', () => {
+    const { state, contextmenu, root } = setup()
+    expect(contextmenu.contextmenuEventTarget.value).toBe(root.firstElementChild)
+    expect(contextmenu.enableHeaderContextmenu.value).toBe(true)
+    expect(contextmenu.enableBodyContextmenu.value).toBe(true)
+
+    contextmenu.setContextmenuOptions({ key: 'a' })
+    expect(contextmenu.contextMenuType.value).toBe('bodyContextmenu')
+    expect(contextmenu.contextmenuOptions.value.map(x => x.type)).toEqual(['INSERT_ROW_ABOVE', 'EMPTY_CELL'])
+
+    state.headerIndicatorColKeysChange({ startColKey: 'a', endColKey: 'a' })
+    contextmenu.setContextmenuOptions({ key: 'a' })
+    expect(contextmenu.contextMenuType.value).toBe('headerContextmenu')
+    expect(contextmenu.contextmenuOptions.value.map(x => x.type)).toEqual(['LEFT_FIXED_COLUMN_TO'])
+  })
+
+  it('runs the clicked item after afterMenuClick, for the current cell only', () => {
+    const { state, contextmenu, props, cloneColumns, calls } = setup()
+
+    // 没有活动单元格：不执行
+    contextmenu.contextmenuItemClick('INSERT_ROW_ABOVE')
+    expect(calls).toEqual([['endDrag']])
+
+    state.cellSelectionCurrentCellChange({ rowKey: 'r1', colKey: 'a' })
+    contextmenu.contextmenuItemClick('INSERT_ROW_ABOVE')
+    expect(props.tableData.length).toBe(3)
+    expect(props.tableData[2].id).toBe('r1')
+
+    contextmenu.contextmenuItemClick('EMPTY_CELL')
+    expect(calls.slice(1)).toEqual([['endDrag'], ['body', 'INSERT_ROW_ABOVE'], ['endDrag'], ['body', 'EMPTY_CELL'], ['delete']])
+
+    // 表头菜单：固定到该列
+    state.headerIndicatorColKeysChange({ startColKey: 'a', endColKey: 'a' })
+    state.cellSelectionRangeDataChange({ leftColKey: 'a', rightColKey: 'a', topRowKey: 'r0', bottomRowKey: 'r1' })
+    contextmenu.contextmenuItemClick('LEFT_FIXED_COLUMN_TO')
+    expect(cloneColumns.value.map(x => x.fixed || '')).toEqual(['left', ''])
   })
 })
