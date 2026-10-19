@@ -1,4 +1,6 @@
 import vePagination from '@/ve-pagination'
+import Pager from '@/ve-pagination/src/pager'
+import { Jumper, Next, Prev, Sizer, Total } from '@/ve-pagination/src/parts'
 import { later } from '@test-utils'
 import { KEY_CODES } from '@test-utils/constant'
 import { mount } from '@vue/test-utils'
@@ -599,5 +601,90 @@ describe('vePagination', () => {
 
     expect(wrapper.emitted('on-page-size-change')).toEqual([[15]])
     expect(wrapper.find('.ve-pagination-li-active').text()).toBe('1')
+  })
+
+  describe('subcomponents use props and events, not $parent (MOD-10)', () => {
+    it('total renders its total prop', () => {
+      const wrapper = mount(Total, { props: { total: 42 } })
+
+      expect(wrapper.find('.ve-pagination-total').text()).toContain('42')
+    })
+
+    it('prev and next follow their props and emit on click', async () => {
+      const prev = mount(Prev, { props: { pageIndex: 1, pageCount: 3 } })
+      const next = mount(Next, { props: { pageIndex: 1, pageCount: 3 } })
+
+      expect(prev.find('button').attributes('disabled')).toBeDefined()
+      expect(next.find('button').attributes('disabled')).toBeUndefined()
+
+      await prev.setProps({ pageIndex: 3 })
+      await next.setProps({ pageIndex: 3 })
+      expect(prev.find('button').attributes('disabled')).toBeUndefined()
+      expect(next.find('button').attributes('disabled')).toBeDefined()
+
+      await prev.find('li').trigger('click')
+      await next.find('li').trigger('click')
+      expect(prev.emitted('prev')).toHaveLength(1)
+      expect(next.emitted('next')).toHaveLength(1)
+    })
+
+    it('sizer emits the selected page size', async () => {
+      const wrapper = mount(Sizer, {
+        props: {
+          options: [
+            { value: 10, label: '10', selected: true },
+            { value: 20, label: '20', selected: false },
+          ],
+        },
+      })
+
+      await wrapper.findAll('.ve-dropdown-items-li')[1].trigger('click')
+
+      expect(wrapper.emitted('change')).toEqual([[20]])
+    })
+
+    it('jumper emits the page clamped to pageCount and shows it', async () => {
+      const wrapper = mount(Jumper, { props: { pageIndex: 1, pageCount: 4 } })
+      const input = wrapper.find('input')
+
+      await input.setValue('9')
+      input.element.dispatchEvent(new KeyboardEvent('keyup', { key: 'Enter' }))
+
+      expect(wrapper.emitted('jump')).toEqual([[4]])
+      expect((input.element as HTMLInputElement).value).toBe('4')
+    })
+
+    it('pager emits the clicked page', async () => {
+      const wrapper = mount(Pager, { props: { pageIndex: 1, pageCount: 3, pagingCount: 5 } })
+
+      await wrapper.findAll('.ve-pagination-li')[1].trigger('click')
+
+      expect(wrapper.emitted('jump')).toEqual([[2]])
+    })
+
+    it('keeps the instance members available through a ref', async () => {
+      const wrapper = mount(vePagination, {
+        props: { total: 100, pageSize: 10, pageIndex: 3 },
+      })
+      const vm = wrapper.vm as any
+
+      expect(vm.newPageIndex).toBe(3)
+      expect(vm.pageCount).toBe(10)
+      expect(vm.getValidNum('42')).toBe(10)
+      expect(vm.newPageSizeOption.map((x: { value: number }) => x.value)).toEqual([10, 20, 30])
+
+      vm.nextPage()
+      vm.prevPage()
+      vm.jumpPageHandler(7)
+      vm.pageSizeChangeHandler(20)
+      vm.goBackPageIndex()
+      vm.goBackPageSize()
+      await nextTick()
+
+      expect(wrapper.emitted('on-page-number-change')).toEqual([[4], [3], [7]])
+      expect(wrapper.emitted('on-page-size-change')).toEqual([[20]])
+      expect(vm.newPageIndex).toBe(3)
+      expect(vm.newPageSize).toBe(10)
+    })
   })
 })
