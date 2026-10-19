@@ -862,6 +862,12 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
   - **Done:** `Option.id` is optional. `InternalOption` redeclares `id: string | number` as required, because internal options always have a generated id, so the component's own code still type-checks without non-null assertions.
   - **Verified:** `ve-contextmenu.spec.tsx` › "accepts typed options without id and generates distinct ids (MENU-09)" passes options without `id` and without `as any`. Before the fix vue-tsc reported 3 TS2741 errors on it (`Property 'id' is missing ... required in type 'Option'`; 255 errors in total), now none (252). At runtime it checks that the 4 menus get distinct non-empty string ids.
 
+- [x] ✅ 2026-10-19 · fix/audit-wave3-small-types · **MENU-10** 🟢 The public contextmenu `Option` type lacks `type` and requires `label` (found in wave 3)
+  - **Where:** `ve-contextmenu/src/index.tsx` `export interface Option`. `type` was only declared on the internal `InternalOption`, although the component reads it from the caller's options: `'SEPARATOR'` renders a separator, and any other value is the payload of `on-node-click`.
+  - **Trigger:** typed code that passes `{ label: 'Copy', type: 'copy' }` or a separator `{ type: 'SEPARATOR' }` gets TS2353 / TS2322. `ve-contextmenu.spec.tsx` worked around it with `as any` on five `options` props.
+  - **Done:** `Option` now declares `type?: string`, and `label` is optional, because a separator has none. A flat type rather than a menu-item / separator union: ve-table's own `ContextmenuOption` (`ve-table-types.ts`) has the same optional `type` and `label`, and a union would reject an item whose `type` is a plain `string`. `InternalOption` no longer redeclares `type`. The five `as any` casts are gone.
+  - **Verified:** new `ve-contextmenu-types.spec.ts` › "contextmenu Option type (MENU-10)": a typed `Option[]` with typed items and separators (also nested), `expectTypeOf` on `Option['type']` / `Option['label']`, and `@ts-expect-error` for a non-string `type`, a non-string `label` and a bad nested item. At runtime it renders 2 nodes and 1 separator. Before the fix vue-tsc reported 11 new errors (6 in the new spec, 5 TS2322 in `ve-contextmenu.spec.tsx` once the casts were removed; 263 in total), now none (252).
+
 ---
 
 ## DD — dropdown and select

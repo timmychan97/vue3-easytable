@@ -19,7 +19,10 @@ import { clsName } from './util/index'
 export interface Option {
   // 可选：组件内部会为每个菜单生成 id（MENU-09）
   id?: string | number
-  label: string
+  // 菜单类型：点击时作为 on-node-click 事件的参数；'SEPARATOR' 表示分隔线（MENU-10）
+  type?: string
+  // 分隔线不需要 label（MENU-10）
+  label?: string
   disabled?: boolean
   children?: Option[]
 }
@@ -27,7 +30,6 @@ export interface Option {
 interface InternalOption extends Option {
   // 内部选项的 id 总是已生成
   id: string | number
-  type?: string
   deep: number
   hasChildren: boolean
   children?: InternalOption[]
