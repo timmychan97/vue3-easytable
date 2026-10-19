@@ -490,14 +490,19 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
   - **Done:** `useRowSelection.isSelectedAll` uses exactly that formula. `isIndeterminate` counts only selected keys that are in the data (some but not all rows), which keeps the old "checked + indeterminate" look when every enabled row is selected but a disabled row isn't.
   - **Verified:** `ve-table-row-state.spec.tsx` › "all rows disabled and none selected: header is not checked", "selected keys that are not in the data do not inflate the count", "disabled keys that are not in the data do not inflate the count" (all three showed a checked header before), plus "every enabled row selected, the disabled row unselected: header is checked"; `ve-table-row-state-composables.spec.ts` › "isSelectedAll compares sets (ROW-05)".
 
-- [ ] **ROW-06** 🟢 With expand `trigger: 'row'`, an icon click dispatches `BODY_CELL_CLICK` twice
+- [x] ✅ 2026-10-19 · fix/audit-batch7-render-rows · **ROW-06** 🟢 With expand `trigger: 'row'`, an icon click dispatches `BODY_CELL_CLICK` twice
   - **Where:** `expand-tr-icon.tsx:68`. The click bubbles into the td.
   - **Fix:** `stopPropagation` on the icon click, or de-duplicate in the handler.
+  - **Done:** de-duplicated in the icon. `stopPropagation` would also stop the click from reaching the `<tr>`, which is what expands the row with `trigger: 'row'`. With `trigger: 'row'` the icon's click handler now does nothing and the click bubbles to the td (one `BODY_CELL_CLICK`, the user's `bodyCellEvents.click`) and then the tr (`bodyRowEvents.click`, expand). `icon` / `cell` triggers are unchanged: the icon calls `cellClick`, which stops propagation.
+  - **Verified:** `ve-table-row-expand-trigger.spec.tsx` › "trigger row: an icon click dispatches BODY_CELL_CLICK once and expands once" (2 dispatches before), plus "trigger icon (default) …" and "trigger cell …", which guard the other two triggers (one dispatch, one expand).
 
-- [ ] **ROW-07** 🟢 Controlled select-all drops other pages' keys (found in batch 4)
+- [x] ✅ 2026-10-19 · fix/audit-batch7-render-rows · **ROW-07** 🟢 Controlled select-all drops other pages' keys (found in batch 4)
   - **Where:** `features/row-selection/useRowSelection.ts` `selectAll`. Selecting all builds the key list from the current data, and deselecting keeps only the disabled-and-selected keys, so keys selected on other pages are dropped in both directions.
   - **Note:** this is the original behaviour, kept on purpose by MOD-08. The pagination demo works around it with its own key collection.
   - **Fix (needs a decision):** keep selected keys that aren't in the current data when selecting or deselecting all, and document it.
+  - **Proposed decision (2026-10-19):** select all / deselect all act on the rows of the current `tableData` only. Selected keys that are not in the current data (other pages) are kept, in their existing order, ahead of the current data's keys; disabled rows keep their state as before. This applies to controlled and uncontrolled mode alike, so a selection can span pages without a separate key collection. The header checkbox state was already computed from the current data only (ROW-05).
+  - **Done:** `selectAll` builds `[...selected keys not in the data, ...current data keys]` (select: enabled or already selected rows; deselect: disabled-and-selected rows). Documented in `row-checkbox/explain.md` (item 6, en/nb/zh), the zh API table (`selectedAllChange`) and the `pagination/checkbox.md` demo (en/nb/zh). The demo's own key collection is gone: `selectedRowKeys` is the cross-page collection and both callbacks just assign `selectedRowKeys`. (The old demo also threw a `ReferenceError` on deselect-all, and its row-uncheck spliced the collection at the wrong index.)
+  - **Verified:** `ve-table-row-select-all.spec.tsx` › "controlled: select all / deselect all keep the other page's keys", "uncontrolled: the selection survives switching pages" and "disabled rows of the current data keep their state" (all three: the other page's keys were missing from `selectedRowKeys` before). The existing `ve-table-row-state-composables.spec.ts` › "selectAll keeps disabled rows as they are" still passes unchanged.
 
 ---
 
