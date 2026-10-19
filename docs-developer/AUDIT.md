@@ -832,10 +832,19 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
   - **Done:** new `resolvePopperAppendTo()`. If the selector matches nothing, it logs a `console.warn` that names the selector and falls back to `document.body`. The lazy default from INFRA-05 goes through the same function.
   - **Verified:** `ve-dropdown.spec.tsx` › "falls back to body and warns when the selector matches nothing (DD-06)". Before the fix, no container was created and there was an unhandled `TypeError: Cannot read properties of null (reading 'tagName')`. Now the container is in `body`, the warning names the selector, and the dropdown still opens.
 
-- [ ] **DD-07** 🟢 Unconfirmed filter ticks persist when the filter dropdown is reopened (found in batch 7)
+- [x] ✅ 2026-10-19 · refactor/audit-wave2-popper · **DD-07** 🟢 Unconfirmed filter ticks persist when the filter dropdown is reopened (found in batch 7)
   - **Where:** `header/header-filter-content.tsx`. It starts `filterList` from `column.filter.filterList`, passes it to the dropdown as `modelValue`, and replaces it on every `update:modelValue`, confirmed or not.
   - **Trigger:** tick a filter item, click outside without confirming, then reopen the filter. The tick is still shown, although the filter was never applied (and `filterConfirm` was not called). Since DD-04 the user's `filterList` objects are no longer changed, so only the header's own copy keeps the tick.
   - **Fix:** keep a pending copy while the dropdown is open, and reset it from the last confirmed state (or `column.filter.filterList`) when the dropdown closes without confirming.
+  - **Done:** one correction to the entry above: the header passed `column.filter.filterList` itself as `modelValue`, not its own `filterList`. So the dropdown never re-initialised, and a multi-select tick stayed in the dropdown's internal options.
+    - The header now passes its own `filterList` (the pending state) and keeps a `confirmedFilterList`. The `column` watcher sets it from `column.filter.filterList`; `filterConfirm` / `filterReset` set it from the pending list.
+    - On `on-dropdown-visible-change(false)` the header resets `filterList` to a copy of `confirmedFilterList`. The new array makes the dropdown run `init()` again.
+    - Confirm and reset are emitted before the dropdown hides, so a confirmed selection survives the close. When `beforeVisibleChange` returns `false`, no close event is emitted, so the pending state is kept.
+  - **Verified:** `ve-table-header-filter.spec.tsx` › "unconfirmed changes are dropped on close (DD-07)":
+    - "a ticked checkbox is not shown again after closing without confirming" (failed before: `['John', 'Dickerson']` instead of `['John']`)
+    - "a clicked single-select item is not shown again after closing without confirming" (failed before: `['2000-07-20']` instead of `[]`)
+    - "a confirmed selection is still shown after reopening" (its last step failed before: an unconfirmed untick was kept)
+    - Headless Chromium: tick, click outside and reopen shows only the original tick, and `filterConfirm` was not called. Tick, confirm and reopen shows both ticks.
 
 ---
 
