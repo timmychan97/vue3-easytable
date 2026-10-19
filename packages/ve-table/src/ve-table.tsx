@@ -1968,8 +1968,7 @@ export default defineComponent({
         return false
 
       if (!isEmptyValue(rowKey) && !isEmptyValue(colKey)) {
-        // 不用 getColumnByColkey：它把 0 当作空 key
-        const column = this.colgroups.find(x => x.key === colKey)
+        const column = getColumnByColkey(colKey, this.colgroups)
 
         // 未知的行或列：不改变选区（SEL-06）
         if (!column || !this.allRowKeys.includes(rowKey))

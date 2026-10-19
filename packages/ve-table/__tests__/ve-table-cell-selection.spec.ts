@@ -827,6 +827,30 @@ describe('veTable cell selection', () => {
       expect(() => (wrapper.vm as any).columnToVisible(undefined)).not.toThrow()
       wrapper.unmount()
     })
+
+    // SEL-16：setCellSelection 改回使用 getColumnByColkey（SEL-14 之后 0 是有效的列 key）
+    it('setCellSelection accepts colKey 0 and scrolls that column into view', async () => {
+      const wrapper = mount(veTable, {
+        propsData: {
+          columns: [
+            { field: 'name', key: 'a', title: 'Name', width: 100 },
+            { field: 'date', key: 0, title: 'Date', width: 100 },
+          ],
+          tableData: TABLE_DATA,
+          rowKeyFieldName: 'rowKey',
+        },
+      })
+      const vm = wrapper.vm as any
+      vm.hasXScrollBar = true
+      const columnToVisible = vi.spyOn(vm, 'columnToVisible')
+
+      expect(vm.setCellSelection({ rowKey: '2', colKey: 0 })).not.toBe(false)
+      await later()
+
+      expect(vm.cellSelectionData.currentCell).toMatchObject({ rowKey: '2', colKey: 0 })
+      expect(columnToVisible).toHaveBeenCalledWith(expect.objectContaining({ key: 0, field: 'date' }))
+      wrapper.unmount()
+    })
   })
 
   // SEL-03：没有操作列时也从第一列开始（之前跳过了第一列，leftColKey 为 'b'）

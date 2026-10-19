@@ -402,6 +402,12 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
   - **Done:** both checks compare against `Math.min` / `Math.max` of the indicator's start and end indexes. In `headerCellMousedown` the two local index names were also swapped back (`currentCellStartColIndex` held the end column's index and vice versa); the check tests both, so that part had no effect. An indicator that is not set still gives `-1 / -1`, so a right-click then still resets, as before.
   - **Verified:** `ve-table-cell-selection-indicator.spec.ts` › "right-clicking inside a row selection dragged upwards keeps it (SEL-15)" and "right-clicking inside a column selection dragged leftwards keeps it (SEL-15)" (both failed before: the selection was reset to row 3 / column `b`). Each also checks that a right-click outside the selection still resets it.
 
+- [x] ✅ 2026-10-19 · fix/audit-wave3-selection-autofill · **SEL-16** 🟢 The SEL-06 `colgroups.find` workaround is now unnecessary (found in wave 2)
+  - **Where:** `ve-table.tsx` `[INSTANCE_METHODS.SET_CELL_SELECTION]` looked the column up with `colgroups.find` (comment "不用 getColumnByColkey：它把 0 当作空 key"), because `getColumnByColkey` treated colKey `0` as empty. SEL-14 fixed the helper.
+  - **Effect:** none (cleanup). The workaround was the only reason this method didn't use the shared helper.
+  - **Done:** `setCellSelection` uses `getColumnByColkey(colKey, this.colgroups)` again. The unknown-key check (SEL-06) and the `columnToVisible(column)` call are unchanged.
+  - **Verified:** `ve-table-cell-selection.spec.ts` › "unknown keys in the selection API (SEL-06)" › "setCellSelection accepts colKey 0 and scrolls that column into view" (new guard; passes before and after, and fails if `getColumnByColkey` treats `0` as empty again), plus the existing SEL-06 tests.
+
 ---
 
 ## CLIP — clipboard
