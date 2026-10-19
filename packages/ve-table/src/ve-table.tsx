@@ -1029,8 +1029,8 @@ export default defineComponent({
     // create hook instance
     this.hooks = new Hooks()
     // receive sort change
-    this.on(EMIT_EVENTS.SORT_CHANGE, (params) => {
-      this.updateColgroupsBySortChange(params)
+    this.on(EMIT_EVENTS.SORT_CHANGE, () => {
+      this.updateColgroupsBySortChange()
     })
 
     // receive multiple header row height change
@@ -1206,22 +1206,16 @@ export default defineComponent({
       this.hooks.triggerHook(HOOKS_NAME.TABLE_CELL_WIDTH_CHANGE)
     },
 
-    // update colgroups by sort change
-    updateColgroupsBySortChange(sortColumns) {
+    // sort change
+    // COL-08：排序状态只保存在表头（header/index.tsx 的 sortColumns），不再写回 colgroups[].sortBy，
+    // 这样 colgroups[].sortBy 始终是配置值，表头可以据此区分“列重新生成”和“配置变化”
+    updateColgroupsBySortChange() {
       // clear cell selection when sorting to avoid stale selection state
       this.clearCellSelectionCurrentCell()
       this.clearCellSelectionNormalEndCell()
 
       // stop editing cell if active
       this[INSTANCE_METHODS.STOP_EDITING_CELL]()
-
-      this.colgroups = this.colgroups.map((item) => {
-        // update colgroups by sort columns
-        if (item.field && Object.keys(sortColumns).includes(item.field))
-          item.sortBy = sortColumns[item.field]
-
-        return item
-      })
     },
 
     // init column width by column resize

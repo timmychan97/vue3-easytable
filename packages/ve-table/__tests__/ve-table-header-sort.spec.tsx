@@ -222,8 +222,12 @@ describe('veTable header sort', () => {
     expect(mockFn).toHaveBeenCalledWith(callBackData)
 
     // 只能单个字段排序
-    expect((wrapper.vm as any).colgroups.filter((x: any) => x.sortBy).length).toEqual(1)
+    // COL-08：排序状态只保存在表头，colgroups[].sortBy 保持配置值，因此这里检查表头图标
+    expect(
+      wrapper.findAll('.ve-table-sort .ve-table-sort-icon.active').length,
+    ).toBe(1)
 
+    // COL-08：点击排序不再改写 colgroups[].sortBy（之前写成 age: 'asc'、weight: ''），保持列配置
     expect(wrapper.vm.colgroups).toEqual([
       {
         _colspan: 1,
@@ -246,7 +250,7 @@ describe('veTable header sort', () => {
         align: 'center',
         field: 'age',
         key: 'b',
-        sortBy: 'asc',
+        sortBy: '',
         title: 'Age',
       },
       {
@@ -258,7 +262,7 @@ describe('veTable header sort', () => {
         align: 'center',
         field: 'weight',
         key: 'c',
-        sortBy: '',
+        sortBy: 'asc',
         title: 'Weight(kg)',
       },
       {
@@ -363,8 +367,8 @@ describe('veTable header sort', () => {
       wrapper.findAll('.ve-table-sort .ve-table-sort-icon.active').length,
     ).toBe(2)
 
-    // 多个字段排序
-    expect((wrapper.vm as any).colgroups.filter((x: any) => x.sortBy).length).toEqual(2)
+    // 多个字段排序（COL-08：colgroups[].sortBy 保持配置值，排序状态见上面的表头图标）
+    expect((wrapper.vm as any).colgroups.filter((x: any) => x.sortBy).length).toEqual(1)
   })
 
   it('sort always', async () => {
