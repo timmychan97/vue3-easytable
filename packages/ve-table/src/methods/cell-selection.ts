@@ -282,7 +282,7 @@ export const cellSelectionMethods = {
       beforeAutofill（可取消）
       → 逐单元格 beforeCellValueChange 并写入（设置了 editOption 时只写入 edit: true 的列；
         返回 false 或抛出异常只跳过该单元格）
-      → 选区更新
+      → 选区更新、CLIPBOARD_CELL_VALUE_CHANGE hook（FILL-06）
       → 逐单元格 cellValueChange、afterCellValueChange（只针对实际写入的单元格）
       → afterAutofill（最后）
     操作列、没有 field 的列始终不写入（FILL-04）。
@@ -350,6 +350,9 @@ export const cellSelectionMethods = {
         colKey: normalEndCellData.colKey,
       })
     }
+
+    // 单元格内容已变化，刷新选区位置（FILL-06，与粘贴、剪切、删除相同）
+    this.hooks.triggerHook(HOOKS_NAME.CLIPBOARD_CELL_VALUE_CHANGE)
 
     // 内部状态已更新完毕，再调用逐单元格的 after 回调（FILL-03）
     cellValueCallbacks.fireAfter(appliedChanges)

@@ -13,6 +13,7 @@ import {
   getAreaLayerRect,
   getAutofillDirection,
 } from '@/ve-table/src/selection/geometry'
+import { HOOKS_NAME } from '@/ve-table/src/util/constant'
 import { later } from '@test-utils'
 import { mount } from '@vue/test-utils'
 import { cloneDeep } from 'lodash'
@@ -785,6 +786,88 @@ describe('veTable cell autofill', () => {
       expect(beforeAutofill).toHaveBeenCalledTimes(1)
       expect(afterAutofill).toHaveBeenCalledTimes(1)
       expectSelection({ rowKey: 'r1', colKey: 'name' }, { rowKey: 'r2', colKey: 'name' })
+    })
+  })
+
+  /*
+  FILL-06：填充与粘贴、剪切、删除一样触发 CLIPBOARD_CELL_VALUE_CHANGE，
+  单元格内容变化导致行高变化时，选区边框会重新定位
+  */
+  describe('autofill refreshes the selection (FILL-06)', () => {
+    // 记录 CLIPBOARD_CELL_VALUE_CHANGE（连同当时的选区结束单元格）与回调的调用顺序
+    function recordHook(calls: string[]) {
+      const original = wrapper.vm.hooks.triggerHook.bind(wrapper.vm.hooks)
+      return vi.spyOn(wrapper.vm.hooks, 'triggerHook').mockImplementation((name: any, ...args: any[]) => {
+        if (name === HOOKS_NAME.CLIPBOARD_CELL_VALUE_CHANGE)
+          calls.push(`hook:${wrapper.vm.cellSelectionData.normalEndCell.rowKey}`)
+        return original(name, ...args)
+      })
+    }
+
+    it('triggers the cell value change hook after the selection update and before the after callbacks', async () => {
+      const calls: string[] = []
+      mockTableLayout()
+      mountTable({
+        columns: cloneDeep(COLUMNS).map(x => ({ ...x, edit: true })),
+        editOption: {
+          afterCellValueChange: ({ row }: any) => calls.push(`afterCellValueChange:${row.rowKey}`),
+        },
+        cellAutofillOption: {
+          beforeAutofill: () => {
+            calls.push('beforeAutofill')
+          },
+          afterAutofill: () => {
+            calls.push('afterAutofill')
+          },
+        },
+      })
+
+      await select('r1', 'name')
+      recordHook(calls)
+      await dragCorner(['r2', 'name'], ['r3', 'name'])
+      await releaseInTable('r3', 'name')
+
+      expect(calls).toEqual([
+        'beforeAutofill',
+        'hook:r3',
+        'afterCellValueChange:r2',
+        'afterCellValueChange:r3',
+        'afterAutofill',
+      ])
+    })
+
+    it('triggers the hook once without editOption', async () => {
+      const calls: string[] = []
+      mockTableLayout()
+      mountTable({ cellAutofillOption: { afterAutofill: () => calls.push('afterAutofill') } })
+
+      await select('r1', 'name')
+      recordHook(calls)
+      await dragCorner(['r2', 'name'])
+      await releaseInTable('r2', 'name')
+
+      expect(calls).toEqual(['hook:r2', 'afterAutofill'])
+    })
+
+    it('a cancelled autofill or one with nothing to write does not trigger the hook', async () => {
+      const calls: string[] = []
+      mockTableLayout()
+      mountTable({ cellAutofillOption: { beforeAutofill: () => false } })
+
+      await select('r1', 'name')
+      recordHook(calls)
+      await dragCorner(['r2', 'name'])
+      await releaseInTable('r2', 'name')
+      expect(rowOf('r2').name).toBe('n2')
+
+      // editOption 下没有 edit: true 的列：没有可写入的单元格（FILL-05）
+      await wrapper.setProps({ editOption: {}, cellAutofillOption: {} })
+      await select('r1', 'name')
+      await dragCorner(['r2', 'name'])
+      await releaseInTable('r2', 'name')
+      expect(rowOf('r2').name).toBe('n2')
+
+      expect(calls).toEqual([])
     })
   })
 
