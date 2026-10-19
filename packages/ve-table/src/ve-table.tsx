@@ -1,8 +1,6 @@
 import type { ComponentPublicInstance } from 'vue'
-import type { AutofillingDirection } from './selection/geometry'
 import type { KeyboardMode } from './util/constant.js'
 import type {
-  ColgroupData,
   ContextmenuOption,
   EditorInstance,
   SelectionInstance,
@@ -12,7 +10,6 @@ import clickoutside from '@vue3-easytable/common/directives/clickoutside'
 import { globalLocale, LocaleInjectionKey } from '@vue3-easytable/common/locale'
 import {
   getValByUnit,
-  isBoolean,
   isEmptyValue,
 } from '@vue3-easytable/common/utils'
 import { MOUSE_EVENT_CLICK_TYPE } from '@vue3-easytable/common/utils/constant'
@@ -24,6 +21,7 @@ import Body from './body'
 import Colgroup from './colgroup'
 import ColumnResizer from './column-resizer'
 import EditInput from './editor'
+import { useAutofill } from './features/cell-selection/useAutofill'
 import { useCellSelection } from './features/cell-selection/useCellSelection'
 import { useCellSelectionState } from './features/cell-selection/useCellSelectionState'
 import { useSelectionDrag } from './features/cell-selection/useSelectionDrag'
@@ -38,18 +36,15 @@ import { createTableContext, provideTableContext, useTableContext } from './feat
 import { useVirtualScroll } from './features/virtual-scroll/useVirtualScroll'
 import Footer from './footer'
 import Header from './header'
-import { cellSelectionMethods } from './methods/cell-selection'
 import { clipboardMethods } from './methods/clipboard'
 import { contextmenuMethods } from './methods/contextmenu'
 import { keyboardMethods } from './methods/keyboard'
 import RowInsertIndicator from './row-insert-indicator'
 import Selection from './selection'
-import { getAutofillDirection } from './selection/geometry'
 // Clipboard utils moved to methods/clipboard.ts
 import {
   COMPS_NAME,
   CONTEXTMENU_TYPES,
-  CURRENT_CELL_SELECTION_TYPES,
   EMIT_EVENTS,
   HOOKS_NAME,
   INSTANCE_METHODS,
@@ -188,6 +183,15 @@ export default defineComponent({
     })
     // 拖动选择（单元格区域、整行、整列）
     const selectionDrag = useSelectionDrag()
+    // 拖动选区角标填充
+    const autofill = useAutofill({
+      props,
+      colgroups: columns.colgroups,
+      allRowKeys,
+      state: selectionState,
+      containerElement: tableContainerRef,
+      tableContext,
+    })
 
     function refreshScrollBarStatusAfterRender() {
       nextTick(() => scrolling.setScrollBarStatus())
@@ -207,6 +211,7 @@ export default defineComponent({
       ...editing,
       ...selection,
       ...selectionDrag,
+      ...autofill,
       tableRootRef,
       tableContainerWrapperRef,
       tableContainerRef,
@@ -223,8 +228,6 @@ export default defineComponent({
     return {
       parentRendered: false,
 
-      // Mouse interaction state
-      isAutofillStarting: false,
       // 键盘模式（SEL-08）：单元格导航 / 表格（焦点在根元素上，Tab 交给浏览器）
       keyboardMode: KEYBOARD_MODE.TABLE as KeyboardMode,
 
@@ -237,54 +240,6 @@ export default defineComponent({
     }
   },
   computed: {
-    /*
-    填充方向（FILL-01）：由选区与 autofill 结束单元格的行列位置计算，不再由选区层在渲染时派发。
-    结束单元格为空（拖动开始前 / 结束后）、在选区内或方向不被允许时为 null
-    */
-    autofillingDirection(): AutofillingDirection | null {
-      const {
-        cellAutofillOption,
-        cellSelectionData,
-        cellSelectionRangeData,
-        currentCellSelectionType,
-        colgroups,
-        allRowKeys,
-      } = this
-
-      if (!cellAutofillOption)
-        return null
-
-      const { currentCell, autoFillEndCell } = cellSelectionData
-      if (isEmptyValue(autoFillEndCell.rowKey) || isEmptyValue(autoFillEndCell.colKey))
-        return null
-
-      let { leftColKey, rightColKey, topRowKey, bottomRowKey } = cellSelectionRangeData
-      if (currentCellSelectionType === CURRENT_CELL_SELECTION_TYPES.SINGLE) {
-        leftColKey = currentCell.colKey
-        rightColKey = currentCell.colKey
-        topRowKey = currentCell.rowKey
-        bottomRowKey = currentCell.rowKey
-      }
-      else if (currentCellSelectionType !== CURRENT_CELL_SELECTION_TYPES.RANGE) {
-        return null
-      }
-
-      const colIndexOf = (colKey: unknown) => colgroups.findIndex((x: ColgroupData) => x.key === colKey)
-      const { directionX, directionY } = isBoolean(cellAutofillOption) ? {} as Record<string, never> : cellAutofillOption
-
-      return getAutofillDirection({
-        range: {
-          top: allRowKeys.indexOf(topRowKey),
-          bottom: allRowKeys.indexOf(bottomRowKey),
-          left: colIndexOf(leftColKey),
-          right: colIndexOf(rightColKey),
-        },
-        endRowIndex: allRowKeys.indexOf(autoFillEndCell.rowKey),
-        endColIndex: colIndexOf(autoFillEndCell.colKey),
-        directionX,
-        directionY,
-      })
-    },
     // table container wrapper style
     tableContainerWrapperStyle() {
       return {
@@ -438,22 +393,6 @@ export default defineComponent({
     },
   },
   watch: {
-    // is auto fill starting
-    'isAutofillStarting': {
-      handler(val) {
-        if (!val) {
-          // 填充过程中出现异常也要清除 autofill 结束单元格（INFRA-07）
-          try {
-            this.setCellSelectionByAutofill()
-          }
-          finally {
-            this.clearCellSelectionAutofillEndCell()
-            // 拖动已结束，移除 window 上的 mouseup / blur 监听（FILL-02）
-            this.removeAutofillWindowListeners()
-          }
-        }
-      },
-    },
     // SEL-08：活动单元格变化（点击、API、键盘）时进入单元格导航（编辑框会获得焦点），清空时回到表格模式。
     // 只监听 key，rowIndex 因排序等变化时不切换模式
     'cellSelectionData.currentCell.rowKey': {
@@ -503,8 +442,6 @@ export default defineComponent({
   unmounted() {
     // remove key down event listener
     document.removeEventListener('keydown', this.dealKeydownEvent)
-    // 拖动填充中卸载：移除 window 上的监听（FILL-02）
-    this.removeAutofillWindowListeners()
   },
 
   methods: {
@@ -1097,7 +1034,6 @@ export default defineComponent({
     },
 
     // ── Extracted method modules (override any inline stubs above) ──
-    ...cellSelectionMethods,
     ...clipboardMethods,
     ...contextmenuMethods,
     ...keyboardMethods,

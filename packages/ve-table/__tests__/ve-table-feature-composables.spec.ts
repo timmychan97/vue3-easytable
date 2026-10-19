@@ -1,4 +1,5 @@
 import type { ColumnOption } from '@/ve-table/src/ve-table-types'
+import { useAutofill } from '@/ve-table/src/features/cell-selection/useAutofill'
 import { useCellSelection } from '@/ve-table/src/features/cell-selection/useCellSelection'
 import { useCellSelectionState } from '@/ve-table/src/features/cell-selection/useCellSelectionState'
 import { useSelectionDrag } from '@/ve-table/src/features/cell-selection/useSelectionDrag'
@@ -560,5 +561,75 @@ describe('useSelectionDrag', () => {
     wrapper.unmount()
     expect(removeSpy).toHaveBeenCalledWith('mouseup', expect.any(Function), true)
     removeSpy.mockRestore()
+  })
+})
+
+describe('useAutofill', () => {
+  function setup(cellAutofillOption: any = {}) {
+    const calls: any[] = []
+    const props = reactive({
+      cellAutofillOption: {
+        beforeAutofill: ({ direction }: any) => { calls.push(['before', direction]) },
+        afterAutofill: ({ direction }: any) => calls.push(['after', direction]),
+        ...cellAutofillOption,
+      },
+      tableData: [{ id: 'r0', a: 'x' }, { id: 'r1', a: 'y' }, { id: 'r2', a: 'z' }],
+      rowKeyFieldName: 'id',
+      editOption: null,
+      cellSelectionOption: null,
+    }) as any
+    const colgroups = ref<any[]>([{ key: 'a', field: 'a' }])
+    const allRowKeys = computed(() => props.tableData.map((x: any) => x.id))
+    const { result, wrapper } = withSetup(() => {
+      const state = useCellSelectionState({ props, colgroups, allRowKeys })
+      const autofill = useAutofill({
+        props,
+        colgroups,
+        allRowKeys,
+        state,
+        containerElement: shallowRef(null),
+        tableContext: createTableContext(),
+      })
+      return { state, autofill }
+    })
+    return { ...result, props, calls, wrapper }
+  }
+
+  it('fills down from a single cell when the drag ends', async () => {
+    const { state, autofill, props, calls } = setup()
+    state.cellSelectionCurrentCellChange({ rowKey: 'r0', colKey: 'a' })
+    state.cellSelectionRangeDataChange({ leftColKey: 'a', rightColKey: 'a', topRowKey: 'r0', bottomRowKey: 'r0' })
+    await nextTick()
+
+    autofill.cellSelectionCornerMousedown({ event: new MouseEvent('mousedown') })
+    await nextTick()
+    state.cellSelectionAutofillCellChange({ rowKey: 'r2', colKey: 'a' })
+    expect(autofill.autofillingDirection.value).toBe('down')
+
+    autofill.cellSelectionCornerMouseup({ event: new MouseEvent('mouseup') })
+    await nextTick()
+
+    expect(props.tableData.map((x: any) => x.a)).toEqual(['x', 'x', 'x'])
+    expect(calls).toEqual([['before', 'down'], ['after', 'down']])
+    expect(state.cellSelectionData.value.normalEndCell).toMatchObject({ rowKey: 'r2', colKey: 'a' })
+    // 结束单元格已清除
+    expect(autofill.autofillingDirection.value).toBeNull()
+  })
+
+  it('does not fill when cancelled or when the direction is not allowed', async () => {
+    const { state, autofill, props, calls } = setup({ directionY: false })
+    state.cellSelectionCurrentCellChange({ rowKey: 'r0', colKey: 'a' })
+    state.cellSelectionRangeDataChange({ leftColKey: 'a', rightColKey: 'a', topRowKey: 'r0', bottomRowKey: 'r0' })
+    await nextTick()
+
+    autofill.cellSelectionCornerMousedown({ event: new MouseEvent('mousedown') })
+    state.cellSelectionAutofillCellChange({ rowKey: 'r2', colKey: 'a' })
+    expect(autofill.autofillingDirection.value).toBeNull()
+    autofill.cancelAutofill()
+    await nextTick()
+
+    expect(autofill.isAutofillStarting.value).toBe(false)
+    expect(props.tableData.map((x: any) => x.a)).toEqual(['x', 'y', 'z'])
+    expect(calls).toEqual([])
   })
 })
