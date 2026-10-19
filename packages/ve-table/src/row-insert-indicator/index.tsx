@@ -1,3 +1,4 @@
+import type { ColgroupData } from '../ve-table-types'
 import emitter from '@vue3-easytable/common/mixins/emitter'
 import { caf, raf } from '@vue3-easytable/common/utils/animation-frame'
 import { computed, defineComponent, nextTick, onUnmounted, ref, watch } from 'vue'
@@ -35,7 +36,8 @@ export default defineComponent({
     },
     // Column groups (for detecting operation column width)
     colgroups: {
-      type: Array,
+      // 声明元素类型，operationColumn._realTimeWidth 才能通过类型检查（INS-04）
+      type: Array as PropType<ColgroupData[]>,
       required: true,
     },
     // Row insert option
@@ -68,7 +70,7 @@ export default defineComponent({
 
     // Get the operation column (index column) if exists
     const operationColumn = computed(() => {
-      return props.colgroups.find((col: any) => col.operationColumn)
+      return props.colgroups.find(col => col.operationColumn)
     })
 
     // Get the actual column width (not including extra padding for detection)
