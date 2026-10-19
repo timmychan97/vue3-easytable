@@ -6,7 +6,6 @@ import type {
   CellSelectionData,
   CellSelectionRangeData,
   ColgroupData,
-  ColumnOption,
   ContextmenuOption,
   EditingCell,
   EditorInstance,
@@ -33,12 +32,14 @@ import { MOUSE_EVENT_CLICK_TYPE } from '@vue3-easytable/common/utils/constant'
 import { getMouseEventClickType } from '@vue3-easytable/common/utils/mouse-event'
 import { getScrollbarWidth } from '@vue3-easytable/common/utils/scroll-bar'
 import VeContextmenu from '@vue3-easytable/ve-contextmenu'
-import { cloneDeep, debounce } from 'lodash'
-import { computed, defineComponent, getCurrentInstance, inject, markRaw, provide, shallowRef } from 'vue'
+import { cloneDeep } from 'lodash'
+import { computed, defineComponent, getCurrentInstance, inject, markRaw, nextTick, provide, shallowRef, watch } from 'vue'
 import Body from './body'
 import Colgroup from './colgroup'
 import ColumnResizer from './column-resizer'
 import EditInput from './editor'
+import { useColumnMeasure } from './features/columns/useColumnMeasure'
+import { useColumns } from './features/columns/useColumns'
 import { FIXED_COLUMNS_KEY, useFixedColumns } from './features/fixed-columns/useFixedColumns'
 import { createRowState, ROW_STATE_KEY } from './features/row-state'
 import { createTableContext, provideTableContext, useTableContext } from './features/table-context'
@@ -56,7 +57,6 @@ import { getAutofillDirection } from './selection/geometry'
 import { queryBodyRow } from './util/cell-dom'
 // Clipboard utils moved to methods/clipboard.ts
 import {
-  COLUMN_FIXED_TYPE,
   COMPS_NAME,
   CONTEXTMENU_TYPES,
   CURRENT_CELL_SELECTION_TYPES,
@@ -74,12 +74,9 @@ import {
   getRowKey,
   getSelectionRangeIndexes,
   getSelectionRangeKeys,
-  initGroupColumns,
   isClearSelectionByBodyCellRightClick,
   isContextmenuPanelClicked,
   isOperationColumn,
-  recursiveRemoveColumnByKey,
-  restoreColumnsState,
 } from './util/index.js'
 import { safeCall } from './util/safe-call.js'
 import { veTableProps } from './ve-table-props'
@@ -127,8 +124,26 @@ export default defineComponent({
       rowKeyFieldName: () => props.rowKeyFieldName,
       allRowKeys,
     }))
+    // 列：cloneColumns、分组表头、colgroups，隐藏 / 显示列，拖动列宽
+    const columns = useColumns({
+      props,
+      tableContext,
+      // 拖动列宽后，等 DOM 更新再刷新滚动条状态
+      onColumnWidthResize: () => {
+        nextTick(() => vm.setScrollBarStatus())
+      },
+    })
+    // 迁移过程中（MOD-02）：列变化后刷新滚动状态
+    watch(columns.columnsOptionResetTime, () => vm.initScrolling())
+    // 列宽测量（COL-07、COL-15）
+    const columnMeasure = useColumnMeasure({
+      colgroups: columns.colgroups,
+      columnsOptionResetTime: columns.columnsOptionResetTime,
+      tableContext,
+    })
+
     // 固定列的样式与 class（MOD-06）：按 colgroups 计算一次，表头、表体、表尾共享
-    provide(FIXED_COLUMNS_KEY, useFixedColumns(() => vm.colgroups))
+    provide(FIXED_COLUMNS_KEY, useFixedColumns(columns.colgroups))
 
     // 模板 ref（render 中以同名字符串引用）
     const tableRootRef = shallowRef<HTMLElement | null>(null)
@@ -147,6 +162,8 @@ export default defineComponent({
       tableEvents,
       veLocale,
       allRowKeys,
+      ...columns,
+      ...columnMeasure,
       tableRootRef,
       tableContainerWrapperRef,
       tableContainerRef,
@@ -163,18 +180,9 @@ export default defineComponent({
     return {
       parentRendered: false,
       tableViewportWidth: 0,
-      columnsOptionResetTime: 0,
 
-      // Column state
-      cloneColumns: [] as ColumnOption[],
-      isGroupHeader: false,
       headerRows: [] as RowHeight[],
       footerRows: [] as RowHeight[],
-      colgroups: [] as ColgroupData[],
-      groupColumns: [] as ColumnOption[][],
-      hiddenColumns: [] as string[],
-      // defaultHiddenColumnKeys 是否已应用（只应用一次，COL-09）
-      isDefaultHiddenColumnsApplied: false,
 
       // Virtual scroll
       defaultVirtualScrollMinRowHeight: 40,
@@ -243,15 +251,9 @@ export default defineComponent({
       contextmenuEventTarget: '' as string | EventTarget,
       contextmenuOptions: [] as ContextmenuOption[],
 
-      // Column resize
-      isColumnResizerHover: false,
-      isColumnResizing: false,
-
-      // 非响应式对象：TanStack 虚拟滚动实例（赋值时用 markRaw 包裹）与列宽测量 Map。
+      // 非响应式对象：TanStack 虚拟滚动实例（赋值时用 markRaw 包裹）。
       // 只有引用本身是响应式的（替换实例时触发依赖），对象内部不会被 Vue 深度代理
       virtualScroll: null as VirtualScrollInstance | null,
-      measureColsWidths: markRaw(new Map<string, number>()),
-      debouncedMeasureCellWidthChange: null as ((...args: any[]) => void) | null,
     }
   },
   computed: {
@@ -525,26 +527,6 @@ export default defineComponent({
       const { virtualScrollOption } = this
       return virtualScrollOption && virtualScrollOption.enable
     },
-    // has fixed column
-    hasFixedColumn() {
-      return this.colgroups.some(
-        x =>
-          x.fixed === COLUMN_FIXED_TYPE.LEFT
-          || x.fixed === COLUMN_FIXED_TYPE.RIGHT,
-      )
-    },
-    // has left fixed column
-    hasLeftFixedColumn() {
-      return this.colgroups.some(
-        x => x.fixed === COLUMN_FIXED_TYPE.LEFT,
-      )
-    },
-    // has right fixed column
-    hasRightFixedColumn() {
-      return this.colgroups.some(
-        x => x.fixed === COLUMN_FIXED_TYPE.RIGHT,
-      )
-    },
     // is editing cell
     isCellEditing() {
       const { editingCell } = this
@@ -618,17 +600,6 @@ export default defineComponent({
     // enable clipboard
     enableClipboard() {
       return this.rowKeyFieldName
-    },
-    // eanble width resize
-    enableColumnResize() {
-      let result = false
-      const { columnWidthResizeOption } = this
-      if (columnWidthResizeOption) {
-        const { enable } = columnWidthResizeOption
-        if (isBoolean(enable))
-          result = enable
-      }
-      return result
     },
     // row insert indicator props
     rowInsertIndicatorProps() {
@@ -727,51 +698,6 @@ export default defineComponent({
       },
       immediate: false,
     },
-    'columns': {
-      handler(_newVal, oldVal) {
-        // 只重新生成 cloneColumns，分组表头、列宽、滚动由 cloneColumns watcher 统一处理（COL-04）
-        this.initColumns()
-
-        // 首次执行时 cloneColumns watcher 尚未创建，需要在这里同步初始化
-        if (!oldVal) {
-          this.initGroupColumns()
-          this.initColumnWidthByColumnResize()
-        }
-      },
-      immediate: true,
-    },
-    'cloneColumns': {
-      handler() {
-        // columns 变化、隐藏/显示列、右键（取消）固定列都会替换 cloneColumns
-        this.initGroupColumns()
-        this.initColumnWidthByColumnResize()
-
-        this.columnsOptionResetTime++
-        // 需要等待 initColumns 和 initGroupColumns 先执行
-        this.initScrolling()
-      },
-      immediate: false,
-    },
-    /*
-     * COL-15：列变化后 initGroupColumns 重新生成 colgroups（_realTimeWidth 回到列配置的宽度），
-     * 但测量单元格按列 key 复用，宽度没有变化时 ResizeObserver 不会回调。
-     * 这里重新上报最近测得的宽度（与 header-tr 的 RENDER-12 相同）；宽度确实变化的列之后会由 ResizeObserver 再上报。
-     * 已不存在的列从缓存中删除，之后再显示时等待新单元格的测量结果。
-     * flush: 'post'：在本次更新（包括重新生成 colgroups 与测量单元格）之后执行
-     */
-    'columnsOptionResetTime': {
-      handler() {
-        const { measureColsWidths, colgroups } = this
-        const colKeys = new Set(colgroups.map(x => x.key))
-        Array.from(measureColsWidths.keys()).forEach((key) => {
-          if (!colKeys.has(key))
-            measureColsWidths.delete(key)
-        })
-        if (measureColsWidths.size)
-          this.debouncedMeasureCellWidthChange?.(measureColsWidths)
-      },
-      flush: 'post',
-    },
     // group columns change watch
     'groupColumns': {
       handler(val) {
@@ -864,13 +790,6 @@ export default defineComponent({
       deep: true,
     },
   },
-  created() {
-    // Debounced handler for the column-width measurement row (bug fixed #467)
-    this.debouncedMeasureCellWidthChange = debounce(
-      this.measureCellWidthChange,
-      0,
-    )
-  },
   mounted() {
     this.parentRendered = true
 
@@ -913,8 +832,6 @@ export default defineComponent({
     }
   },
   unmounted() {
-    // 取消未执行的防抖调用，避免卸载后仍更新 colgroups / 触发表格事件
-    ;(this.debouncedMeasureCellWidthChange as ReturnType<typeof debounce> | null)?.cancel()
     // remove key down event listener
     document.removeEventListener('keydown', this.dealKeydownEvent)
     // Clean up TanStack virtual scroll instance
@@ -958,38 +875,6 @@ export default defineComponent({
       this.footerRows.splice(rowIndex, 1, { rowHeight: height })
     },
 
-    // Called by the ResizeObserver cells of the measurement row inside the real table
-    measureCellSizeChange({ key, width }) {
-      this.measureColsWidths.set(key, width)
-      this.debouncedMeasureCellWidthChange?.(this.measureColsWidths)
-    },
-
-    // Applies measured column widths
-    measureCellWidthChange(colWidths) {
-      this.colgroups = this.colgroups.map((item) => {
-        // 还没有测量过的列（例如刚显示、测量单元格的 ResizeObserver 尚未回调）保留当前宽度（COL-15）
-        if (colWidths.has(item.key))
-          item._realTimeWidth = colWidths.get(item.key)
-        return item
-      })
-
-      this.tableContext.emit(HOOKS_NAME.TABLE_CELL_WIDTH_CHANGE)
-    },
-
-    // set column width for column resize
-    setColumnWidth({ colKey, width }) {
-      this.colgroups = this.colgroups.map((item) => {
-        if (item.key === colKey)
-          item._columnResizeWidth = width
-
-        return item
-      })
-      this.$nextTick(() => {
-        this.setScrollBarStatus()
-      })
-      this.tableContext.emit(HOOKS_NAME.TABLE_CELL_WIDTH_CHANGE)
-    },
-
     // sort change
     // COL-08：排序状态只保存在表头（header/index.tsx 的 sortColumns），不再写回 colgroups[].sortBy，
     // 这样 colgroups[].sortBy 始终是配置值，表头可以据此区分“列重新生成”和“配置变化”
@@ -1000,93 +885,6 @@ export default defineComponent({
 
       // stop editing cell if active
       this[INSTANCE_METHODS.STOP_EDITING_CELL]()
-    },
-
-    // init column width by column resize
-    initColumnWidthByColumnResize() {
-      const { enableColumnResize } = this
-
-      const columnDefaultWidth = 50
-      if (enableColumnResize) {
-        this.colgroups = this.colgroups.map((item) => {
-          let columnWidth = columnDefaultWidth
-          if (isNumber(item.width))
-            columnWidth = item.width
-
-          item._columnResizeWidth = columnWidth
-          return item
-        })
-      }
-    },
-
-    // init columns
-    initColumns() {
-      const { columnHiddenOption } = this
-      // 默认隐藏列只应用一次（首次有 columnHiddenOption 时）；
-      // 之后 columns 变化时保留运行时隐藏 / 显示的列（COL-09）
-      if (columnHiddenOption && !this.isDefaultHiddenColumnsApplied) {
-        const { defaultHiddenColumnKeys } = columnHiddenOption
-
-        // 复制一份，避免之后显示列时修改用户传入的数组（COL-03）
-        if (!isEmptyArray(defaultHiddenColumnKeys))
-          this.hiddenColumns = [...defaultHiddenColumnKeys]
-
-        this.isDefaultHiddenColumnsApplied = true
-      }
-
-      this.showOrHideColumns()
-    },
-
-    /*
-     * show or hide columns
-     * @param {bool} keepColumnsState 是否保留当前的列状态（右键固定列、拖动列宽）。
-     *   隐藏/显示列时保留；columns 变化时按新的列配置重新生成
-     */
-    showOrHideColumns({ keepColumnsState = false } = {}) {
-      let cloneColumns = cloneDeep(this.columns) as ColumnOption[]
-
-      cloneColumns = cloneColumns.map((col) => {
-        // 操作列默认左固定
-        if (col.operationColumn)
-          col.fixed = COLUMN_FIXED_TYPE.LEFT
-
-        return col
-      })
-
-      const { hiddenColumns } = this
-
-      if (!isEmptyArray(hiddenColumns)) {
-        //  recursive remove column key
-        hiddenColumns.forEach((key) => {
-          cloneColumns = recursiveRemoveColumnByKey(
-            cloneColumns,
-            key,
-          )
-        })
-      }
-
-      if (keepColumnsState) {
-        cloneColumns = restoreColumnsState({
-          cloneColumns,
-          prevCloneColumns: this.cloneColumns,
-          colgroups: this.colgroups,
-          enableColumnResize: this.enableColumnResize,
-        })
-      }
-
-      this.cloneColumns = cloneColumns
-    },
-
-    // 初始化分组表头
-    initGroupColumns() {
-      const result = initGroupColumns(this.cloneColumns)
-
-      // set is group header
-      this.isGroupHeader = result.isGroupHeader
-      // set colgroups
-      this.colgroups = result.colgroups
-      // set groupColumns
-      this.groupColumns = result.groupColumns
     },
 
     // scroll bar width
@@ -1730,16 +1528,6 @@ export default defineComponent({
       this.isAutofillStarting = false
     },
 
-    // set isColumnResizerHover
-    setIsColumnResizerHover(val) {
-      this.isColumnResizerHover = val
-    },
-
-    // set isColumnResizing
-    setIsColumnResizing(val) {
-      this.isColumnResizing = val
-    },
-
     /*
         set cell selection and column to visible
         */
@@ -1897,36 +1685,6 @@ export default defineComponent({
           startRowKey: allRowKeys[0],
           endRowKey: allRowKeys[allRowKeys.length - 1],
         })
-      }
-    },
-
-    // hide columns by keys
-    [INSTANCE_METHODS.HIDE_COLUMNS_BY_KEYS](keys) {
-      if (!isEmptyArray(keys)) {
-        /*
-                将要隐藏的列添加到 hiddenColumns 中
-                Add the columns you want to hide to hidden columns
-                */
-        this.hiddenColumns = Array.from(
-          new Set(this.hiddenColumns.concat(keys)),
-        )
-
-        this.showOrHideColumns({ keepColumnsState: true })
-      }
-    },
-
-    // show columns by keys
-    [INSTANCE_METHODS.SHOW_COLUMNS_BY_KEYS](keys) {
-      if (!isEmptyArray(keys)) {
-        /*
-                将要显示的列从 hiddenColumns 中移除
-                Remove the columns to show from hidden columns
-                */
-        this.hiddenColumns = this.hiddenColumns.filter(
-          key => !keys.includes(key),
-        )
-
-        this.showOrHideColumns({ keepColumnsState: true })
       }
     },
 
