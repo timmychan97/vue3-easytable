@@ -111,12 +111,12 @@ export default defineComponent({
       },
       immediate: true,
     },
-    eventTarget: {
-      handler(val) {
-        if (val)
-          this.registerContextmenuEvent()
-      },
-      immediate: true,
+    /*
+          首次注册放在 mounted：字符串选择器在 created 阶段可能还查询不到元素（MENU-02）
+          之后每次变化都先移除旧元素上的监听，再注册到新元素
+          */
+    eventTarget() {
+      this.registerContextmenuEvent()
     },
   },
 
@@ -129,6 +129,7 @@ export default defineComponent({
   },
 
   mounted() {
+    this.registerContextmenuEvent()
     this.addRootContextmenuPanelToBody()
   },
 
@@ -286,18 +287,32 @@ export default defineComponent({
 
     showRootContextmenuPanel(event: MouseEvent) {
       event.preventDefault()
-      const { rootContextmenuId } = this
 
-      if (rootContextmenuId) {
-        // refresh contextmenu
-        this.resetContextmenu()
-        this.showContextmenuPanel({
-          event,
-          contextmenuId: rootContextmenuId,
-          isRootContextmenu: true,
-        })
-        this.isPanelsEmptyed = false
-      }
+      /*
+            等待挂起的更新完成后再显示（MENU-06）
+            ve-table 在单元格的 contextmenu 处理函数中同步替换 options，事件随后才冒泡到 eventTarget。
+            若立即显示，会用旧的根菜单容器显示，随后 options 的 watcher 会移除该容器并重建，菜单随即消失。
+            真实的用户右键在两个监听器之间有微任务检查点，所以只在脚本派发的事件（测试工具、dispatchEvent）中出现。
+            $nextTick 会等待当前的刷新（watcher + 重新渲染）完成；没有挂起的更新时只延后一个微任务，仍在绘制前完成。
+            */
+      this.$nextTick(() => {
+        // 组件可能已在等待期间卸载
+        if (this.$.isUnmounted)
+          return
+
+        const { rootContextmenuId } = this
+
+        if (rootContextmenuId) {
+          // refresh contextmenu
+          this.resetContextmenu()
+          this.showContextmenuPanel({
+            event,
+            contextmenuId: rootContextmenuId,
+            isRootContextmenu: true,
+          })
+          this.isPanelsEmptyed = false
+        }
+      })
     },
 
     showContextmenuPanel({ event, contextmenuId, isRootContextmenu }: { event: MouseEvent, contextmenuId: string | number, isRootContextmenu?: boolean }) {
@@ -348,15 +363,24 @@ export default defineComponent({
           else
             panelY = clickTop - currentPanelHeight
 
-          contextmenuPanelEl.style.left = `${panelX}px`
-          contextmenuPanelEl.style.top = `${panelY}px`
+          this.setPanelPosition(contextmenuPanelEl, {
+            x: panelX,
+            y: panelY,
+            width: currentPanelWidth,
+            height: currentPanelHeight,
+          })
         }
         else {
           const parentContextmenuPanelEl
                         = getParentContextmenuPanelEl(contextmenuId)
 
           if (parentContextmenuPanelEl) {
+            /*
+                  菜单容器是 body 上的绝对定位元素，位置使用文档坐标（含滚动距离）
+                  left / right 是视口内左右两侧的剩余空间，只用于判断方向（MENU-05）
+                  */
             const {
+              offsetLeft: parentPanelOffsetLeft,
               left: parentPanelLeft,
               right: parentPanelRight,
             } = getViewportOffset(parentContextmenuPanelEl)
@@ -367,28 +391,22 @@ export default defineComponent({
             const { width: parentPanelWidth }
                             = parentContextmenuPanelEl.getBoundingClientRect()
 
+            // 紧贴父菜单右侧 / 左侧（向左展开时使用当前菜单自身的宽度）
+            const rightSideX = parentPanelOffsetLeft + parentPanelWidth
+            const leftSideX = parentPanelOffsetLeft - currentPanelWidth
+
             let panelX = 0
             let panelY = 0
 
             // 如果默认展示在右方向
             if (this.isPanelRightDirection) {
-              // 右方宽度够显示
-              if (parentPanelRight >= currentPanelWidth)
-                panelX = parentPanelLeft + parentPanelWidth
-
-              // 右方宽度不够显示在鼠标点击左方
-              else
-                panelX = parentPanelLeft - parentPanelWidth
+              // 右方宽度够显示，否则显示在父菜单左方
+              panelX = parentPanelRight >= currentPanelWidth ? rightSideX : leftSideX
             }
             // 如果默认展示在左方向
             else {
-              // 左方宽度够显示
-              if (parentPanelLeft >= currentPanelWidth)
-                panelX = parentPanelLeft - parentPanelWidth
-
-              // 左方宽度不够显示在鼠标点击右方
-              else
-                panelX = parentPanelLeft + parentPanelWidth
+              // 左方宽度够显示，否则显示在父菜单右方
+              panelX = parentPanelLeft >= currentPanelWidth ? leftSideX : rightSideX
             }
 
             // 下方高度够显示
@@ -399,11 +417,37 @@ export default defineComponent({
             else
               panelY = clickTop - currentPanelHeight
 
-            contextmenuPanelEl.style.left = `${panelX}px`
-            contextmenuPanelEl.style.top = `${panelY}px`
+            this.setPanelPosition(contextmenuPanelEl, {
+              x: panelX,
+              y: panelY,
+              width: currentPanelWidth,
+              height: currentPanelHeight,
+            })
           }
         }
       }
+    },
+
+    /*
+          设置菜单位置（文档坐标），并限制在当前可视区域内（MENU-05）
+          两侧都放不下时平移到视口内；比视口还大时贴住视口左 / 上边缘，保证菜单开头可见
+          没有布局信息（视口尺寸为 0）时不做限制
+          */
+    setPanelPosition(panelEl: HTMLElement, { x, y, width, height }: { x: number, y: number, width: number, height: number }) {
+      const doc = document.documentElement
+      const scrollX = window.pageXOffset || doc.scrollLeft || 0
+      const scrollY = window.pageYOffset || doc.scrollTop || 0
+      const viewportWidth = doc.clientWidth
+      const viewportHeight = doc.clientHeight
+
+      const clamp = (value: number, scroll: number, viewportSize: number, size: number) => {
+        if (!viewportSize)
+          return value
+        return Math.max(scroll, Math.min(value, scroll + viewportSize - size))
+      }
+
+      panelEl.style.left = `${clamp(x, scrollX, viewportWidth, width)}px`
+      panelEl.style.top = `${clamp(y, scrollY, viewportHeight, height)}px`
     },
 
     emptyContextmenuPanels() {
@@ -477,14 +521,17 @@ export default defineComponent({
       }
     },
 
+    // 注册前先移除旧元素上的监听，保证同一时间只监听一个元素
     registerContextmenuEvent() {
+      this.removeContextmenuEvent()
+
       const { eventTarget } = this
 
-      if (typeof eventTarget === 'string' && eventTarget.length > 0)
-        this.eventTargetEl = document.querySelector(eventTarget)
+      if (typeof eventTarget === 'string')
+        this.eventTargetEl = eventTarget ? document.querySelector<HTMLElement>(eventTarget) : null
 
       else
-        this.eventTargetEl = eventTarget as HTMLElement
+        this.eventTargetEl = (eventTarget as HTMLElement) || null
 
       if (this.eventTargetEl) {
         // contextmenu is on the current element
@@ -501,6 +548,7 @@ export default defineComponent({
           'contextmenu',
           this.showRootContextmenuPanel,
         )
+        this.eventTargetEl = null
       }
     },
 

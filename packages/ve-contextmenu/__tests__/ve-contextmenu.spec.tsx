@@ -734,6 +734,8 @@ describe('veContextmenu', () => {
     })
 
     contextmenuTargetEl!.dispatchEvent(event1)
+    // 菜单在挂起的更新完成后显示（MENU-06）
+    await later()
 
     const veContextmenuComp = wrapper.findComponent(veContextmenu)
 
@@ -791,6 +793,8 @@ describe('veContextmenu', () => {
     })
 
     contextmenuTargetEl!.dispatchEvent(event1)
+    // 菜单在挂起的更新完成后显示（MENU-06）
+    await later()
 
     const veContextmenuComp = wrapper.findComponent(veContextmenu)
 
@@ -806,6 +810,235 @@ describe('veContextmenu', () => {
     expect(veContextmenuComp.vm.isPanelsEmptyed).toBe(true)
 
     wrapper.unmount()
+  })
+
+  // 与 ve-table 相同的用法：目标内部的元素在同一个 contextmenu 事件中（冒泡到 eventTarget 之前）同步替换 options
+  it('options replaced while the contextmenu event bubbles still open the new menu (MENU-06)', async () => {
+    const wrapper = mount({
+      render() {
+        return (
+          <div>
+            <div class="menu06-target">
+              <span
+                class="menu06-cell"
+                onContextmenu={() => {
+                  this.count++
+                  this.options = [{ label: `item${this.count}`, type: 'x' }]
+                }}
+              >
+                cell
+              </span>
+            </div>
+            <ve-contextmenu eventTarget={this.eventTarget} options={this.options} />
+          </div>
+        )
+      },
+      data() {
+        return { options: [], count: 0, eventTarget: '' as string | HTMLElement }
+      },
+      mounted() {
+        this.eventTarget = this.$el.querySelector('.menu06-target')
+      },
+    })
+    await later()
+
+    const visibleLabels = () => [...document.querySelectorAll(
+      '.ve-contextmenu-popper .ve-contextmenu-node-label',
+    )].map(x => x.textContent)
+    const rightClickCell = async () => {
+      document.querySelector('.menu06-cell')!.dispatchEvent(
+        new MouseEvent('contextmenu', { bubbles: true, cancelable: true }),
+      )
+      await later()
+    }
+
+    // 第一次右键：options 从空数组变为 1 项
+    await rightClickCell()
+    expect(visibleLabels()).toEqual(['item1'])
+
+    // 再次右键：options 被替换为新数组
+    await rightClickCell()
+    expect(visibleLabels()).toEqual(['item2'])
+    expect(document.querySelectorAll('.ve-contextmenu-popper')).toHaveLength(1)
+
+    wrapper.unmount()
+  })
+
+  describe('eventTarget (MENU-02)', () => {
+    // showRootContextmenuPanel 会同步调用 preventDefault，dispatchEvent 返回 false 即表示监听器已注册
+    const rightClick = (el: Element) => !el.dispatchEvent(
+      new MouseEvent('contextmenu', { bubbles: true, cancelable: true }),
+    )
+
+    it('changing eventTarget moves the listener to the new element', async () => {
+      const elA = document.createElement('div')
+      const elB = document.createElement('div')
+      document.body.append(elA, elB)
+
+      const wrapper = mountDetached(veContextmenu, {
+        props: { options: cloneDeep(OPTIONS) as any, eventTarget: elA },
+      })
+      await later()
+      expect(rightClick(elA)).toBe(true)
+
+      await wrapper.setProps({ eventTarget: elB })
+      expect(rightClick(elA)).toBe(false)
+      expect(rightClick(elB)).toBe(true)
+
+      wrapper.unmount()
+      expect(rightClick(elB)).toBe(false)
+      elA.remove()
+      elB.remove()
+    })
+
+    it('a string selector is resolved after mount, and re-resolved when it changes', async () => {
+      const wrapper = mount({
+        template: `
+          <div>
+            <ve-contextmenu :eventTarget="selector" :options="options" />
+            <div id="menu02-target-a">A</div>
+            <div id="menu02-target-b">B</div>
+          </div>`,
+        data() {
+          return { selector: '#menu02-target-a', options: cloneDeep(OPTIONS) }
+        },
+      })
+      await later()
+
+      const elA = document.querySelector('#menu02-target-a')!
+      const elB = document.querySelector('#menu02-target-b')!
+      // 目标元素在组件之后渲染：created 阶段还查询不到
+      expect(rightClick(elA)).toBe(true)
+
+      ;(wrapper.vm as any).selector = '#menu02-target-b'
+      await later()
+      expect(rightClick(elA)).toBe(false)
+      expect(rightClick(elB)).toBe(true)
+
+      wrapper.unmount()
+    })
+  })
+
+  // jsdom 没有布局：模拟 1000x700 的视口，页面已滚动 (300, 200)，菜单尺寸按首个菜单项区分
+  describe('panel position (MENU-05)', () => {
+    const SCROLL_X = 300
+    const SCROLL_Y = 200
+    let panelSizes: Record<string, { width: number, height: number }>
+    // 断言失败时也要卸载，避免残留的菜单容器影响后续用例
+    const openedWrappers: { unmount: () => void }[] = []
+    const savedWindowProps: Record<string, PropertyDescriptor | undefined> = {}
+
+    beforeEach(() => {
+      vi.useFakeTimers()
+      panelSizes = {
+        'menu1': { width: 180, height: 200 },
+        'menu2-1': { width: 320, height: 80 },
+      }
+      const doc = document.documentElement
+      const docProps = { clientWidth: 1000, clientHeight: 700, scrollLeft: SCROLL_X, scrollTop: SCROLL_Y }
+      Object.entries(docProps).forEach(([key, value]) => {
+        Object.defineProperty(doc, key, { configurable: true, value })
+      })
+      const winProps = { pageXOffset: SCROLL_X, pageYOffset: SCROLL_Y, scrollX: SCROLL_X, scrollY: SCROLL_Y }
+      Object.entries(winProps).forEach(([key, value]) => {
+        savedWindowProps[key] = Object.getOwnPropertyDescriptor(window, key)
+        Object.defineProperty(window, key, { configurable: true, value })
+      })
+
+      vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
+        const label = this.classList.contains('ve-contextmenu-popper')
+          ? this.querySelector('.ve-contextmenu-node-label')?.textContent ?? ''
+          : ''
+        const { width, height } = panelSizes[label] ?? { width: 0, height: 0 }
+        // 菜单容器是 body 上的绝对定位元素：视口坐标 = 文档坐标 - 滚动距离
+        const left = (Number.parseFloat(this.style.left) || 0) - SCROLL_X
+        const top = (Number.parseFloat(this.style.top) || 0) - SCROLL_Y
+        return { left, top, width, height, right: left + width, bottom: top + height, x: left, y: top, toJSON() {} } as DOMRect
+      })
+    })
+
+    afterEach(() => {
+      openedWrappers.splice(0).forEach(wrapper => wrapper.unmount())
+      vi.restoreAllMocks()
+      vi.useRealTimers()
+      ;['clientWidth', 'clientHeight', 'scrollLeft', 'scrollTop'].forEach((key) => {
+        delete (document.documentElement as any)[key]
+      })
+      Object.entries(savedWindowProps).forEach(([key, descriptor]) => {
+        if (descriptor)
+          Object.defineProperty(window, key, descriptor)
+        else
+          delete (window as any)[key]
+      })
+    })
+
+    async function openMenu(clientX: number, clientY: number) {
+      const wrapper = mountDetached(veContextmenu, {
+        props: {
+          options: cloneDeep(OPTIONS) as any,
+          eventTarget: document.querySelector('#contextmenu-target') as HTMLElement,
+        },
+      })
+      openedWrappers.push(wrapper)
+      await nextTick()
+      document.querySelector('#contextmenu-target')!.dispatchEvent(
+        new MouseEvent('contextmenu', { clientX, clientY }),
+      )
+      await nextTick()
+      const rootEl = document.getElementById((wrapper.vm as any).rootContextmenuId)!
+      return { wrapper, rootEl }
+    }
+
+    // 悬浮 menu2，等待 300ms 防抖后打开子菜单
+    async function openSubmenu(rootEl: HTMLElement, clientX: number, clientY: number) {
+      rootEl.querySelectorAll('.ve-contextmenu-node')[1].dispatchEvent(
+        new MouseEvent('mouseover', { clientX, clientY }),
+      )
+      vi.advanceTimersByTime(350)
+      await nextTick()
+      await nextTick()
+      const subEl = [...document.querySelectorAll<HTMLElement>('.ve-contextmenu-popper')]
+        .find(el => el.querySelector('.ve-contextmenu-node-label')?.textContent === 'menu2-1')
+      expect(subEl).toBeTruthy()
+      return subEl!
+    }
+
+    it('a submenu opening to the right starts at the parent\'s right edge on a scrolled page', async () => {
+      const { rootEl } = await openMenu(100, 100)
+      // 文档坐标 = 鼠标视口坐标 + 滚动距离
+      expect(rootEl.style.left).toBe('400px')
+      expect(rootEl.style.top).toBe('300px')
+
+      const subEl = await openSubmenu(rootEl, 150, 130)
+      expect(subEl.style.left).toBe(`${400 + 180}px`)
+      expect(subEl.style.top).toBe('330px')
+    })
+
+    it('a submenu opening to the left ends at the parent\'s left edge, using its own width', async () => {
+      // 右侧空间不足：根菜单显示在鼠标左侧，子菜单默认向左展开
+      const { rootEl } = await openMenu(950, 100)
+      expect(rootEl.style.left).toBe(`${950 + SCROLL_X - 180}px`)
+
+      const subEl = await openSubmenu(rootEl, 900, 130)
+      expect(subEl.style.left).toBe(`${950 + SCROLL_X - 180 - 320}px`)
+    })
+
+    it('a panel larger than the space on both sides is clamped into the viewport', async () => {
+      // 比视口还高的根菜单：两边空间都不够，固定在视口顶部
+      panelSizes.menu1 = { width: 180, height: 1000 }
+      const { rootEl } = await openMenu(100, 300)
+      expect(rootEl.style.top).toBe(`${SCROLL_Y}px`)
+
+      // 鼠标左右两侧都放不下的宽菜单：平移到视口内（贴住视口左边缘），而不是跑到视口外面
+      panelSizes.menu1 = { width: 900, height: 200 }
+      const { rootEl: rootEl2 } = await openMenu(500, 100)
+      expect(rootEl2.style.left).toBe(`${SCROLL_X}px`)
+
+      // 放得下时不受影响：右侧空间不够就显示在鼠标左侧，且仍在视口内
+      panelSizes.menu1 = { width: 400, height: 200 }
+      const { rootEl: rootEl3 } = await openMenu(700, 100)
+      expect(rootEl3.style.left).toBe(`${700 + SCROLL_X - 400}px`)
+    })
   })
 
   describe('lifecycle and timers', () => {
