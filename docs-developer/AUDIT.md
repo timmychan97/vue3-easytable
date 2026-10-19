@@ -257,10 +257,13 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
   - **Trigger:** sort a column by clicking its header, then do anything that rebuilds the columns: hide or show a column, fix or unfix one from the contextmenu, or change `columns`. The header icon falls back to the configured `sortBy`, while the data stays sorted the way the user chose.
   - **Fix:** when the columns are rebuilt, carry the current `sortBy` over by column key (and use the configured value only for new columns).
 
-- [ ] **COL-09** 🟢 A `columns` prop change drops runtime-hidden columns, but only when `defaultHiddenColumnKeys` is set (found in batch 7)
+- [x] ✅ 2026-10-19 · refactor/audit-wave2-util · **COL-09** 🟢 A `columns` prop change drops runtime-hidden columns, but only when `defaultHiddenColumnKeys` is set (found in batch 7)
   - **Where:** `ve-table.tsx` `initColumns()`: `this.hiddenColumns = [...defaultHiddenColumnKeys]` runs on every `columns` change, not only on the first init.
   - **Trigger:** with `columnHiddenOption.defaultHiddenColumnKeys` set, call `hideColumnsByKeys` (or `showColumnsByKeys`), then change `columns`. The hidden set is reset to the defaults, so the hidden column comes back (and a shown default column is hidden again). Without `defaultHiddenColumnKeys`, the runtime state is kept, so the two configurations behave differently.
   - **Fix:** apply `defaultHiddenColumnKeys` only on the first init.
+  - **Done:** a new data flag `isDefaultHiddenColumnsApplied`; `initColumns()` copies `defaultHiddenColumnKeys` into `hiddenColumns` only while the flag is false, and sets it the first time `columnHiddenOption` is present. Later `columns` changes keep the runtime hidden set, as they already did without `defaultHiddenColumnKeys`.
+  - **Proposed decision:** the defaults are applied once, the first time `columnHiddenOption` is set (normally on mount). If an app passes `columnHiddenOption` only later (for example together with columns loaded asynchronously), the defaults are still applied once at that point. Changing `defaultHiddenColumnKeys` afterwards does nothing; use `hideColumnsByKeys` / `showColumnsByKeys` (there was never a watcher on `columnHiddenOption`, so this only removes the side effect of a later `columns` change).
+  - **Verified:** `ve-table-column-state.spec.ts` › "columns prop change keeps runtime hidden columns (COL-09)": "keeps a column hidden at runtime" (failed before: `['a', 'c', 'd', 'e']`, the hidden `d` came back) and "keeps a default hidden column that was shown at runtime" (failed: `b` hidden again); "still applies defaultHiddenColumnKeys on mount" and "behaves the same without defaultHiddenColumnKeys" guard the rest. The COL-03 / COL-04 tests and `ve-table-column-hidden.spec.ts` still pass.
 
 ---
 
