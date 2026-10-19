@@ -120,7 +120,7 @@ export default defineComponent({
         },
       )
       if (customClass)
-        result[customClass] = true
+        result[customClass as string] = true
       // cell selection option
       if (cellSelectionData) {
         const { rowKey, colKey } = cellSelectionData.currentCell

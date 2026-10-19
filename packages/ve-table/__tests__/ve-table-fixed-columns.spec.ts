@@ -37,7 +37,7 @@ describe('useFixedColumns (MOD-06)', () => {
 
   function setup() {
     const { colgroups, groupColumns } = initGroupColumns(createColumns())
-    const colgroupsRef = ref(colgroups)
+    const colgroupsRef = ref<any[]>(colgroups)
     return { colgroupsRef, groupColumns, fixedColumns: useFixedColumns(colgroupsRef) }
   }
 

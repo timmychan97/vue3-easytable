@@ -227,7 +227,7 @@ export default defineComponent({
         },
       )
       if (customClass)
-        result[customClass] = true
+        result[customClass as string] = true
 
       return result
     },
