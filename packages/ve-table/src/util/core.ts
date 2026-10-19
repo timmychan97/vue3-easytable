@@ -1,6 +1,7 @@
 /**
  * 通用工具（MOD-03）：类名、行 key、事件名等与具体功能无关的函数
  */
+import type { ColgroupData } from '../ve-table-types'
 import { isEmptyArray, isEmptyValue } from '@vue3-easytable/common/utils'
 import { PREFIX_CLS } from './constant'
 
@@ -8,10 +9,9 @@ import { PREFIX_CLS } from './constant'
 export type ColKey = string | number
 export type RowKey = string | number
 
-// colgroups / allRowKeys 参数：多数调用方传入的是未声明类型的 props（unknown[]），
-// 这里暂用宽松的数组类型；这些 props 声明为 PropType<ColgroupData[]> 等之后再收紧
-export type ColgroupsParam = any[]
-export type RowKeysParam = any[]
+// colgroups / allRowKeys 参数：子组件的 props 已声明为 PropType<ColgroupData[]> / PropType<RowKey[]>（INFRA-15）
+export type ColgroupsParam = ColgroupData[]
+export type RowKeysParam = RowKey[]
 
 /**
  * @clsName

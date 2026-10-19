@@ -1,10 +1,9 @@
-import emitter from '@vue3-easytable/common/mixins/emitter'
+import type { ColgroupData } from '../ve-table-types'
 import { clsName } from '../util'
 import { COMPS_NAME } from '../util/constant'
 
 export default defineComponent({
   name: COMPS_NAME.VE_TABLE_EXPAND_TR,
-  mixins: [emitter()],
   props: {
     tableViewportWidth: {
       type: Number,
@@ -18,7 +17,7 @@ export default defineComponent({
       },
     },
     colgroups: {
-      type: Array,
+      type: Array as PropType<ColgroupData[]>,
       required: true,
     },
     // expand row option

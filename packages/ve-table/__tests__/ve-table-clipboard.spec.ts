@@ -231,7 +231,7 @@ describe('veTable clipboard', () => {
   it('pastes TSV through the editor textarea and selects the pasted block', async () => {
     const wrapper = await mountTable()
     await select(wrapper, '2', 'b')
-    const triggerHook = vi.spyOn(wrapper.vm.hooks, 'triggerHook')
+    const triggerHook = vi.spyOn(wrapper.vm.tableContext, 'emit')
 
     const { event } = createClipboardEvent('paste', 'x\ty\nz\tw\n')
     textarea(wrapper).dispatchEvent(event)
@@ -413,7 +413,7 @@ describe('veTable clipboard', () => {
       const afterPaste = throwing('afterPaste')
       const wrapper = await mountTable({ afterPaste })
       await select(wrapper, '1', 'a')
-      const triggerHook = vi.spyOn(wrapper.vm.hooks, 'triggerHook')
+      const triggerHook = vi.spyOn(wrapper.vm.tableContext, 'emit')
 
       expect(() =>
         wrapper.vm.editorPaste(createClipboardEvent('paste', 'x\ty\nz\tw').event),
@@ -591,8 +591,8 @@ describe('veTable clipboard', () => {
      * 记录 hook 与 after 回调的调用顺序
      */
     function recordOrder(wrapper: any, calls: string[]) {
-      const original = wrapper.vm.hooks.triggerHook.bind(wrapper.vm.hooks)
-      return vi.spyOn(wrapper.vm.hooks, 'triggerHook').mockImplementation((name: any, ...args: any[]) => {
+      const original = wrapper.vm.tableContext.emit.bind(wrapper.vm.tableContext)
+      return vi.spyOn(wrapper.vm.tableContext, 'emit').mockImplementation((name: any, ...args: any[]) => {
         calls.push(name)
         return original(name, ...args)
       })
@@ -625,7 +625,7 @@ describe('veTable clipboard', () => {
     it('a cancelled cut or delete does not trigger the hook', async () => {
       const wrapper = await mountTable({ beforeCut: () => false, beforeDelete: () => false })
       await select(wrapper, '1', 'a')
-      const triggerHook = vi.spyOn(wrapper.vm.hooks, 'triggerHook')
+      const triggerHook = vi.spyOn(wrapper.vm.tableContext, 'emit')
 
       wrapper.vm.editorCut(createClipboardEvent('cut').event)
       wrapper.vm.deleteCellSelectionRangeValue()
@@ -712,7 +712,7 @@ describe('veTable clipboard', () => {
     it('cut writes the clipboard, then clears the cells and refreshes the selection', async () => {
       const afterCut = vi.fn()
       const wrapper = await mountWithMenu({ afterCut })
-      const triggerHook = vi.spyOn(wrapper.vm.hooks, 'triggerHook')
+      const triggerHook = vi.spyOn(wrapper.vm.tableContext, 'emit')
 
       await clickMenu(wrapper, CONTEXTMENU_NODE_TYPES.CUT)
 
@@ -867,8 +867,8 @@ describe('veTable clipboard', () => {
           calls.push(`${name}:${params.column.key}:${params.changeValue}`)
         })
       }
-      const triggerHook = wrapper.vm.hooks.triggerHook.bind(wrapper.vm.hooks)
-      vi.spyOn(wrapper.vm.hooks, 'triggerHook').mockImplementation((name: any, ...args: any[]) => {
+      const triggerHook = wrapper.vm.tableContext.emit.bind(wrapper.vm.tableContext)
+      vi.spyOn(wrapper.vm.tableContext, 'emit').mockImplementation((name: any, ...args: any[]) => {
         calls.push(name)
         return triggerHook(name, ...args)
       })
@@ -1170,7 +1170,7 @@ describe('veTable clipboard', () => {
       const callbacks = { beforePaste: vi.fn(), afterPaste: vi.fn() }
       const wrapper = await mountTable(callbacks, { columns: COLUMNS_WITH_NON_DATA })
       await select(wrapper, '1', 'x')
-      const triggerHook = vi.spyOn(wrapper.vm.hooks, 'triggerHook')
+      const triggerHook = vi.spyOn(wrapper.vm.tableContext, 'emit')
 
       pasteAndExpectNothing(wrapper, 'p\nq\n', { ...callbacks, triggerHook })
       wrapper.unmount()

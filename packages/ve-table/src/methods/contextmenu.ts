@@ -250,7 +250,7 @@ export const contextmenuMethods = {
         )
         // Trigger selection position refresh after DOM updates
         this.$nextTick(() => {
-          this.hooks.triggerHook(HOOKS_NAME.CLIPBOARD_CELL_VALUE_CHANGE)
+          this.tableContext.emit(HOOKS_NAME.CLIPBOARD_CELL_VALUE_CHANGE)
         })
       }
       // insert row below
@@ -262,7 +262,7 @@ export const contextmenuMethods = {
         )
         // Trigger selection position refresh after DOM updates
         this.$nextTick(() => {
-          this.hooks.triggerHook(HOOKS_NAME.CLIPBOARD_CELL_VALUE_CHANGE)
+          this.tableContext.emit(HOOKS_NAME.CLIPBOARD_CELL_VALUE_CHANGE)
         })
       }
     }

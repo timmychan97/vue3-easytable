@@ -180,9 +180,10 @@ export function getSelectionRangeData({
   const startRowIndex = allRowKeys.indexOf(topRowKey)
   const endRowIndex = allRowKeys.indexOf(bottomRowKey)
 
+  // 没有 field 的列读取 rowData[undefined]（与之前相同，值为 ''）
   const fieldNames = colgroups
     .slice(startColIndex, endColIndex + 1)
-    .map(x => x.field)
+    .map(x => x.field as string)
 
   if (resultType === 'normal') {
     result = tableData

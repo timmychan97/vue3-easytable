@@ -1,10 +1,11 @@
-import emitter from '@vue3-easytable/common/mixins/emitter'
+import type { ColgroupData } from '../ve-table-types'
 import { getValByUnit, isEmptyValue } from '@vue3-easytable/common/utils'
 import { ICON_NAMES } from '@vue3-easytable/common/utils/constant'
 import VeIcon from '@vue3-easytable/ve-icon'
 import { h } from 'vue'
 import { bindCustomEvents, getCustomEvents } from '../features/custom-events/bindCustomEvents'
 import { injectFixedColumns } from '../features/fixed-columns/useFixedColumns'
+import { injectTableContext } from '../features/table-context'
 import {
   clsName,
   getColKeysByHeaderColumn,
@@ -18,7 +19,6 @@ import HeaderFilterCustomContent from './header-filter-custom-content'
 
 export default defineComponent({
   name: COMPS_NAME.VE_TABLE_THADER_Th,
-  mixins: [emitter()],
   props: {
     // group columns item
     groupColumn: {
@@ -31,7 +31,7 @@ export default defineComponent({
       required: true,
     },
     colgroups: {
-      type: Array,
+      type: Array as PropType<ColgroupData[]>,
       required: true,
     },
     headerRows: {
@@ -109,6 +109,8 @@ export default defineComponent({
   setup() {
     return {
       fixedColumns: injectFixedColumns(),
+      // 表格上下文（MOD-01）：只发出事件，不注册监听器
+      tableContext: injectTableContext(),
     }
   },
   computed: {
@@ -301,7 +303,8 @@ export default defineComponent({
                     = sortBy === 'asc' ? 'desc' : sortBy === 'desc' ? '' : 'asc'
       }
 
-      this.dispatch(COMPS_NAME.VE_TABLE_THADER, EMIT_EVENTS.SORT_CHANGE, {
+      // 通知表头（header/index.tsx）更新排序状态
+      this.tableContext.emit(EMIT_EVENTS.COLUMN_SORT_CHANGE, {
         currentField,
         sortResult,
       })
@@ -389,7 +392,7 @@ export default defineComponent({
 
     // 通知 ve-table 表头单元格事件（列选择、右键菜单等）
     dispatchCellEvent(eventName, event) {
-      this.dispatch(COMPS_NAME.VE_TABLE, eventName, {
+      this.tableContext.emit(eventName, {
         event,
         column: this.groupColumnItem,
       })

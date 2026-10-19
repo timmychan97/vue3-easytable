@@ -1,15 +1,17 @@
 /*
 单元格选区层（MOD-05）
 - geometry.ts：纯几何计算（选区范围、边框、角标、填充预览、填充方向）
-- useSelectionPositions.ts：单元格元素与位置跟踪、表格 hooks 的注册与注销、防抖、卸载清理
+- useSelectionPositions.ts：单元格元素与位置跟踪、表格事件（滚动、尺寸变化等）的订阅、防抖、卸载清理
 - SelectionBorders.tsx：边框、角标与区域浮层的展示组件
 本组件把三者组合起来：按左固定 / 中间 / 右固定三个区域渲染当前单元格、区域选择、填充预览与区域浮层
 */
-import type { Emitter, EventType } from 'mitt'
 import type { PropType, VNode } from 'vue'
+import type { RowKey } from '../util/core'
+import type { ColgroupData } from '../ve-table-types'
 import type { AutofillingDirection, CellSelectionRange, SelectionBorders as SelectionBordersData, SelectionCell } from './geometry'
 import type { SelectionPositionsProps } from './useSelectionPositions'
-import { computed, defineComponent, inject } from 'vue'
+import { computed, defineComponent } from 'vue'
+import { useTableContext } from '../features/table-context'
 import {
   COLUMN_FIXED_TYPE,
   COMPS_NAME,
@@ -62,19 +64,15 @@ export default defineComponent({
       default: null,
     },
     allRowKeys: {
-      type: Array,
+      type: Array as PropType<RowKey[]>,
       required: true,
     },
     colgroups: {
-      type: Array as PropType<any[]>,
+      type: Array as PropType<ColgroupData[]>,
       required: true,
     },
     parentRendered: {
       type: Boolean,
-      required: true,
-    },
-    hooks: {
-      type: Object,
       required: true,
     },
     // cell autofill option
@@ -121,11 +119,8 @@ export default defineComponent({
   emits: [EMIT_EVENTS.CELL_SELECTION_RANGE_DATA_CHANGE],
 
   setup(props, { emit }) {
-    // 表格的事件总线（emitter mixin 提供），角标的鼠标事件派发给表格
-    const eventBus = inject<Emitter<Record<EventType, unknown>>>('eventBus')
-    function dispatchToTable(eventName: string, params: unknown) {
-      eventBus?.emit([COMPS_NAME.VE_TABLE, eventName].join(), params)
-    }
+    // 表格上下文（MOD-01）：角标的鼠标事件发给表格；表格的滚动、尺寸变化等事件由 useSelectionPositions 订阅，卸载时自动注销
+    const tableEvents = useTableContext()
 
     // selection borders visibility（虚拟滚动时选区可能在已渲染的行之外）
     const selectionBordersVisibility = computed(() => {
@@ -180,6 +175,7 @@ export default defineComponent({
     const positions = useSelectionPositions(props as unknown as SelectionPositionsProps, {
       isSelectionVisible: selectionBordersVisibility,
       onSelectionCellChange: setCellSelectionRangeData,
+      tableEvents,
     })
     const { cellSelectionRect } = positions
 
@@ -234,10 +230,10 @@ export default defineComponent({
           borders={resolved}
           cornerPosition={getCornerPosition(resolved.corner, cornerCellInfo.value)}
           onCornerMousedown={(event: MouseEvent) => {
-            dispatchToTable(EMIT_EVENTS.SELECTION_CORNER_MOUSEDOWN, { event })
+            tableEvents.emit(EMIT_EVENTS.SELECTION_CORNER_MOUSEDOWN, { event })
           }}
           onCornerMouseup={(event: MouseEvent) => {
-            dispatchToTable(EMIT_EVENTS.SELECTION_CORNER_MOUSEUP, { event })
+            tableEvents.emit(EMIT_EVENTS.SELECTION_CORNER_MOUSEUP, { event })
           }}
         />
       )

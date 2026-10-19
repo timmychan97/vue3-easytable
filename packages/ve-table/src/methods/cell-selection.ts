@@ -352,7 +352,7 @@ export const cellSelectionMethods = {
     }
 
     // 单元格内容已变化，刷新选区位置（FILL-06，与粘贴、剪切、删除相同）
-    this.hooks.triggerHook(HOOKS_NAME.CLIPBOARD_CELL_VALUE_CHANGE)
+    this.tableContext.emit(HOOKS_NAME.CLIPBOARD_CELL_VALUE_CHANGE)
 
     // 内部状态已更新完毕，再调用逐单元格的 after 回调（FILL-03）
     cellValueCallbacks.fireAfter(appliedChanges)
@@ -712,7 +712,7 @@ export const cellSelectionMethods = {
     // 行位置变化（如在上方插入行）后，等 DOM 更新再刷新选区位置
     if (isPositionChanged) {
       this.$nextTick(() => {
-        this.hooks.triggerHook(HOOKS_NAME.CLIPBOARD_CELL_VALUE_CHANGE)
+        this.tableContext.emit(HOOKS_NAME.CLIPBOARD_CELL_VALUE_CHANGE)
       })
     }
   },

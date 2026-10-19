@@ -208,6 +208,17 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
     - In this worktree, a staged probe with a `debugger` statement: `git commit` was rejected by the hook (`no-debugger`, "Skipping backup because `--no-stash` was used").
     - Every commit on this branch went through the updated hook: eslint ran on the staged files and printed the "Skipping backup" warning.
 
+- [x] ✅ 2026-10-19 · refactor/audit-wave3-table-context · **INFRA-15** 🟢 Untyped `colgroups` / `allRowKeys` props in the table's child components (found in wave 2)
+  - **Where:** `colgroups` in `header` (`index`, `header-tr`, `header-th`), `body` (`index`, `body-tr`, `body-td`, `expand-tr`), `footer` (`index`, `footer-tr`, `footer-td`), `editor`, `column-resizer`, `colgroup` and `selection`; `allRowKeys` in `body` (`index`, `body-tr`, `body-td`), `footer/index` and `selection`. They were declared `type: Array` (`unknown[]`), or `Array as PropType<any[]>` in `colgroup` and `selection`.
+  - **Effect:** the column objects were `unknown` inside these components. Because of that, the `util/` modules split out by MOD-03 had to type their `colgroups` / `allRowKeys` parameters with the loose aliases `ColgroupsParam` / `RowKeysParam` (`any[]`), so nothing checked how they used the column objects.
+  - **Fix:** declare `PropType<ColgroupData[]>` / `PropType<RowKey[]>` (`ColgroupData` from `ve-table-types.ts`, `RowKey` from `util/core.ts`), then tighten the two aliases.
+  - **Done:** all the props above are typed (`row-insert-indicator` already was, since INS-04). `ColgroupsParam` is now `ColgroupData[]` and `RowKeysParam` is `RowKey[]`. The stricter aliases exposed a few spots in `util/` that relied on `any`, all fixed with type-only changes:
+    - `cell-autofill.ts`: the source column is `undefined` (not `null`) when there is no source cell, and is checked before `isDataColumn`. The field lookups after `isDataColumn` are cast to `string`.
+    - `selection-range/range.ts`: the same cast for `getSelectionRangeData`. A column without `field` still reads `rowData[undefined]`, as before.
+    - `clipboard/handlers.ts`: its column type is now `ColgroupData`, which still satisfies `CellValueColumn`.
+    No runtime change.
+  - **Verified:** the full suite passes unchanged (71 files, 891 tests) with no snapshot change. eslint is clean. vue-tsc went from 253 to 242: the `unknown` column errors in body, footer, editor, column-resizer and header-th are gone, and there are no new errors. The remaining messages in those files changed only their wording (for example `currentResizingColumn` is declared `null` in `data()`, and `footer/index.tsx` is a plain object without `defineComponent`).
+
 ---
 
 ## COL — columns (fixed, hide/show, resize)
@@ -1195,7 +1206,43 @@ Findings in the docs site content (`docs/src/docs/{en,nb,zh}`).
 These are structural changes. Several of them remove whole bug classes above (noted in brackets).
 **Approach (D1): Composition API.** Logic moves into `use*` composables organised by feature, e.g. `packages/ve-table/src/features/<feature>/use<Feature>.ts`, and components move to `setup()`. Migrate one feature at a time, keeping the test suite green after each step. The public API (props, emits, instance methods exposed via `expose`) must not change.
 
-- [ ] **MOD-01** Replace the emitter mixin and `Hooks` with a typed `provide/inject` table context (`useTableContext`) whose subscriptions auto-dispose through `onScopeDispose` / `beforeUnmount`. [INFRA-01, INFRA-02]
+- [x] ✅ 2026-10-19 · refactor/audit-wave3-table-context · **MOD-01** Replace the emitter mixin and `Hooks` with a typed `provide/inject` table context (`useTableContext`) whose subscriptions auto-dispose through `onScopeDispose` / `beforeUnmount`. [INFRA-01, INFRA-02]
+  - **Done:** new `features/table-context/index.ts`. One context per table carries both directions: child → table (the old `dispatch` / `on`) and table → child (the old `triggerHook` / `addHook`).
+    - **Types:** `TableEventMap` maps each event name to its payload type (`BodyCellEventPayload`, `HeaderCellEventPayload`, `RowHeightChangePayload`, `BodyRowClickPayload`, `SortColumns`, …; `void` when there is none). The names come from `EMIT_EVENTS` / `HOOKS_NAME`, which are now `as const`. `on` and `emit` reject unknown names and wrong payloads.
+    - **`createTableContext()`** returns `{ on, emit, listenerCount }`. `on` returns a disposer (safe to call twice); each registration is independent, even for the same function.
+    - **Error isolation:** `emit` iterates over a copy and calls each listener in its own try/catch, like `triggerHook`. A thrown error goes to Vue's `handleError` with the component that subscribed, so `errorCaptured` and `app.config.errorHandler` still see it (bus handler errors used to reach them by throwing through the DOM handler). Without a component it is logged with `console.error`. A listener removed during a dispatch is not called by that dispatch.
+    - **`useTableContext(ctx?)`** injects the nearest context and returns `{ on, onMany, emit }`. Its subscriptions are disposed by `onScopeDispose`, so it must be called while a scope is active: in `setup()`, or in an Options API `data()` / `provide()` / `created()` (Vue runs those with the instance scope active). It throws otherwise. The returned object can subscribe later (from `mounted`, a watcher, `nextTick`). Once the scope has stopped, `on` does nothing, so a late registration cannot leak.
+    - Also: `TABLE_CONTEXT_KEY`, `provideTableContext()` (for `setup()`, used by the tests and by MOD-02 later), and `injectTableContext()` (throws outside a table, like `injectRowState`).
+  - **ve-table:**
+    - It creates the context in `data()` (`markRaw`, as `tableContext`) and provides it from the `provide()` option, next to the row state and the fixed columns.
+    - It creates its own subscription scope in `created()` (`tableEvents`). A component cannot inject what it provides itself, so it passes its context explicitly.
+    - The 18 `this.on(...)` calls in `mounted` are now one `tableEvents.onMany({ [event]: handler })` table, still registered in `mounted`.
+    - `this.hooks.triggerHook(...)` in `ve-table.tsx` and `methods/*.ts` is now `this.tableContext.emit(...)`. The context exists from creation, so an emit before `mounted` no longer hits the old `{}` placeholder.
+  - **Children:**
+    - Emit-only components inject the context in `setup()`: `body-td`, `body-tr`, `header-th`, `header-tr` and `footer-tr`.
+    - Subscribers call `useTableContext()` in `setup()`: `header`, `body`, `editor`, `column-resizer`, `selection` (passed into `useSelectionPositions`) and `row-insert-indicator`.
+    - The `hooks` prop is gone from selection, editor, column-resizer and row-insert-indicator. Their manual unsubscribe in `beforeUnmount` / `onUnmounted` is gone too. They keep their disposers only to replace the subscriptions when `parentRendered` fires again.
+    - `footer-td` and `expand-tr` had the mixin but never used it.
+  - **One event renamed:** `SORT_CHANGE` was used for two different events, told apart only by the target component name: header-th → header (`{ currentField, sortResult }`) and header → table (`sortColumns`). The first one is now `EMIT_EVENTS.COLUMN_SORT_CHANGE`.
+  - **Removed:** `common/mixins/emitter.ts`, `common/utils/hooks-manager.ts` and `common/__tests__/hooks-manager.spec.ts` (its three cases are in the new spec). Nothing outside ve-table used them. Nothing imports `mitt` any more, but it is still listed in the `common` and `ve-table` `package.json`, because removing it means changing `pnpm-lock.yaml`.
+  - **Public API unchanged:** props, emits, instance methods and user callbacks. The internal instance fields `eventBus` / `hooks` became `tableContext` / `tableEvents`.
+  - **Verified:** the full suite passes, with no snapshot change. New `ve-table-table-context.spec.ts` (17 tests):
+    - payload delivery, and type errors on wrong names / payloads (`@ts-expect-error`, checked by vue-tsc)
+    - the disposer, and independent duplicate registrations
+    - error isolation, both with `console.error` and through an app `errorHandler`
+    - self-disposal, removal and addition during a dispatch
+    - auto-dispose on `scope.stop()`, and no registration after it; `onMany`
+    - a missing scope or a missing table
+    - no listener left after a `setup()` child, or an Options API child that subscribes from `created` / `mounted`, unmounts (toggled three times)
+    - nested tables use the nearest context
+  - **Existing tests changed** (they reached into the removed internals):
+    - `ve-table-lifecycle.spec.ts`: it counts `tableContext.listenerCount()` instead of summing `hooks.hooks`. The count now also includes the former bus listeners, so the absolute numbers differ, but the test proves the same thing: the count is unchanged after three `cellSelectionOption` toggles. A new assertion checks that disabling the selection then removes exactly 6 listeners (4 selection, 2 editor). The row-insert test still counts the `TABLE_CONTAINER_SCROLL` listeners (initial, then initial − 1 after disabling). The tests trigger through `tableContext.emit` and spy on it instead of `hooks.triggerHook`. The INFRA-02 test also asserts that exactly one `COLUMN_SORT_CHANGE` listener is left after the `showHeader` toggles.
+    - `ve-table-clipboard.spec.ts` (7 spies) and `ve-table-cell-edit.spec.ts` (1 test): `hooks.triggerHook` → `tableContext.emit`, same assertions.
+  - **Chromium:** headless, with the probe page in the session scratchpad. The same driver ran against the old code (`035be38`) and the new code, on a table with fixed columns, sort, a header filter, cell selection, editing, column resize, row insert, body and header contextmenus and a footer, once normal and once with virtual scroll (300 rows).
+    - It checked: header / footer row heights; sort; row click highlight plus `bodyRowEvents`; drag range selection; header click column selection; double-click edit + Enter; the selection border following a scroll (and rows changing in virtual mode); the resize handle and a drag; filter confirm; menu insert-row; header menu; the row insert button.
+    - Results were identical in both modes, with no console errors.
+    - On the new code the context held 28 listeners before and after two rounds of `showHeader` and `cellSelectionOption.enable` toggles, and a sort click after them called `sortChange` once.
+    - vue-tsc stayed at 253.
 - [ ] 🚧 **MOD-02** Split `ve-table.tsx` into feature composables and move the component to `setup()` (D1). Instance methods currently called through `this[INSTANCE_METHODS.*]` (and by users through refs) must be kept via `expose`.
   - **Step 1 done in `442962c`:** `ve-table.tsx` went from 4.2k to 2.5k lines. Method groups moved to `src/methods/*.ts` as plain objects that are spread into the Options API `methods` (`ve-table.tsx:2117-2122`), virtual scroll moved to `src/virtual-scroll.ts`, and shared types to `src/ve-table-types.ts`. This is still the Options API: the modules take `this: any`, share all state through `this`, and are not composables. Note that the spread comes **last**, so a module method silently overrides a same-named inline method.
   - **Remaining:** turn each module into a `use*` composable with explicit inputs and outputs, and move the component to `setup()`.

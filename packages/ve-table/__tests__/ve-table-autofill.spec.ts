@@ -796,8 +796,8 @@ describe('veTable cell autofill', () => {
   describe('autofill refreshes the selection (FILL-06)', () => {
     // 记录 CLIPBOARD_CELL_VALUE_CHANGE（连同当时的选区结束单元格）与回调的调用顺序
     function recordHook(calls: string[]) {
-      const original = wrapper.vm.hooks.triggerHook.bind(wrapper.vm.hooks)
-      return vi.spyOn(wrapper.vm.hooks, 'triggerHook').mockImplementation((name: any, ...args: any[]) => {
+      const original = wrapper.vm.tableContext.emit.bind(wrapper.vm.tableContext)
+      return vi.spyOn(wrapper.vm.tableContext, 'emit').mockImplementation((name: any, ...args: any[]) => {
         if (name === HOOKS_NAME.CLIPBOARD_CELL_VALUE_CHANGE)
           calls.push(`hook:${wrapper.vm.cellSelectionData.normalEndCell.rowKey}`)
         return original(name, ...args)

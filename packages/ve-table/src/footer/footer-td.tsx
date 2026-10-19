@@ -1,4 +1,4 @@
-import emitter from '@vue3-easytable/common/mixins/emitter'
+import type { ColgroupData } from '../ve-table-types'
 import { getValByUnit } from '@vue3-easytable/common/utils/index.js'
 import { h } from 'vue'
 import { bindCustomEvents, getCustomEvents } from '../features/custom-events/bindCustomEvents'
@@ -10,7 +10,6 @@ import { safeCall } from '../util/safe-call'
 
 export default defineComponent({
   name: COMPS_NAME.VE_TABLE_BODY_TD,
-  mixins: [emitter()],
   props: {
     rowData: {
       type: Object,
@@ -25,7 +24,7 @@ export default defineComponent({
       required: true,
     },
     colgroups: {
-      type: Array,
+      type: Array as PropType<ColgroupData[]>,
       required: true,
     },
     rowKeyFieldName: {

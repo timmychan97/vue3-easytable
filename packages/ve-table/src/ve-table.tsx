@@ -1,3 +1,4 @@
+import type { TableEventScope } from './features/table-context'
 import type { AutofillingDirection } from './selection/geometry'
 import type { KeyboardMode } from './util/constant.js'
 import type {
@@ -15,7 +16,6 @@ import type { VirtualItem, VirtualScrollInstance } from './virtual-scroll'
 import VueDomResizeObserver from '@vue3-easytable/common/comps/resize-observer'
 import clickoutside from '@vue3-easytable/common/directives/clickoutside'
 import { globalLocale, LocaleInjectionKey } from '@vue3-easytable/common/locale'
-import emitter from '@vue3-easytable/common/mixins/emitter'
 import {
   getValByUnit,
   isBoolean,
@@ -28,12 +28,10 @@ import {
 } from '@vue3-easytable/common/utils'
 import { MOUSE_EVENT_CLICK_TYPE } from '@vue3-easytable/common/utils/constant'
 // isInputKeyCode moved to methods/keyboard.ts
-import Hooks from '@vue3-easytable/common/utils/hooks-manager'
 import { getMouseEventClickType } from '@vue3-easytable/common/utils/mouse-event'
 import { getScrollbarWidth } from '@vue3-easytable/common/utils/scroll-bar'
 import VeContextmenu from '@vue3-easytable/ve-contextmenu'
 import { cloneDeep, debounce } from 'lodash'
-import mitt from 'mitt'
 import { defineComponent, markRaw } from 'vue'
 import Body from './body'
 import Colgroup from './colgroup'
@@ -41,6 +39,7 @@ import ColumnResizer from './column-resizer'
 import EditInput from './editor'
 import { FIXED_COLUMNS_KEY, useFixedColumns } from './features/fixed-columns/useFixedColumns'
 import { createRowState, ROW_STATE_KEY } from './features/row-state'
+import { createTableContext, TABLE_CONTEXT_KEY, useTableContext } from './features/table-context'
 import Footer from './footer'
 import Header from './header'
 import { cellSelectionMethods } from './methods/cell-selection'
@@ -89,10 +88,9 @@ export default defineComponent({
   directives: {
     'click-outside': clickoutside,
   },
-  mixins: [emitter('eventBus')],
   /*
    * INFRA-06：声明组件对外触发的全部事件（this.$emit）。
-   * 未声明时监听器会作为属性透传到根元素上。内部组件之间的通信走 eventBus（dispatch / on），不在此列。
+   * 未声明时监听器会作为属性透传到根元素上。内部组件之间的通信走表格上下文（MOD-01），不在此列。
    * - on-row-insert：行插入（rowInsertOption），参数 { insertRowIndex }
    */
   emits: [EMIT_EVENTS.ROW_INSERT],
@@ -115,6 +113,8 @@ export default defineComponent({
       }),
       // 固定列的样式与 class（MOD-06）：按 colgroups 计算一次，表头、表体、表尾共享
       [FIXED_COLUMNS_KEY as symbol]: useFixedColumns(() => this.colgroups),
+      // 表格上下文（MOD-01）：子组件与表格之间的类型化事件，取代 emitter mixin 与 Hooks
+      [TABLE_CONTEXT_KEY as symbol]: this.tableContext,
     }
   },
   props: {
@@ -311,8 +311,10 @@ export default defineComponent({
   },
   data() {
     return {
-      eventBus: mitt(),
-      hooks: {} as InstanceType<typeof Hooks>,
+      // 表格上下文（MOD-01）：非响应式，由 provide() 提供给子组件
+      tableContext: markRaw(createTableContext()),
+      // 表格自身的订阅（created 中创建，卸载时自动注销）
+      tableEvents: null as TableEventScope | null,
       parentRendered: false,
       tableViewportWidth: 0,
       columnsOptionResetTime: 0,
@@ -805,7 +807,6 @@ export default defineComponent({
     rowInsertIndicatorProps() {
       return {
         parentRendered: this.parentRendered,
-        hooks: this.hooks,
         tableContainerEl: this.$refs[this.tableContainerRef] as HTMLElement | undefined,
         tableEl: this.$refs[this.tableRef] as HTMLTableElement | undefined,
         colgroups: this.colgroups,
@@ -1017,6 +1018,9 @@ export default defineComponent({
     },
   },
   created() {
+    // created 执行时组件实例的 effect scope 已激活，这里注册的订阅随组件卸载自动注销（MOD-01）
+    this.tableEvents = markRaw(useTableContext(this.tableContext))
+
     // Debounced handler for the column-width measurement row (bug fixed #467)
     this.debouncedMeasureCellWidthChange = debounce(
       this.measureCellWidthChange,
@@ -1031,99 +1035,26 @@ export default defineComponent({
       `.${clsName('content')}`,
     )
 
-    // create hook instance
-    this.hooks = new Hooks()
-    // receive sort change
-    this.on(EMIT_EVENTS.SORT_CHANGE, () => {
-      this.updateColgroupsBySortChange()
-    })
-
-    // receive multiple header row height change
-    this.on(EMIT_EVENTS.HEADER_ROW_HEIGHT_CHANGE, ({ rowIndex, height }: any) => {
-      this.headerRowHeightChange({ rowIndex, height })
-    })
-
-    // receive footer row height change
-    this.on(
-      EMIT_EVENTS.FOOTER_ROW_HEIGHT_CHANGE,
-      ({ rowIndex, height }) => {
-        this.footRowHeightChange({ rowIndex, height })
-      },
-    )
-
-    // recieve body cell click
-    this.on(EMIT_EVENTS.BODY_CELL_CLICK, (params) => {
-      this.bodyCellClick(params)
-    })
-
-    // recieve body cell mouseover
-    this.on(EMIT_EVENTS.BODY_CELL_MOUSEOVER, (params) => {
-      this.bodyCellMouseover(params)
-    })
-
-    // recieve body cell mousedown
-    this.on(EMIT_EVENTS.BODY_CELL_MOUSEDOWN, (params) => {
-      this.bodyCellMousedown(params)
-    })
-
-    // recieve body cell mousemove
-    this.on(EMIT_EVENTS.BODY_CELL_MOUSEMOVE, (params) => {
-      this.bodyCellMousemove(params)
-    })
-
-    // recieve body cell mouseup
-    this.on(EMIT_EVENTS.BODY_CELL_MOUSEUP, (params) => {
-      this.bodyCellMouseup(params)
-    })
-
-    // recieve selection corner mousedown
-    this.on(EMIT_EVENTS.SELECTION_CORNER_MOUSEDOWN, (params) => {
-      this.cellSelectionCornerMousedown(params)
-    })
-
-    // recieve selection corner mouseup
-    this.on(EMIT_EVENTS.SELECTION_CORNER_MOUSEUP, (params) => {
-      this.cellSelectionCornerMouseup(params)
-    })
-
-    // recieve body cell contextmenu(right click)
-    this.on(EMIT_EVENTS.BODY_CELL_CONTEXTMENU, (params) => {
-      this.bodyCellContextmenu(params)
-    })
-
-    // recieve body cell double click
-    this.on(EMIT_EVENTS.BODY_CELL_DOUBLE_CLICK, (params) => {
-      this.bodyCellDoubleClick(params)
-    })
-
-    // recieve header cell contextmenu(right click)
-    this.on(EMIT_EVENTS.HEADER_CELL_CLICK, (params) => {
-      this.headerCellClick(params)
-    })
-
-    // recieve header cell contextmenu(right click)
-    this.on(EMIT_EVENTS.HEADER_CELL_CONTEXTMENU, (params) => {
-      this.headerCellContextmenu(params)
-    })
-
-    // recieve header cell mousedown
-    this.on(EMIT_EVENTS.HEADER_CELL_MOUSEDOWN, (params) => {
-      this.headerCellMousedown(params)
-    })
-
-    // recieve header cell mouseover
-    this.on(EMIT_EVENTS.HEADER_CELL_MOUSEOVER, (params) => {
-      this.headerCellMouseover(params)
-    })
-
-    // recieve header cell mousemove
-    this.on(EMIT_EVENTS.HEADER_CELL_MOUSEMOVE, (params) => {
-      this.headerCellMousemove(params)
-    })
-
-    // recieve header cell mouseleave
-    this.on(EMIT_EVENTS.HEADER_CELL_MOUSELEAVE, (params) => {
-      this.headerCellMouseleave(params)
+    // 接收子组件通过表格上下文发出的事件（MOD-01）：事件名 → 处理方法
+    this.tableEvents!.onMany({
+      [EMIT_EVENTS.SORT_CHANGE]: () => this.updateColgroupsBySortChange(),
+      [EMIT_EVENTS.HEADER_ROW_HEIGHT_CHANGE]: ({ rowIndex, height }) => this.headerRowHeightChange({ rowIndex, height }),
+      [EMIT_EVENTS.FOOTER_ROW_HEIGHT_CHANGE]: ({ rowIndex, height }) => this.footRowHeightChange({ rowIndex, height }),
+      [EMIT_EVENTS.BODY_CELL_CLICK]: params => this.bodyCellClick(params),
+      [EMIT_EVENTS.BODY_CELL_MOUSEOVER]: params => this.bodyCellMouseover(params),
+      [EMIT_EVENTS.BODY_CELL_MOUSEDOWN]: params => this.bodyCellMousedown(params),
+      [EMIT_EVENTS.BODY_CELL_MOUSEMOVE]: params => this.bodyCellMousemove(params),
+      [EMIT_EVENTS.BODY_CELL_MOUSEUP]: params => this.bodyCellMouseup(params),
+      [EMIT_EVENTS.SELECTION_CORNER_MOUSEDOWN]: params => this.cellSelectionCornerMousedown(params),
+      [EMIT_EVENTS.SELECTION_CORNER_MOUSEUP]: params => this.cellSelectionCornerMouseup(params),
+      [EMIT_EVENTS.BODY_CELL_CONTEXTMENU]: params => this.bodyCellContextmenu(params),
+      [EMIT_EVENTS.BODY_CELL_DOUBLE_CLICK]: params => this.bodyCellDoubleClick(params),
+      [EMIT_EVENTS.HEADER_CELL_CLICK]: params => this.headerCellClick(params),
+      [EMIT_EVENTS.HEADER_CELL_CONTEXTMENU]: params => this.headerCellContextmenu(params),
+      [EMIT_EVENTS.HEADER_CELL_MOUSEDOWN]: params => this.headerCellMousedown(params),
+      [EMIT_EVENTS.HEADER_CELL_MOUSEOVER]: params => this.headerCellMouseover(params),
+      [EMIT_EVENTS.HEADER_CELL_MOUSEMOVE]: params => this.headerCellMousemove(params),
+      [EMIT_EVENTS.HEADER_CELL_MOUSELEAVE]: params => this.headerCellMouseleave(params),
     })
 
     // add key down event listener
@@ -1138,7 +1069,7 @@ export default defineComponent({
     }
   },
   unmounted() {
-    // 取消未执行的防抖调用，避免卸载后仍更新 colgroups / 触发 hooks
+    // 取消未执行的防抖调用，避免卸载后仍更新 colgroups / 触发表格事件
     ;(this.debouncedMeasureCellWidthChange as ReturnType<typeof debounce> | null)?.cancel()
     // remove key down event listener
     document.removeEventListener('keydown', this.dealKeydownEvent)
@@ -1196,7 +1127,7 @@ export default defineComponent({
         return item
       })
 
-      this.hooks.triggerHook(HOOKS_NAME.TABLE_CELL_WIDTH_CHANGE)
+      this.tableContext.emit(HOOKS_NAME.TABLE_CELL_WIDTH_CHANGE)
     },
 
     // set column width for column resize
@@ -1210,7 +1141,7 @@ export default defineComponent({
       this.$nextTick(() => {
         this.setScrollBarStatus()
       })
-      this.hooks.triggerHook(HOOKS_NAME.TABLE_CELL_WIDTH_CHANGE)
+      this.tableContext.emit(HOOKS_NAME.TABLE_CELL_WIDTH_CHANGE)
     },
 
     // sort change
@@ -1719,7 +1650,7 @@ export default defineComponent({
          * @param {object} column - column data
          */
     bodyCellMousemove({ event, rowData: _rowData, column }) {
-      this.hooks.triggerHook(HOOKS_NAME.BODY_CELL_MOUSEMOVE, {
+      this.tableContext.emit(HOOKS_NAME.BODY_CELL_MOUSEMOVE, {
         event,
         column,
       })
@@ -1926,7 +1857,7 @@ export default defineComponent({
 
     // header cell mousemove
     headerCellMousemove({ event, column }) {
-      this.hooks.triggerHook(HOOKS_NAME.HEADER_CELL_MOUSEMOVE, {
+      this.tableContext.emit(HOOKS_NAME.HEADER_CELL_MOUSEMOVE, {
         event,
         column,
       })
@@ -2480,7 +2411,7 @@ export default defineComponent({
         // fixed #404
         this.initScrolling()
         this.setScrollBarStatus()
-        this.hooks.triggerHook(HOOKS_NAME.TABLE_SIZE_CHANGE)
+        this.tableContext.emit(HOOKS_NAME.TABLE_SIZE_CHANGE)
       },
     }
 
@@ -2493,7 +2424,7 @@ export default defineComponent({
         const tableContainerRef
                         = this.$refs[this.tableContainerRef] as HTMLElement
 
-        this.hooks.triggerHook(
+        this.tableContext.emit(
           HOOKS_NAME.TABLE_CONTAINER_SCROLL,
           tableContainerRef,
         )
@@ -2535,7 +2466,6 @@ export default defineComponent({
       allRowKeys,
       colgroups,
       parentRendered: this.parentRendered,
-      hooks: this.hooks,
       cellSelectionData,
       isAutofillStarting: this.isAutofillStarting,
       autofillingDirection: this.autofillingDirection,
@@ -2556,7 +2486,6 @@ export default defineComponent({
     // edit input props
     const editInputProps = {
       ref: this.editInputRef,
-      hooks: this.hooks,
       parentRendered: this.parentRendered,
       inputStartValue: this.editorInputStartValue,
       rowKeyFieldName,
@@ -2606,7 +2535,6 @@ export default defineComponent({
     const columnResizerProps = {
       parentRendered: this.parentRendered,
       tableContainerEl: this.$refs[this.tableContainerRef] as HTMLDivElement | undefined,
-      hooks: this.hooks,
       colgroups,
       isColumnResizerHover: this.isColumnResizerHover,
       isColumnResizing: this.isColumnResizing,

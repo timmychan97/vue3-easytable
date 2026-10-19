@@ -2,9 +2,8 @@ import type {
   AppliedCellChange,
   CanChangeCell,
   CellChange,
-  CellValueColumn,
 } from '../../features/cell-value-change/index.js'
-import type { CellSelectionRangeData } from '../../ve-table-types.js'
+import type { CellSelectionRangeData, ColgroupData } from '../../ve-table-types.js'
 import { applyCellChanges, isWritableColumn } from '../../features/cell-value-change/index.js'
 import { getSelectionRangeIndexes, getSelectionRangeKeys } from '../selection-range/range.js'
 import { decodeSpreadsheetStr, encodeToSpreadsheetStr } from './tsv-codec.js'
@@ -12,7 +11,8 @@ import { decodeSpreadsheetStr, encodeToSpreadsheetStr } from './tsv-codec.js'
 type RowKey = string | number
 
 // 可写入列的判断与逐单元格写入在 features/cell-value-change 中，与自动填充共用（FILL-03）
-type ClipboardColumn = CellValueColumn
+// 表格的 colgroups（INFRA-15），同时满足 CellValueColumn
+type ClipboardColumn = ColgroupData
 
 export interface SelectionRangeIndexes {
   startColIndex: number

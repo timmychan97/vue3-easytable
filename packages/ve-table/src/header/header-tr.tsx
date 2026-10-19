@@ -1,13 +1,13 @@
+import type { ColgroupData } from '../ve-table-types'
 import VueDomResizeObserver from '@vue3-easytable/common/comps/resize-observer'
-import emitter from '@vue3-easytable/common/mixins/emitter'
 import { bindCustomEvents, getCustomEvents } from '../features/custom-events/bindCustomEvents'
+import { injectTableContext } from '../features/table-context'
 import { clsName, getDomResizeObserverCompKey } from '../util'
 import { COMPS_NAME, EMIT_EVENTS } from '../util/constant'
 import HeaderTh from './header-th'
 
 export default defineComponent({
   name: COMPS_NAME.VE_TABLE_THADER_TR,
-  mixins: [emitter()],
   props: {
     columnsOptionResetTime: {
       type: Number,
@@ -25,7 +25,7 @@ export default defineComponent({
       },
     },
     colgroups: {
-      type: Array,
+      type: Array as PropType<ColgroupData[]>,
       required: true,
     },
     fixedHeader: {
@@ -95,17 +95,19 @@ export default defineComponent({
       },
     },
   },
+  setup() {
+    return {
+      // 表格上下文（MOD-01）：只发出事件，不注册监听器
+      tableContext: injectTableContext(),
+    }
+  },
   methods: {
     // tr height change
     trHeightChange({ height }) {
-      this.dispatch(
-        COMPS_NAME.VE_TABLE,
-        EMIT_EVENTS.HEADER_ROW_HEIGHT_CHANGE,
-        {
-          rowIndex: this.rowIndex,
-          height,
-        },
-      )
+      this.tableContext.emit(EMIT_EVENTS.HEADER_ROW_HEIGHT_CHANGE, {
+        rowIndex: this.rowIndex,
+        height,
+      })
     },
   },
   render() {
