@@ -8,7 +8,7 @@ import VeContextmenu from '@vue3-easytable/ve-contextmenu'
 import VeDropdown from '@vue3-easytable/ve-dropdown'
 import VeIcon from '@vue3-easytable/ve-icon'
 import VeLoading from '@vue3-easytable/ve-loading'
-import VeLocale from '@vue3-easytable/ve-locale'
+import VeLocale, { installLocale } from '@vue3-easytable/ve-locale'
 import VePagination from '@vue3-easytable/ve-pagination'
 import VeRadio from '@vue3-easytable/ve-radio'
 import VeSelect from '@vue3-easytable/ve-select'
@@ -36,8 +36,8 @@ const useVeTable = function (options?: { locale?: LocaleMessageInput }): Plugin 
       components.forEach((Component) => {
         app.use(Component)
       })
-      if (options?.locale)
-        VeLocale.use(options.locale)
+      // 语言包只作用于当前 app（不修改全局 VeLocale），第二个 app 不会切换第一个 app 的语言（I18N-02）
+      installLocale(app, options?.locale)
     },
   }
 }

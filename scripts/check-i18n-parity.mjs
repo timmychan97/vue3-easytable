@@ -5,7 +5,7 @@
  * i18n Parity Test Script
  *
  * Validates that all three locales (zh, en, nb) have identical structure:
- * 1. Component locale files: same keys in zh-CN.ts, en-US.ts, no-NB.ts
+ * 1. Component locale files: same keys in zh-CN.ts, en-US.ts, nb-NO.ts
  * 2. VitePress wrapper pages: same file set in docs/zh/, docs/en/, docs/nb/
  * 3. Source doc fragments: same file set in docs/src/docs/zh/, en/, nb/
  * 4. VitePress config: all locales have matching sidebar entries
@@ -60,7 +60,7 @@ const localeDir = path.join(ROOT, 'packages/common/locale/lang')
 const localeFiles = {
   'zh-CN': path.join(localeDir, 'zh-CN.ts'),
   'en-US': path.join(localeDir, 'en-US.ts'),
-  'no-NB': path.join(localeDir, 'no-NB.ts'),
+  'nb-NO': path.join(localeDir, 'nb-NO.ts'),
 }
 
 function extractLocaleKeys(filePath) {
@@ -253,7 +253,7 @@ else {
 // ============================================================
 console.log('\n=== 5. Locale File Count Summary ===\n')
 
-console.log(`  Component locales: zh-CN, en-US, no-NB`)
+console.log(`  Component locales: zh-CN, en-US, nb-NO`)
 console.log(`  Wrapper pages:     zh=${wrapperFiles.zh?.length || 0}, en=${wrapperFiles.en?.length || 0}, nb=${wrapperFiles.nb?.length || 0}`)
 console.log(`  Source fragments:  zh=${srcDocFiles.zh?.length || 0}, en=${srcDocFiles.en?.length || 0}, nb=${srcDocFiles.nb?.length || 0}`)
 

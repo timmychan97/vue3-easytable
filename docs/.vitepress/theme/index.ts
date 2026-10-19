@@ -22,7 +22,7 @@ async function applyVeLocale(lang: string) {
     locale = (await import('../../../packages/common/locale/lang/en-US')).default
   }
   else if (lang === 'nb-NO') {
-    locale = (await import('../../../packages/common/locale/lang/no-NB')).default
+    locale = (await import('../../../packages/common/locale/lang/nb-NO')).default
   }
   if (locale) {
     const { VeLocale } = await import('@vue3-easytable/vue')

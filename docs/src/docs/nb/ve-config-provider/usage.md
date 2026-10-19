@@ -2,7 +2,7 @@
 
 `VeConfigProvider` angir språket for alle komponenter inni den, for eksempel `ve-table` og `ve-pagination`. Den endrer ikke det globale språket som settes med `VeLocale.use`, så komponenter utenfor beholder det globale språket.
 
-`locale` slås sammen med språket utenfor: nærmeste ytre `VeConfigProvider`, eller det globale språket hvis det ikke finnes noen. Du kan sende inn en hel språkpakke, eller bare nøklene du vil endre. Objektet du sender inn, blir aldri endret.
+`locale` slås sammen med språket utenfor: nærmeste ytre `VeConfigProvider`, ellers appens språk (`useVeTable({ locale })`), ellers det globale språket. Du kan sende inn en hel språkpakke, eller bare nøklene du vil endre. Objektet du sender inn, blir aldri endret.
 
 :::demo Pagineringen inni bruker sine egne tekster. Den under bruker det globale språket.
 

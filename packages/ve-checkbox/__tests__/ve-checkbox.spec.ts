@@ -1,5 +1,5 @@
 import veCheckbox from '@/ve-checkbox'
-import { CheckboxGroupInjectionKey } from '@/ve-checkbox-group'
+import veCheckboxGroup, { CheckboxGroupInjectionKey } from '@/ve-checkbox-group'
 import { wrapMount as mount } from '@test-utils'
 import { describe, expect } from 'vitest'
 
@@ -292,5 +292,130 @@ describe('veCheckbox', () => {
     // 只有当前挂载的 3 个 checkbox 收到更新
     expect(groupCallbackCalls).toBe(3)
     expect(wrapper.findAll('.ve-checkbox-checked').length).toBe(1)
+  })
+
+  describe('disabled and uncontrolled state (FORM-02)', () => {
+    it('a disabled checkbox follows modelValue changes', async () => {
+      const wrapper = mount(veCheckbox, {
+        props: { modelValue: false, disabled: true, label: 'orange' },
+      })
+
+      await wrapper.setProps({ modelValue: true })
+      expect(wrapper.find('.ve-checkbox-checked').exists()).toBe(true)
+
+      await wrapper.setProps({ modelValue: false })
+      expect(wrapper.find('.ve-checkbox-checked').exists()).toBe(false)
+    })
+
+    it('a disabled checkbox in a group follows the group value', async () => {
+      const wrapper = mount({
+        template: `
+                <ve-checkbox-group v-model="checkboxValue">
+                    <ve-checkbox label="a" />
+                    <ve-checkbox disabled label="b" />
+                </ve-checkbox-group>
+            `,
+        data() {
+          return { checkboxValue: ['a'] }
+        },
+      })
+      const disabledBox = () => wrapper.findAll('.ve-checkbox')[1]
+
+      expect(disabledBox().find('.ve-checkbox-checked').exists()).toBe(false)
+
+      await wrapper.setData({ checkboxValue: ['a', 'b'] })
+      expect(disabledBox().find('.ve-checkbox-checked').exists()).toBe(true)
+
+      await wrapper.setData({ checkboxValue: [] })
+      expect(disabledBox().find('.ve-checkbox-checked').exists()).toBe(false)
+    })
+
+    it('a disabled checkbox ignores clicks and keeps the native input in sync', async () => {
+      const wrapper = mount(veCheckbox, {
+        props: { modelValue: true, disabled: true, label: 'orange' },
+      })
+
+      await wrapper.find('.ve-checkbox').trigger('click')
+
+      expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+      expect(wrapper.emitted('on-checked-change')).toBeUndefined()
+      expect(wrapper.find('.ve-checkbox-checked').exists()).toBe(true)
+      expect((wrapper.find('input').element as HTMLInputElement).checked).toBe(true)
+    })
+
+    it('an uncontrolled checkbox without v-model shows its own checked state', async () => {
+      const wrapper = mount(veCheckbox, {
+        props: { label: 'orange' },
+      })
+
+      await wrapper.find('.ve-checkbox').trigger('click')
+      expect(wrapper.find('.ve-checkbox-checked').exists()).toBe(true)
+      expect(wrapper.emitted('update:modelValue')).toEqual([[true]])
+
+      await wrapper.find('.ve-checkbox').trigger('click')
+      expect(wrapper.find('.ve-checkbox-checked').exists()).toBe(false)
+      expect(wrapper.emitted('on-checked-change')).toEqual([[true], [false]])
+    })
+
+    it('a checkbox in a group without v-model shows its own checked state', async () => {
+      const wrapper = mount({
+        template: `
+                <ve-checkbox-group>
+                    <ve-checkbox label="a" />
+                    <ve-checkbox label="b" />
+                </ve-checkbox-group>
+            `,
+      })
+
+      await wrapper.findAll('.ve-checkbox')[1].trigger('click')
+
+      const checked = wrapper.findAll('.ve-checkbox-checked')
+      expect(checked).toHaveLength(1)
+      expect(wrapper.findAll('.ve-checkbox')[1].find('.ve-checkbox-checked').exists()).toBe(true)
+    })
+  })
+
+  describe('checkbox-group leftovers (FORM-03)', () => {
+    it('every exposed member exists on the instance', () => {
+      const wrapper = mount({
+        template: `
+                <ve-checkbox-group ref="group" v-model="checkboxValue">
+                    <ve-checkbox label="a" />
+                </ve-checkbox-group>
+            `,
+        data() {
+          return { checkboxValue: ['a'] }
+        },
+      })
+      const group = (wrapper.vm.$refs as any).group
+
+      const exposed = (veCheckboxGroup as any).expose as string[]
+      expect(exposed.length).toBeGreaterThan(0)
+      exposed.forEach((key) => {
+        expect(group[key], `exposed member "${key}"`).not.toBeUndefined()
+      })
+      expect(group.modelValue).toEqual(['a'])
+    })
+
+    it('does not provide debug values to its children', () => {
+      let injected: unknown
+      const Probe = defineComponent({
+        setup() {
+          injected = inject('aaa', 'not provided')
+          return () => null
+        },
+      })
+
+      mount({
+        components: { Probe },
+        template: `
+                <ve-checkbox-group>
+                    <probe />
+                </ve-checkbox-group>
+            `,
+      })
+
+      expect(injected).toBe('not provided')
+    })
   })
 })

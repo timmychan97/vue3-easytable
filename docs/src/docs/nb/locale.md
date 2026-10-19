@@ -28,6 +28,25 @@ const lang = {
 VeLocale.update(lang)
 ```
 
+:::anchor Språk per app
+
+`VeLocale.use` og `VeLocale.update` er globale: de endrer språket i alle appene på siden. For å gi én app sitt eget språk sender du det til `useVeTable` når du installerer pluginen. Hver app har sitt eget språk, så en app nummer to bytter aldri språket i den første:
+
+```javascript
+import { useVeTable } from '@vue3-easytable/vue'
+import enUS from '@vue3-easytable/vue/libs/locale/lang/en-US.js'
+import zhCN from '@vue3-easytable/vue/libs/locale/lang/zh-CN.js'
+
+createApp(AppA).use(useVeTable({ locale: enUS })).mount('#app-a')
+// Endrer ikke språket i app A
+createApp(AppB).use(useVeTable({ locale: zhCN })).mount('#app-b')
+```
+
+- `useVeTable({ locale })` angir språket for bare den appen. Det globale språket endres ikke, så `VeLocale.getMessage()` returnerer fortsatt det globale språket.
+- `this.$veLocale.use(...)` og `this.$veLocale.update(...)` i en komponent endrer bare språket i komponentens app.
+- `VeLocale.use(...)` og `VeLocale.update(...)` gjelder fortsatt for alle apper, oppå hver apps eget språk.
+- Inne i en app angir en `VeConfigProvider` språket for barna sine, oppå appens språk.
+
 :::anchor Tekstnokler
 
 Sprakpakkene er gruppert per komponent. Noklene er de samme i alle sprakpakker (se `zh-CN` for den fullstendige listen):
@@ -114,5 +133,6 @@ For oyeblikket stottede sprak:
 | Brasiliansk portugisisk | pt-BR |
 | Koreansk | ko-KR |
 | Russisk | ru-RU |
+| Norsk bokmål | nb-NO (`no-NB` er et utfaset alias) |
 
 Hvis du trenger a bruke et annet sprak, er du velkommen til a bidra med en PR: bare legg til en sprakkonfigurasjonsfil [her](https://github.com/huangshuwei/vue-easytable/tree/master/packages/src/locale/lang).

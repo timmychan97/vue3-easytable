@@ -40,43 +40,103 @@ desc:绑定元素触发的事件不在指定事件中，将会触发。此指令
 </script>
 
 */
-import type { Directive } from 'vue'
+import type { Directive, DirectiveBinding } from 'vue'
 
-const eventsOutside: Directive = {
+interface EventsOutsideValue {
+  events?: string[]
+  callback?: (e: Event) => void
+}
+
+interface EventsOutsideState {
+  handler: (e: Event) => void
+  // 当前已在 document 上注册的事件
+  events: string[]
+  // 最新的回调（updated 时更新）
+  callback: ((e: Event) => void) | null
+}
+
+interface EventsOutsideEl extends HTMLElement {
+  __eventsOutside__?: EventsOutsideState | null
+}
+
+// 取出合法的事件列表与回调；绑定值不合法时返回 null
+function parseValue(value: EventsOutsideValue | null | undefined) {
+  const { events, callback } = value ?? {}
+  if (Array.isArray(events) && events.length && typeof callback === 'function')
+    return { events: [...events], callback }
+  return null
+}
+
+function reportInvalid(binding: DirectiveBinding) {
+  const compName = binding.instance?.$options.name
+  console.error(
+    `[events-outside] Please provided 'events' and 'callback' in ${compName}`,
+  )
+}
+
+function bind(state: EventsOutsideState, events: string[]) {
+  events.forEach((eventName) => {
+    document.addEventListener(eventName, state.handler, true)
+  })
+  state.events = events
+}
+
+function unbind(state: EventsOutsideState) {
+  state.events.forEach((eventName) => {
+    document.removeEventListener(eventName, state.handler, true)
+  })
+  state.events = []
+}
+
+const eventsOutside: Directive<EventsOutsideEl, EventsOutsideValue | null | undefined> = {
   beforeMount(el, binding) {
-    const { events, callback } = binding.value
+    const parsed = parseValue(binding.value)
 
-    if (
-      Array.isArray(events)
-      && events.length
-      && typeof callback === 'function'
-    ) {
-      const handler = (e: MouseEvent) => {
-        if (!el.contains(e.target) && el !== e.target)
-          callback(e)
-        else
-          return false
-      }
+    const state: EventsOutsideState = {
+      handler: (e: Event) => {
+        if (state.callback && !el.contains(e.target as Node) && el !== e.target)
+          state.callback(e)
+      },
+      events: [],
+      callback: null,
+    }
+    el.__eventsOutside__ = state
 
-      el.__eventsOutside__ = handler
-
-      events.forEach((eventName) => {
-        document.addEventListener(eventName, handler, true)
-      })
+    if (parsed) {
+      state.callback = parsed.callback
+      bind(state, parsed.events)
     }
     else {
-      const compName = binding.instance?.$options.name
-      console.error(
-        `[events-outside] Please provided 'events' and 'callback' in ${compName}`,
-      )
+      reportInvalid(binding)
     }
   },
 
-  beforeUnmount(el, binding) {
-    const { events } = binding.value
-    events.forEach((eventName: string) => {
-      document.removeEventListener(eventName, el.__eventsOutside__, true)
-    })
+  // 绑定值通常是渲染时新建的对象：回调总是更新为最新的，事件列表内容变化时才重新注册
+  updated(el, binding) {
+    const state = el.__eventsOutside__
+    if (!state)
+      return
+
+    const parsed = parseValue(binding.value)
+    if (!parsed) {
+      if (state.callback)
+        reportInvalid(binding)
+      state.callback = null
+      unbind(state)
+      return
+    }
+
+    state.callback = parsed.callback
+    if (parsed.events.join(',') !== state.events.join(',')) {
+      unbind(state)
+      bind(state, parsed.events)
+    }
+  },
+
+  beforeUnmount(el) {
+    const state = el.__eventsOutside__
+    if (state)
+      unbind(state)
     el.__eventsOutside__ = null
   },
 }
