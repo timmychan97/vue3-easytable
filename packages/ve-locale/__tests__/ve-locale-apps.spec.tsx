@@ -1,6 +1,6 @@
 import type { LocaleMessageInput } from '@/common/locale/types'
 import enUS from '@/common/locale/lang/en-US'
-import noNB from '@/common/locale/lang/no-NB'
+import nbNO from '@/common/locale/lang/nb-NO'
 import zhCN from '@/common/locale/lang/zh-CN'
 import veLocale from '@/ve-locale'
 import { useVeTable, VePagination } from '@/vue/src/index'
@@ -45,11 +45,11 @@ describe('veLocale: per-app isolation (I18N-02)', () => {
 
   it('a second app installed with another locale does not switch the first app', async () => {
     const first = mountApp(enUS)
-    const second = mountApp(noNB)
+    const second = mountApp(nbNO)
     await nextTick()
 
     expect(gotoLabel(first)).toBe(enUS.分页.前往)
-    expect(gotoLabel(second)).toBe(noNB.分页.前往)
+    expect(gotoLabel(second)).toBe(nbNO.分页.前往)
   })
 
   it('useVeTable({ locale }) does not change the global locale or other apps', async () => {
@@ -88,17 +88,17 @@ describe('veLocale: per-app isolation (I18N-02)', () => {
     const withLocale = mountApp(enUS)
     const plain = mountApp()
 
-    veLocale.use(noNB)
+    veLocale.use(nbNO)
     await nextTick()
 
-    expect(gotoLabel(withLocale)).toBe(noNB.分页.前往)
-    expect(gotoLabel(plain)).toBe(noNB.分页.前往)
+    expect(gotoLabel(withLocale)).toBe(nbNO.分页.前往)
+    expect(gotoLabel(plain)).toBe(nbNO.分页.前往)
   })
 
   it('a VeConfigProvider inside the app wins over the app locale', async () => {
     const wrapper = mountApp(enUS, () => (
       <div>
-        <ve-config-provider locale={noNB}>
+        <ve-config-provider locale={nbNO}>
           <ve-pagination class="inner" total={600} />
         </ve-config-provider>
         <ve-pagination class="outer" total={600} />
@@ -106,7 +106,7 @@ describe('veLocale: per-app isolation (I18N-02)', () => {
     ))
     await nextTick()
 
-    expect(wrapper.find('.inner .ve-pagination-goto-label').text()).toBe(noNB.分页.前往)
+    expect(wrapper.find('.inner .ve-pagination-goto-label').text()).toBe(nbNO.分页.前往)
     expect(wrapper.find('.outer .ve-pagination-goto-label').text()).toBe(enUS.分页.前往)
   })
 
@@ -138,9 +138,9 @@ describe('veLocale: per-app isolation (I18N-02)', () => {
       expect(el.querySelector('.ve-pagination-goto-label')!.textContent).toBe(enUS.分页.前往)
       expect(veLocale.getMessage().分页.前往).toBe(zhCN.分页.前往)
 
-      veLocale.use(noNB)
+      veLocale.use(nbNO)
       await nextTick()
-      expect(el.querySelector('.ve-pagination-goto-label')!.textContent).toBe(noNB.分页.前往)
+      expect(el.querySelector('.ve-pagination-goto-label')!.textContent).toBe(nbNO.分页.前往)
     }
     finally {
       app.unmount()

@@ -1,6 +1,6 @@
 # Migration Guide
 
-- **Library users:** [Locale message keys renamed](#locale-message-keys-renamed-breaking-change-deprecated-aliases), [Language per app](#language-per-app-usevetable-locale-no-longer-changes-the-global-language)
+- **Library users:** [Locale message keys renamed](#locale-message-keys-renamed-breaking-change-deprecated-aliases), [Language per app](#language-per-app-usevetable-locale--no-longer-changes-the-global-language), [Norwegian language pack renamed](#norwegian-language-pack-renamed-no-nb--nb-no)
 - **Contributors:** [Development setup improvements](#migration-guide-development-setup-improvements)
 
 ## Locale message keys renamed (breaking change, deprecated aliases)
@@ -30,6 +30,20 @@ VeLocale.update({ 分页: { 前往: 'Go to' } })
 **Unchanged:** the imported `VeLocale.use(...)` / `VeLocale.update(...)` are still global and apply to every app, on top of each app's own language. With a single app, everything renders as before. `VeConfigProvider` still sets the language of its children, on top of the app's language. `use` / `update` no longer modify the object returned by an earlier `getMessage()` call: each call produces a new object.
 
 **What to do:** only if you read the language with the imported `VeLocale.getMessage()` after installing with `useVeTable({ locale })`: it now returns the global language, not the app's. Use `this.$veLocale.getMessage()` in a component of that app instead, or call `VeLocale.use(locale)` if you really want a global language.
+
+## Norwegian language pack renamed: `no-NB` → `nb-NO`
+
+**What changed:** the Norwegian Bokmål language pack is now `lang/nb-NO`, the BCP 47 tag for Norwegian Bokmål. `lang/no-NB` still exists as a deprecated alias that re-exports `nb-NO`, and will be removed in a future version.
+
+**What to do:** change the import path.
+
+```javascript
+// Before (deprecated, still works)
+import noNB from '@vue3-easytable/vue/libs/locale/lang/no-NB'
+
+// After
+import nbNO from '@vue3-easytable/vue/libs/locale/lang/nb-NO'
+```
 
 ---
 

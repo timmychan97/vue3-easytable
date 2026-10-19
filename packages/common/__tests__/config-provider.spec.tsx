@@ -1,7 +1,7 @@
 import type { LocaleMessageInput } from '@/common/locale/types'
 import VeConfigProviderSource from '@/common/comps/config-provider'
 import enUS from '@/common/locale/lang/en-US'
-import noNB from '@/common/locale/lang/no-NB'
+import nbNO from '@/common/locale/lang/nb-NO'
 import zhCN from '@/common/locale/lang/zh-CN'
 import veLocale, { useLocale } from '@/ve-locale'
 import { VeConfigProvider, VePagination } from '@/vue/src/index'
@@ -140,7 +140,7 @@ describe('veConfigProvider', () => {
     expect(gotoLabel(wrapper)).toBe('Go to')
     expect(totalText(wrapper)).toBe('Total 600')
 
-    locale.value = noNB
+    locale.value = nbNO
     await nextTick()
 
     expect(gotoLabel(wrapper)).toBe('Gå til')

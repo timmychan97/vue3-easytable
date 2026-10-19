@@ -133,5 +133,6 @@ Currently supported languages:
 | Brazilian Portuguese | pt-BR |
 | Korean | ko-KR |
 | Russian | ru-RU |
+| Norwegian Bokmål | nb-NO (`no-NB` is a deprecated alias) |
 
 If you need to use another language, feel free to contribute a PR: simply add a language configuration file [here](https://github.com/huangshuwei/vue-easytable/tree/master/packages/src/locale/lang).

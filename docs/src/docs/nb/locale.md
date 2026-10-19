@@ -133,5 +133,6 @@ For oyeblikket stottede sprak:
 | Brasiliansk portugisisk | pt-BR |
 | Koreansk | ko-KR |
 | Russisk | ru-RU |
+| Norsk bokmål | nb-NO (`no-NB` er et utfaset alias) |
 
 Hvis du trenger a bruke et annet sprak, er du velkommen til a bidra med en PR: bare legg til en sprakkonfigurasjonsfil [her](https://github.com/huangshuwei/vue-easytable/tree/master/packages/src/locale/lang).

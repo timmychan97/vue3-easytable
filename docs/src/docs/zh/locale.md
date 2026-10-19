@@ -133,5 +133,6 @@ createApp(AppB).use(useVeTable({ locale: zhCN })).mount('#app-b')
 | 巴西葡萄牙语 | pt-BR |
 | 韩文(KR) | ko-KR |
 | 俄语(RU) | ru-RU |
+| 挪威语(书面语) | nb-NO（`no-NB` 为已废弃的别名） |
 
 如果你需要使用其他的语言，欢迎贡献 PR：只需在 [这里](https://github.com/huangshuwei/vue-easytable/tree/master/packages/src/locale/lang) 添加一个语言配置文件即可。
