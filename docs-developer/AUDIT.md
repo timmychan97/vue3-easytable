@@ -688,8 +688,10 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
   - **Done:** as proposed, in both components. `updateModelBySingle` / `updateModelByGroup` always sync (the checkbox's group sync is now `model = group.includes(label)`). On a user change, a non-`isControlled` control sets its local `model` before emitting `update:modelValue`, so it shows its state without `v-model` (and a checkbox inside a group without `v-model` too). A change on a disabled control resets the native `input.checked` to the current state: the browser had already toggled it, and Vue would not patch it back because the vnode's `checked` did not change. `isControlled` mode is unchanged (ve-table and ve-dropdown only use that mode).
   - **Verified:** `ve-checkbox.spec.ts` › "disabled and uncontrolled state (FORM-02)": "a disabled checkbox follows modelValue changes", "a disabled checkbox in a group follows the group value", "a disabled checkbox ignores clicks and keeps the native input in sync" (the native input was left unchecked), "an uncontrolled checkbox without v-model shows its own checked state", "a checkbox in a group without v-model shows its own checked state". `ve-radio.spec.tsx` › same block: "a disabled radio follows modelValue changes", "a disabled radio ignores clicks and keeps the native input in sync", "an uncontrolled radio without v-model shows its own checked state". All 8 failed before. The ve-table row checkbox/radio/row-state and ve-dropdown specs still pass; no snapshot changed.
 
-- [ ] **FORM-03** 🟢 Checkbox-group leftovers
+- [x] ✅ 2026-10-19 · fix/audit-batch7-common-form-locale · **FORM-03** 🟢 Checkbox-group leftovers
   - **Where:** `ve-checkbox-group/src`. `expose: ['modelValue', 'updateModel']`, but `updateModel` doesn't exist, and `provide() { aaa }` is debug code.
+  - **Done:** `expose: ['modelValue']`, and the `provide() { aaa }` option is removed. `updateModel` was never implemented or documented, so nothing to migrate.
+  - **Verified:** `ve-checkbox.spec.ts` › "checkbox-group leftovers (FORM-03)": "every exposed member exists on the instance" (failed before: `updateModel` was `undefined` on the ref) and "does not provide debug values to its children" (failed before: a child could inject `aaa`).
 
 ---
 

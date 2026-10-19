@@ -1,5 +1,5 @@
 import veCheckbox from '@/ve-checkbox'
-import { CheckboxGroupInjectionKey } from '@/ve-checkbox-group'
+import veCheckboxGroup, { CheckboxGroupInjectionKey } from '@/ve-checkbox-group'
 import { wrapMount as mount } from '@test-utils'
 import { describe, expect } from 'vitest'
 
@@ -372,6 +372,50 @@ describe('veCheckbox', () => {
       const checked = wrapper.findAll('.ve-checkbox-checked')
       expect(checked).toHaveLength(1)
       expect(wrapper.findAll('.ve-checkbox')[1].find('.ve-checkbox-checked').exists()).toBe(true)
+    })
+  })
+
+  describe('checkbox-group leftovers (FORM-03)', () => {
+    it('every exposed member exists on the instance', () => {
+      const wrapper = mount({
+        template: `
+                <ve-checkbox-group ref="group" v-model="checkboxValue">
+                    <ve-checkbox label="a" />
+                </ve-checkbox-group>
+            `,
+        data() {
+          return { checkboxValue: ['a'] }
+        },
+      })
+      const group = (wrapper.vm.$refs as any).group
+
+      const exposed = (veCheckboxGroup as any).expose as string[]
+      expect(exposed.length).toBeGreaterThan(0)
+      exposed.forEach((key) => {
+        expect(group[key], `exposed member "${key}"`).not.toBeUndefined()
+      })
+      expect(group.modelValue).toEqual(['a'])
+    })
+
+    it('does not provide debug values to its children', () => {
+      let injected: unknown
+      const Probe = defineComponent({
+        setup() {
+          injected = inject('aaa', 'not provided')
+          return () => null
+        },
+      })
+
+      mount({
+        components: { Probe },
+        template: `
+                <ve-checkbox-group>
+                    <probe />
+                </ve-checkbox-group>
+            `,
+      })
+
+      expect(injected).toBe('not provided')
     })
   })
 })

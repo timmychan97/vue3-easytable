@@ -3,11 +3,6 @@ import { COMPS_NAME, EMIT_EVENTS } from './util/constant'
 
 export default defineComponent({
   name: COMPS_NAME.VE_CHECKBOX_GROUP,
-  provide() {
-    return {
-      aaa: () => {},
-    }
-  },
   props: {
     modelValue: {
       type: Array as PropType<string[]>,
@@ -21,7 +16,8 @@ export default defineComponent({
       default: false,
     },
   },
-  expose: ['modelValue', 'updateModel'],
+  // 只暴露确实存在的成员（updateModel 从未实现）
+  expose: ['modelValue'],
   setup(props, { slots, emit }) {
     const { updateCheckbox } = provideCheckboxGroup({
       onCheckboxUpdate(label, checked) {
