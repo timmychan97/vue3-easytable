@@ -1,7 +1,7 @@
 import veTable from '@/ve-table'
 import { later, wrapMount as mount } from '@test-utils'
 import { KEY_CODES } from '@test-utils/constant'
-import { expect } from 'vitest'
+import { expect, vi } from 'vitest'
 
 describe('veTable cell selection', () => {
   const TABLE_DATA = [
@@ -1026,6 +1026,18 @@ describe('veTable cell selection', () => {
       wrapper.unmount()
     })
 
+    // jsdom 没有布局：模拟 400px 宽的内容、100px 宽的容器，已滚动到最右侧
+    function scrolledToRight(wrapper: any) {
+      ;(wrapper.vm as any).hasXScrollBar = true
+      const containerEl = wrapper.find('.ve-table-container').element as HTMLElement
+      Object.defineProperty(containerEl, 'scrollWidth', { configurable: true, value: 400 })
+      Object.defineProperty(containerEl, 'clientWidth', { configurable: true, value: 100 })
+      containerEl.scrollLeft = 300
+      // 纵向滚动到行（scrollToRowKey）不影响横向位置：jsdom 没有 Element.scrollTo，退回的写法会把 scrollLeft 置 0
+      Object.defineProperty(containerEl, 'scrollTo', { configurable: true, value: vi.fn() })
+      return containerEl
+    }
+
     it('columnToVisible tolerates a missing column', () => {
       const wrapper = mountWithXScrollBar()
       expect(() => (wrapper.vm as any).columnToVisible(undefined)).not.toThrow()
@@ -1045,14 +1057,16 @@ describe('veTable cell selection', () => {
         },
       })
       const vm = wrapper.vm as any
-      vm.hasXScrollBar = true
-      const columnToVisible = vi.spyOn(vm, 'columnToVisible')
+      // MOD-02：columnToVisible 在组合式函数内部调用，实例上的 spy 看不到，改为检查滚动位置。
+      // jsdom 没有布局：模拟出现横向滚动条，且已滚动到最右侧
+      const containerEl = scrolledToRight(wrapper)
 
       expect(vm.setCellSelection({ rowKey: '2', colKey: 0 })).not.toBe(false)
       await later()
 
       expect(vm.cellSelectionData.currentCell).toMatchObject({ rowKey: '2', colKey: 0 })
-      expect(columnToVisible).toHaveBeenCalledWith(expect.objectContaining({ key: 0, field: 'date' }))
+      // key 为 0 的列（左侧有 100px 的列 a）滚动到可见区域
+      expect(containerEl.scrollLeft).toBe(100)
       wrapper.unmount()
     })
 
@@ -1070,14 +1084,14 @@ describe('veTable cell selection', () => {
         },
       })
       const vm = wrapper.vm as any
-      vm.hasXScrollBar = true
-      const columnToVisible = vi.spyOn(vm, 'columnToVisible')
+      const containerEl = scrolledToRight(wrapper)
 
       vm.setRangeCellSelection({ startRowKey: '2', startColKey: 0, endRowKey: '3', endColKey: 1, isScrollToStartCell: true })
       await later()
 
       expect(vm.cellSelectionRangeData).toEqual({ leftColKey: 0, rightColKey: 1, topRowKey: '2', bottomRowKey: '3' })
-      expect(columnToVisible).toHaveBeenCalledWith(expect.objectContaining({ key: 0, field: 'date' }))
+      // 起始列（key 0）滚动到可见区域
+      expect(containerEl.scrollLeft).toBe(100)
 
       // 未知的列 key（包括与数字 key 同名的字符串）仍不改变选区
       expect(vm.setRangeCellSelection({ startRowKey: '2', startColKey: '0', endRowKey: '3', endColKey: 1 })).toBe(false)

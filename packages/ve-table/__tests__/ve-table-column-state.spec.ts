@@ -180,14 +180,17 @@ describe('veTable column state', () => {
       await later()
       const vm = wrapper.vm as any
 
-      const initGroupColumnsSpy = vi.spyOn(vm, 'initGroupColumns')
+      // MOD-02：initGroupColumns 在组合式函数内部调用，实例上的 spy 看不到；
+      // 每次 initGroupColumns 都会替换 groupColumns，所以用同步 watcher 统计重建次数
+      const rebuild = vi.fn()
+      vm.$watch('groupColumns', rebuild, { flush: 'sync' })
       const resetTimeBefore = vm.columnsOptionResetTime
 
       await wrapper.setProps({ columns: createColumns().slice(0, 3) })
       await later()
 
       expect(vm.colgroups.map((x: any) => x.key)).toEqual(['a', 'b', 'c'])
-      expect(initGroupColumnsSpy).toHaveBeenCalledTimes(1)
+      expect(rebuild).toHaveBeenCalledTimes(1)
       expect(vm.columnsOptionResetTime).toBe(resetTimeBefore + 1)
 
       wrapper.unmount()

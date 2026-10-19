@@ -1,0 +1,932 @@
+import type { ColumnOption } from '@/ve-table/src/ve-table-types'
+import { useAutofill } from '@/ve-table/src/features/cell-selection/useAutofill'
+import { useCellSelection } from '@/ve-table/src/features/cell-selection/useCellSelection'
+import { useCellSelectionState } from '@/ve-table/src/features/cell-selection/useCellSelectionState'
+import { useSelectionDrag } from '@/ve-table/src/features/cell-selection/useSelectionDrag'
+import { useClipboard } from '@/ve-table/src/features/clipboard/useClipboard'
+import { useColumns } from '@/ve-table/src/features/columns/useColumns'
+import { useContextmenu } from '@/ve-table/src/features/contextmenu/useContextmenu'
+import { useEditing } from '@/ve-table/src/features/editing/useEditing'
+import { useKeyboard } from '@/ve-table/src/features/keyboard/useKeyboard'
+import { useTableLayout } from '@/ve-table/src/features/layout/useTableLayout'
+import { useRowInsert } from '@/ve-table/src/features/row-insert/useRowInsert'
+import { useScrolling } from '@/ve-table/src/features/scrolling/useScrolling'
+import { createTableContext } from '@/ve-table/src/features/table-context'
+import { useVirtualScroll } from '@/ve-table/src/features/virtual-scroll/useVirtualScroll'
+import { HOOKS_NAME } from '@/ve-table/src/util/constant'
+import { mount } from '@vue/test-utils'
+import { computed, defineComponent, effectScope, nextTick, reactive, ref, shallowRef } from 'vue'
+
+/*
+ * MOD-02：ve-table 拆出的功能组合式函数，脱离组件单独测试（只依赖显式传入的参数）
+ */
+
+// 在独立的 effect scope 中运行组合式函数，测试结束时停止
+function runInScope<T>(fn: () => T) {
+  const scope = effectScope()
+  const result = scope.run(fn)!
+  return { result, stop: () => scope.stop() }
+}
+
+// 使用了生命周期钩子的组合式函数：在一个空组件的 setup() 中运行
+function withSetup<T>(fn: () => T) {
+  let result!: T
+  const wrapper = mount(defineComponent({
+    setup() {
+      result = fn()
+      return () => null
+    },
+  }))
+  return { result, wrapper }
+}
+
+describe('useColumns', () => {
+  const COLUMNS: ColumnOption[] = [
+    { field: 'name', key: 'a', title: 'Name', width: 100 },
+    {
+      title: 'Group',
+      children: [
+        { field: 'age', key: 'b', title: 'Age', width: 80 },
+        { field: 'hobby', key: 'c', title: 'Hobby' },
+      ],
+    },
+    { field: 'address', key: 'd', title: 'Address', width: 120, fixed: 'right' },
+  ]
+
+  function setup(extraProps: Record<string, any> = {}) {
+    const props = reactive({
+      columns: COLUMNS,
+      columnHiddenOption: null,
+      columnWidthResizeOption: null,
+      ...extraProps,
+    }) as any
+    const tableContext = createTableContext()
+    const order: string[] = []
+    tableContext.on(HOOKS_NAME.TABLE_CELL_WIDTH_CHANGE, () => order.push('emit'))
+    const { result, stop } = runInScope(() => useColumns({
+      props,
+      tableContext,
+      onColumnWidthResize: () => order.push('resize'),
+    }))
+    return { props, columns: result, order, stop }
+  }
+
+  it('builds the group header and the leaf columns immediately', () => {
+    const { columns, stop } = setup()
+
+    expect(columns.isGroupHeader.value).toBe(true)
+    expect(columns.colgroups.value.map(x => x.key)).toEqual(['a', 'b', 'c', 'd'])
+    expect(columns.groupColumns.value.length).toBe(2)
+    expect(columns.hasFixedColumn.value).toBe(true)
+    expect(columns.hasLeftFixedColumn.value).toBe(false)
+    expect(columns.hasRightFixedColumn.value).toBe(true)
+    expect(columns.columnsOptionResetTime.value).toBe(0)
+    stop()
+  })
+
+  it('rebuilds once per columns change and bumps the reset time', async () => {
+    const { props, columns, stop } = setup()
+
+    props.columns = COLUMNS.slice(0, 1)
+    await nextTick()
+
+    expect(columns.colgroups.value.map(x => x.key)).toEqual(['a'])
+    expect(columns.isGroupHeader.value).toBe(false)
+    expect(columns.columnsOptionResetTime.value).toBe(1)
+    stop()
+  })
+
+  it('applies defaultHiddenColumnKeys once and hides / shows columns by key', async () => {
+    const { props, columns, stop } = setup({ columnHiddenOption: { defaultHiddenColumnKeys: ['b'] } })
+    expect(columns.colgroups.value.map(x => x.key)).toEqual(['a', 'c', 'd'])
+
+    columns.showColumnsByKeys(['b'])
+    columns.hideColumnsByKeys(['d'])
+    await nextTick()
+    expect(columns.colgroups.value.map(x => x.key)).toEqual(['a', 'b', 'c'])
+
+    // columns 变化时保留运行时的隐藏状态（COL-09）
+    props.columns = COLUMNS.map(col => ({ ...col }))
+    await nextTick()
+    expect(columns.colgroups.value.map(x => x.key)).toEqual(['a', 'b', 'c'])
+    expect(columns.hiddenColumns.value).toEqual(['d'])
+    stop()
+  })
+
+  it('sets the column resize widths and reports a resize before notifying the table', () => {
+    const { columns, order, stop } = setup({ columnWidthResizeOption: { enable: true } })
+
+    expect(columns.enableColumnResize.value).toBe(true)
+    expect(columns.colgroups.value.map(x => x._columnResizeWidth)).toEqual([100, 80, 50, 120])
+
+    columns.setColumnWidth({ colKey: 'c', width: 66 })
+    expect(columns.colgroups.value.find(x => x.key === 'c')!._columnResizeWidth).toBe(66)
+    expect(order).toEqual(['resize', 'emit'])
+    stop()
+  })
+})
+
+describe('useTableLayout', () => {
+  it('resets the header / footer rows and sums the reported heights', async () => {
+    const props = reactive({ showHeader: true, footerData: [{ a: 1 }] }) as any
+    const groupColumns = ref<any[]>([[{ key: 'a' }], [{ key: 'b' }]])
+    const { result: layout, stop } = runInScope(() => useTableLayout({ props, groupColumns }))
+
+    expect(layout.headerRows.value).toEqual([{ rowHeight: 0 }, { rowHeight: 0 }])
+    expect(layout.footerRows.value).toEqual([{ rowHeight: 0 }])
+
+    layout.headerRowHeightChange({ rowIndex: 0, height: 40 })
+    layout.headerRowHeightChange({ rowIndex: 1, height: 30 })
+    layout.footRowHeightChange({ rowIndex: 0, height: 25 })
+    expect(layout.headerTotalHeight.value).toBe(70)
+    expect(layout.footerTotalHeight.value).toBe(25)
+
+    // 隐藏表头时表头高度为 0
+    props.showHeader = false
+    expect(layout.headerTotalHeight.value).toBe(0)
+
+    // 表头行数变化：行高重置，等待表头行重新上报
+    groupColumns.value = [[{ key: 'a' }]]
+    await nextTick()
+    expect(layout.headerRows.value).toEqual([{ rowHeight: 0 }])
+    stop()
+  })
+})
+
+describe('useVirtualScroll', () => {
+  function setup(extraProps: Record<string, any> = {}) {
+    const tableData = Array.from({ length: 50 }, (_, i) => ({ id: `k${i}` }))
+    const props = reactive({
+      virtualScrollOption: { enable: true, minRowHeight: 30, bufferScale: 2 },
+      tableData,
+      rowKeyFieldName: 'id',
+      maxHeight: 300,
+      fixedHeader: true,
+      fixedFooter: true,
+      ...extraProps,
+    }) as any
+    const headerHeight = ref(40)
+    const footerHeight = ref(20)
+    // 没有滚动容器：实例不会创建，只测试创建之前的预估
+    const { result, wrapper } = withSetup(() => useVirtualScroll({
+      props,
+      allRowKeys: computed(() => props.tableData.map((x: any) => x.id)),
+      headerTotalHeight: computed(() => headerHeight.value),
+      footerTotalHeight: computed(() => footerHeight.value),
+      scrollElement: shallowRef(null),
+    }))
+    return { props, vs: result, wrapper, headerHeight }
+  }
+
+  it('maps the legacy options to TanStack options', () => {
+    const { vs, props } = setup()
+    expect(vs.isVirtualScroll.value).toBe(true)
+    expect(vs.virtualScrollEstimateSize.value).toBe(30)
+    expect(vs.virtualScrollOverscan.value).toBe(10)
+
+    props.virtualScrollOption = { enable: true, bufferScale: 0.1 }
+    expect(vs.virtualScrollEstimateSize.value).toBe(40)
+    expect(vs.virtualScrollOverscan.value).toBe(3)
+    props.virtualScrollOption = null
+    expect(vs.isVirtualScroll.value).toBe(false)
+    expect(vs.virtualItems.value).toEqual([])
+  })
+
+  it('lays out the first rows by the estimated height before the virtualizer exists (VS-06)', () => {
+    const { vs } = setup()
+    expect(vs.virtualScroll.value).toBeNull()
+
+    // 300 / 30 + overscan 10 = 20 行，key 为行 key
+    expect(vs.virtualItems.value.length).toBe(20)
+    expect(vs.virtualItems.value[1]).toEqual({ index: 1, key: 'k1', start: 30, size: 30, end: 60, lane: 0 })
+    expect(vs.actualRenderTableData.value.map((x: any) => x.id)).toEqual(vs.virtualItems.value.map(x => x.key))
+    expect(vs.virtualPaddingTop.value).toBe(0)
+    expect(vs.virtualPaddingBottom.value).toBe(30 * 30)
+    expect(vs.virtualTotalSize.value).toBe(50 * 30)
+  })
+
+  it('waits for the virtualizer when maxHeight is not in px', () => {
+    const { vs } = setup({ maxHeight: '50%' })
+    expect(vs.virtualItems.value).toEqual([])
+  })
+
+  it('turns a sticky or a scrolling header into the viewport offsets', () => {
+    const { vs, props, headerHeight } = setup()
+    expect(vs.virtualScrollViewportOffsets.value).toEqual({ scrollMargin: 0, stickyStart: 40, stickyEnd: 20 })
+
+    props.fixedHeader = false
+    props.fixedFooter = false
+    headerHeight.value = 50
+    expect(vs.virtualScrollViewportOffsets.value).toEqual({ scrollMargin: 50, stickyStart: 0, stickyEnd: 0 })
+  })
+
+  it('falls back to the row index as key without rowKeyFieldName', () => {
+    const { vs } = setup({ rowKeyFieldName: null })
+    expect(vs.getVirtualRowKey(3)).toBe(3)
+  })
+})
+
+describe('useCellSelectionState', () => {
+  function setup(extraProps: Record<string, any> = {}) {
+    const props = reactive({ cellSelectionOption: null, rowKeyFieldName: 'id', ...extraProps }) as any
+    const colgroups = ref<any[]>([
+      { key: 'op', operationColumn: true },
+      { key: 'a' },
+      { key: 'b' },
+      { key: 'c' },
+    ])
+    const rowKeys = ref(['r0', 'r1', 'r2'])
+    const { result, stop } = runInScope(() => useCellSelectionState({
+      props,
+      colgroups,
+      allRowKeys: computed(() => rowKeys.value),
+    }))
+    return { props, state: result, rowKeys, stop }
+  }
+
+  it('enables cell selection only with a row key field and without enable: false', () => {
+    expect(setup().state.enableCellSelection.value).toBe(true)
+    expect(setup({ rowKeyFieldName: '' }).state.enableCellSelection.value).toBe(false)
+    expect(setup({ cellSelectionOption: { enable: false } }).state.enableCellSelection.value).toBe(false)
+  })
+
+  it('keeps the row index and the selection type in sync with the cells', async () => {
+    const { state, stop } = setup()
+    expect(state.currentCellSelectionType.value).toBe('')
+
+    state.cellSelectionCurrentCellChange({ rowKey: 'r1', colKey: 'a' })
+    await nextTick()
+    expect(state.cellSelectionData.value.currentCell).toEqual({ rowKey: 'r1', colKey: 'a', rowIndex: 1 })
+    expect(state.currentCellSelectionType.value).toBe('single')
+
+    state.cellSelectionNormalEndCellChange({ rowKey: 'r2', colKey: 'b' })
+    await nextTick()
+    expect(state.currentCellSelectionType.value).toBe('range')
+
+    state.clearCellSelectionCurrentCell()
+    state.clearCellSelectionNormalEndCell()
+    await nextTick()
+    expect(state.currentCellSelectionType.value).toBe('')
+    stop()
+  })
+
+  it('turns the header / body indicators into a range and recomputes their indexes by key (SEL-09)', async () => {
+    const { state, rowKeys, stop } = setup()
+
+    state.headerIndicatorColKeysChange({ startColKey: 'b', endColKey: 'a' })
+    await nextTick()
+    expect(state.cellSelectionData.value.currentCell).toMatchObject({ rowKey: 'r0', colKey: 'b' })
+    expect(state.cellSelectionData.value.normalEndCell).toMatchObject({ rowKey: 'r2', colKey: 'a' })
+
+    state.clearHeaderIndicatorColKeys()
+    state.bodyIndicatorRowKeysChange({ startRowKey: 'r1', endRowKey: 'r2' })
+    await nextTick()
+    // 整行选择不包含操作列（SEL-03）
+    expect(state.cellSelectionData.value.currentCell).toMatchObject({ rowKey: 'r1', colKey: 'a' })
+    expect(state.cellSelectionData.value.normalEndCell).toMatchObject({ rowKey: 'r2', colKey: 'c' })
+
+    rowKeys.value = ['new', 'r0', 'r1', 'r2']
+    expect(state.getIndicatorIndexes()).toEqual({ startColIndex: -1, endColIndex: -1, startRowIndex: 2, endRowIndex: 3 })
+    stop()
+  })
+})
+
+describe('useScrolling', () => {
+  // jsdom 没有布局：用固定的尺寸模拟滚动容器
+  function fakeContainer(size: Record<string, number>) {
+    const el = document.createElement('div')
+    Object.entries(size).forEach(([key, value]) => {
+      Object.defineProperty(el, key, { configurable: true, writable: true, value })
+    })
+    return el
+  }
+
+  function setup(container: HTMLElement | null, fixed = true) {
+    const props = reactive({ fixedHeader: true, tableData: [], rowKeyFieldName: 'id' }) as any
+    const colgroups = ref<any[]>([
+      { key: 'a', fixed: fixed ? 'left' : '', _realTimeWidth: 100 },
+      { key: 'b', _realTimeWidth: 100 },
+      { key: 'c', _realTimeWidth: 100 },
+    ])
+    const resetTime = ref(0)
+    const changes: any[] = []
+    const { result } = withSetup(() => useScrolling({
+      props,
+      rootElement: shallowRef(null),
+      containerElement: shallowRef(container),
+      contentWrapper: shallowRef(null),
+      colgroups,
+      hasFixedColumn: computed(() => colgroups.value.some(x => x.fixed)),
+      columnsOptionResetTime: resetTime,
+      isVirtualScroll: computed(() => false),
+      virtualScroll: shallowRef(null),
+      headerTotalHeight: computed(() => 40),
+      footerTotalHeight: computed(() => 0),
+      cellSelectionData: ref({ currentCell: { rowKey: '', colKey: 'a', rowIndex: -1 } } as any),
+      cellSelectionCurrentCellChange: cell => changes.push(cell),
+    }))
+    return { scrolling: result, resetTime }
+  }
+
+  it('sets the scroll shadows from the container on mount and after a column reset', async () => {
+    const container = fakeContainer({ scrollWidth: 500, clientWidth: 200, scrollLeft: 100, scrollTop: 10 })
+    const { scrolling, resetTime } = setup(container)
+
+    expect(scrolling.isLeftScrolling.value).toBe(true)
+    expect(scrolling.isRightScrolling.value).toBe(true)
+    expect(scrolling.isVerticalScrolling.value).toBe(true)
+
+    ;(container as any).scrollLeft = 300
+    resetTime.value++
+    await nextTick()
+    expect(scrolling.isRightScrolling.value).toBe(false)
+  })
+
+  it('detects the scroll bars', () => {
+    const container = fakeContainer({ scrollWidth: 500, clientWidth: 200, scrollHeight: 100, clientHeight: 100, scrollLeft: 0, scrollTop: 0 })
+    const { scrolling } = setup(container)
+
+    scrolling.setScrollBarStatus()
+    expect(scrolling.hasXScrollBar.value).toBe(true)
+    expect(scrolling.hasYScrollBar.value).toBe(false)
+  })
+
+  it('scrolls a column into view only when there is a horizontal scroll bar', () => {
+    const container = fakeContainer({ scrollWidth: 300, clientWidth: 100, scrollLeft: 200, scrollTop: 0 })
+    const { scrolling } = setup(container, false)
+
+    expect(scrolling.columnToVisible({ key: 'a' } as any)).toBe(false)
+    scrolling.hasXScrollBar.value = true
+    scrolling.scrollToColKey({ colKey: 'a' })
+    expect(container.scrollLeft).toBe(0)
+  })
+
+  it('warns about an empty row key', () => {
+    const { scrolling } = setup(fakeContainer({ scrollTop: 0 }), false)
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    expect(scrolling.scrollToRowKey({ rowKey: '' })).toBe(false)
+    expect(warn).toHaveBeenCalled()
+    warn.mockRestore()
+  })
+})
+
+describe('useEditing', () => {
+  function setup(editOption: Record<string, any> = {}) {
+    const calls: any[] = []
+    const props = reactive({
+      editOption: {
+        beforeCellValueChange: ({ changeValue }: any) => calls.push(['before', changeValue]),
+        afterCellValueChange: ({ row, changeValue }: any) => calls.push(['after', row.name, changeValue]),
+        ...editOption,
+      },
+      tableData: [{ id: 1, name: 'a', age: 1 }, { id: 2, name: 'b', age: 2 }],
+      rowKeyFieldName: 'id',
+    }) as any
+    const colgroups = ref<any[]>([
+      { key: 'name', field: 'name', edit: true },
+      { key: 'age', field: 'age' },
+    ])
+    const cellSelectionData = ref<any>({ currentCell: { rowKey: '', colKey: '', rowIndex: -1 } })
+    const tableContext = createTableContext()
+    const { result, stop } = runInScope(() => useEditing({
+      props,
+      colgroups,
+      cellSelectionData,
+      cellSelectionCurrentCellChange: ({ rowKey, colKey }) => {
+        Object.assign(cellSelectionData.value.currentCell, { rowKey, colKey })
+      },
+      tableContext,
+    }))
+    return { props, editing: result, cellSelectionData, calls, stop }
+  }
+
+  it('edits a copy of the row and writes it back on stop, calling before then after', () => {
+    const { props, editing, cellSelectionData, calls, stop } = setup()
+
+    editing.startEditingCell({ rowKey: 2, colKey: 'name' })
+    expect(editing.isCellEditing.value).toBe(true)
+    expect(editing.editorInputStartValue.value).toBe('b')
+    expect(cellSelectionData.value.currentCell).toMatchObject({ rowKey: 2, colKey: 'name' })
+
+    editing.updateEditingCellValue('B!')
+    expect(props.tableData[1].name).toBe('b')
+
+    editing.stopEditingCell()
+    expect(props.tableData[1].name).toBe('B!')
+    expect(editing.isCellEditing.value).toBe(false)
+    expect(calls).toEqual([['before', 'B!'], ['after', 'B!', 'B!']])
+    stop()
+  })
+
+  it('ignores unknown cells and columns without edit: true', () => {
+    const { editing, stop } = setup()
+    expect(editing.startEditingCell({ rowKey: 9, colKey: 'name' })).toBe(false)
+    expect(editing.startEditingCell({ rowKey: 1, colKey: 'age' })).toBe(false)
+    expect(editing.isCellEditing.value).toBe(false)
+    stop()
+  })
+
+  it('cancels the start when beforeStartCellEditing returns false', () => {
+    const { editing, stop } = setup({ beforeStartCellEditing: () => false })
+    expect(editing.startEditingCell({ rowKey: 1, colKey: 'name' })).toBe(false)
+    expect(editing.isCellEditing.value).toBe(false)
+    stop()
+  })
+
+  it('discards the uncommitted value (D6)', () => {
+    const { props, editing, calls, stop } = setup()
+    editing.startEditingCell({ rowKey: 1, colKey: 'name', defaultValue: 'x' })
+    expect(editing.editingCell.value.row.name).toBe('x')
+
+    editing.discardEditingCell()
+    expect(editing.isCellEditing.value).toBe(false)
+    expect(props.tableData[0].name).toBe('a')
+    expect(calls).toEqual([])
+    stop()
+  })
+
+  it('starts editing on a double click on an editable column only', () => {
+    const { editing, stop } = setup()
+
+    editing.editCellByClick({ isDblclick: true, rowKey: 1, colKey: 'age' })
+    expect(editing.isCellEditing.value).toBe(false)
+    expect(editing.enableStopEditing.value).toBe(true)
+
+    editing.editCellByClick({ isDblclick: true, rowKey: 1, colKey: 'name' })
+    expect(editing.isCellEditing.value).toBe(true)
+    // 双击开始的编辑：方向键不结束编辑
+    expect(editing.enableStopEditing.value).toBe(false)
+    stop()
+  })
+})
+
+describe('useCellSelection', () => {
+  function setup() {
+    const props = reactive({ cellSelectionOption: null, rowKeyFieldName: 'id' }) as any
+    const colgroups = ref<any[]>([{ key: 'op', operationColumn: true }, { key: 'a' }, { key: 0 }])
+    const rowKeys = ref<any[]>(['r0', 'r1', 'r2'])
+    const allRowKeys = computed(() => rowKeys.value)
+    const scrolled: any[] = []
+    const editingCell = ref<any>({ rowKey: '', colKey: '', row: null, column: null })
+    const { result, stop } = runInScope(() => {
+      const state = useCellSelectionState({ props, colgroups, allRowKeys })
+      const selection = useCellSelection({
+        props,
+        colgroups,
+        allRowKeys,
+        state,
+        scrolling: {
+          columnToVisible: (column: any) => { scrolled.push(['col', column.key]) },
+          rowToVisible: (_keyCode: number, rowKey: any) => { scrolled.push(['row', rowKey]) },
+          scrollToRowKey: ({ rowKey }: any) => { scrolled.push(['toRow', rowKey]) },
+        },
+        editing: {
+          isCellEditing: computed(() => editingCell.value.rowKey !== ''),
+          editingCell,
+          clearEditingCell: () => { editingCell.value = { rowKey: '', colKey: '', row: null, column: null } },
+          editorInputStartValue: ref(''),
+          enableStopEditing: ref(true),
+        },
+        tableContext: createTableContext(),
+      })
+      return { state, selection }
+    })
+    return { ...result, rowKeys, colgroups, scrolled, editingCell, stop }
+  }
+
+  it('selects a cell, scrolls it into view and rejects unknown keys (SEL-06)', () => {
+    const { state, selection, scrolled, stop } = setup()
+
+    expect(selection.setCellSelection({ rowKey: 'r1', colKey: 0 })).toBeUndefined()
+    expect(state.cellSelectionData.value.currentCell).toEqual({ rowKey: 'r1', colKey: 0, rowIndex: 1 })
+    expect(scrolled).toEqual([['col', 0], ['toRow', 'r1']])
+
+    expect(selection.setCellSelection({ rowKey: 'x', colKey: 'a' })).toBe(false)
+    expect(selection.setRangeCellSelection({ startRowKey: 'r0', startColKey: '0', endRowKey: 'r1', endColKey: 'a' })).toBe(false)
+    expect(state.cellSelectionData.value.currentCell.rowKey).toBe('r1')
+    stop()
+  })
+
+  it('selects everything through the indicators and reports the range', async () => {
+    const { state, selection, stop } = setup()
+
+    selection.setAllCellSelection()
+    expect(state.headerIndicatorColKeys.value).toEqual({ startColKey: 'a', endColKey: 0 })
+    expect(state.bodyIndicatorRowKeys.value).toEqual({ startRowKey: 'r0', endRowKey: 'r2' })
+
+    // 选区边界由选区层回传
+    state.cellSelectionRangeDataChange({ leftColKey: 'a', rightColKey: 0, topRowKey: 'r0', bottomRowKey: 'r2' })
+    await nextTick()
+    expect(selection.getRangeCellSelection()).toEqual({
+      selectionRangeKeys: { startColKey: 'a', endColKey: 0, startRowKey: 'r0', endRowKey: 'r2' },
+      selectionRangeIndexes: { startColIndex: 1, endColIndex: 2, startRowIndex: 0, endRowIndex: 2 },
+    })
+    stop()
+  })
+
+  it('reconciles the selection and the editing cell after rows change (SEL-01)', async () => {
+    const { state, selection, rowKeys, editingCell, stop } = setup()
+
+    selection.setRangeCellSelection({ startRowKey: 'r1', startColKey: 'a', endRowKey: 'r2', endColKey: 0 })
+    editingCell.value = { rowKey: 'r2', colKey: 'a', row: {}, column: {} }
+
+    // 上方插入一行、删除 r2
+    rowKeys.value = ['new', 'r0', 'r1']
+    await nextTick()
+
+    expect(state.cellSelectionData.value.currentCell).toEqual({ rowKey: 'r1', colKey: 'a', rowIndex: 2 })
+    expect(state.cellSelectionData.value.normalEndCell).toEqual({ rowKey: '', colKey: '', rowIndex: -1 })
+    expect(editingCell.value.rowKey).toBe('')
+    stop()
+  })
+})
+
+describe('useSelectionDrag', () => {
+  it('ends the drag on a document mouseup or a lost mouseup, and removes its listeners', () => {
+    const { result: drag, wrapper } = withSetup(() => useSelectionDrag())
+    const removeSpy = vi.spyOn(document, 'removeEventListener')
+
+    drag.isBodyCellMousedown.value = true
+    drag.addSelectionDragListener()
+    document.dispatchEvent(new MouseEvent('mouseup'))
+    expect(drag.isBodyCellMousedown.value).toBe(false)
+    expect(removeSpy).toHaveBeenCalledWith('mouseup', expect.any(Function), true)
+
+    // 经过单元格时没有按住左键：mouseup 已丢失（SEL-18）
+    drag.isHeaderCellMousedown.value = true
+    drag.endLostSelectionDrag(new MouseEvent('mouseover', { buttons: 1 }))
+    expect(drag.isHeaderCellMousedown.value).toBe(true)
+    drag.endLostSelectionDrag(new MouseEvent('mouseover', { buttons: 0 }))
+    expect(drag.isHeaderCellMousedown.value).toBe(false)
+
+    // 拖动中卸载：移除监听
+    drag.addSelectionDragListener()
+    removeSpy.mockClear()
+    wrapper.unmount()
+    expect(removeSpy).toHaveBeenCalledWith('mouseup', expect.any(Function), true)
+    removeSpy.mockRestore()
+  })
+})
+
+describe('useAutofill', () => {
+  function setup(cellAutofillOption: any = {}) {
+    const calls: any[] = []
+    const props = reactive({
+      cellAutofillOption: {
+        beforeAutofill: ({ direction }: any) => { calls.push(['before', direction]) },
+        afterAutofill: ({ direction }: any) => calls.push(['after', direction]),
+        ...cellAutofillOption,
+      },
+      tableData: [{ id: 'r0', a: 'x' }, { id: 'r1', a: 'y' }, { id: 'r2', a: 'z' }],
+      rowKeyFieldName: 'id',
+      editOption: null,
+      cellSelectionOption: null,
+    }) as any
+    const colgroups = ref<any[]>([{ key: 'a', field: 'a' }])
+    const allRowKeys = computed(() => props.tableData.map((x: any) => x.id))
+    const { result, wrapper } = withSetup(() => {
+      const state = useCellSelectionState({ props, colgroups, allRowKeys })
+      const autofill = useAutofill({
+        props,
+        colgroups,
+        allRowKeys,
+        state,
+        containerElement: shallowRef(null),
+        tableContext: createTableContext(),
+      })
+      return { state, autofill }
+    })
+    return { ...result, props, calls, wrapper }
+  }
+
+  it('fills down from a single cell when the drag ends', async () => {
+    const { state, autofill, props, calls } = setup()
+    state.cellSelectionCurrentCellChange({ rowKey: 'r0', colKey: 'a' })
+    state.cellSelectionRangeDataChange({ leftColKey: 'a', rightColKey: 'a', topRowKey: 'r0', bottomRowKey: 'r0' })
+    await nextTick()
+
+    autofill.cellSelectionCornerMousedown({ event: new MouseEvent('mousedown') })
+    await nextTick()
+    state.cellSelectionAutofillCellChange({ rowKey: 'r2', colKey: 'a' })
+    expect(autofill.autofillingDirection.value).toBe('down')
+
+    autofill.cellSelectionCornerMouseup({ event: new MouseEvent('mouseup') })
+    await nextTick()
+
+    expect(props.tableData.map((x: any) => x.a)).toEqual(['x', 'x', 'x'])
+    expect(calls).toEqual([['before', 'down'], ['after', 'down']])
+    expect(state.cellSelectionData.value.normalEndCell).toMatchObject({ rowKey: 'r2', colKey: 'a' })
+    // 结束单元格已清除
+    expect(autofill.autofillingDirection.value).toBeNull()
+  })
+
+  it('does not fill when cancelled or when the direction is not allowed', async () => {
+    const { state, autofill, props, calls } = setup({ directionY: false })
+    state.cellSelectionCurrentCellChange({ rowKey: 'r0', colKey: 'a' })
+    state.cellSelectionRangeDataChange({ leftColKey: 'a', rightColKey: 'a', topRowKey: 'r0', bottomRowKey: 'r0' })
+    await nextTick()
+
+    autofill.cellSelectionCornerMousedown({ event: new MouseEvent('mousedown') })
+    state.cellSelectionAutofillCellChange({ rowKey: 'r2', colKey: 'a' })
+    expect(autofill.autofillingDirection.value).toBeNull()
+    autofill.cancelAutofill()
+    await nextTick()
+
+    expect(autofill.isAutofillStarting.value).toBe(false)
+    expect(props.tableData.map((x: any) => x.a)).toEqual(['x', 'y', 'z'])
+    expect(calls).toEqual([])
+  })
+})
+
+describe('useClipboard', () => {
+  function setup(clipboardOption: any = {}, editing = false) {
+    const calls: any[] = []
+    const props = reactive({
+      clipboardOption: {
+        afterPaste: ({ data }: any) => calls.push(['afterPaste', data]),
+        afterDelete: ({ data }: any) => calls.push(['afterDelete', data]),
+        ...clipboardOption,
+      },
+      tableData: [{ id: 'r0', a: 'x', b: 1 }, { id: 'r1', a: 'y', b: 2 }],
+      editOption: null,
+      rowKeyFieldName: 'id',
+    }) as any
+    const colgroups = ref<any[]>([{ key: 'a', field: 'a' }, { key: 'b', field: 'b' }])
+    const cellSelectionRangeData = ref<any>({ leftColKey: 'a', rightColKey: 'b', topRowKey: 'r1', bottomRowKey: 'r1' })
+    const cells: any[] = []
+    const tableContext = createTableContext()
+    tableContext.on(HOOKS_NAME.CLIPBOARD_CELL_VALUE_CHANGE, () => calls.push(['hook']))
+    const { result, stop } = runInScope(() => useClipboard({
+      props,
+      colgroups,
+      allRowKeys: computed(() => props.tableData.map((x: any) => x.id)),
+      cellSelectionRangeData,
+      cellSelectionCurrentCellChange: cell => cells.push(['current', cell]),
+      cellSelectionNormalEndCellChange: cell => cells.push(['end', cell]),
+      isCellEditing: computed(() => editing),
+      tableContext,
+    }))
+    return { props, clipboard: result, calls, cells, stop }
+  }
+
+  function pasteEvent(text: string) {
+    return {
+      clipboardData: { getData: () => text },
+      preventDefault: vi.fn(),
+    } as any
+  }
+
+  it('pastes into the selection, then updates the selection, the hook and the after callback in that order', () => {
+    const { props, clipboard, calls, cells, stop } = setup()
+    const event = pasteEvent('P\tQ\n')
+
+    clipboard.editorPaste(event)
+
+    expect(event.preventDefault).toHaveBeenCalled()
+    expect(props.tableData[1]).toMatchObject({ a: 'P', b: 'Q' })
+    expect(cells).toEqual([['current', { rowKey: 'r1', colKey: 'a' }], ['end', { rowKey: 'r1', colKey: 'b' }]])
+    expect(calls.map(x => x[0])).toEqual(['hook', 'afterPaste'])
+    stop()
+  })
+
+  it('deletes the selected values unless the delete switch is off or a cell is being edited', () => {
+    const off = setup({ delete: false })
+    expect(off.clipboard.deleteCellSelectionRangeValue()).toBe(false)
+    expect(off.props.tableData[1]).toMatchObject({ a: 'y', b: 2 })
+    off.stop()
+
+    const editing = setup({}, true)
+    expect(editing.clipboard.deleteCellSelectionRangeValue()).toBe(false)
+    editing.stop()
+
+    const { props, clipboard, calls, stop } = setup()
+    clipboard.deleteCellSelectionRangeValue()
+    expect(props.tableData[1]).toMatchObject({ a: '', b: '' })
+    expect(calls.map(x => x[0])).toEqual(['hook', 'afterDelete'])
+    stop()
+  })
+
+  it('leaves the native copy alone without a valid selection (CLIP-01)', () => {
+    const { clipboard, stop } = setup()
+    const event = { preventDefault: vi.fn(), clipboardData: { setData: vi.fn() } } as any
+    // 没有 rowKeyFieldName 时剪贴板关闭
+    const noKey = setup()
+    noKey.props.rowKeyFieldName = ''
+    expect(noKey.clipboard.editorCopy(event)).toBe(false)
+    expect(event.preventDefault).not.toHaveBeenCalled()
+    noKey.stop()
+
+    clipboard.editorCopy(event)
+    expect(event.preventDefault).toHaveBeenCalled()
+    expect(event.clipboardData.setData).toHaveBeenCalledWith('text/plain', 'y\t2\n')
+    stop()
+  })
+})
+
+describe('useKeyboard', () => {
+  function setup() {
+    const root = document.createElement('div')
+    root.tabIndex = 0
+    document.body.appendChild(root)
+    const props = reactive({ cellSelectionOption: null, rowKeyFieldName: 'id' }) as any
+    const colgroups = ref<any[]>([{ key: 'op', operationColumn: true }, { key: 'a' }, { key: 'b', edit: true }])
+    const allRowKeys = computed(() => ['r0', 'r1'])
+    const calls: any[] = []
+    const { result, wrapper } = withSetup(() => {
+      const state = useCellSelectionState({ props, colgroups, allRowKeys })
+      const keyboard = useKeyboard({
+        rootElement: shallowRef(root),
+        editor: shallowRef(null),
+        colgroups,
+        allRowKeys,
+        state,
+        selection: {
+          setCellSelection: ({ rowKey, colKey }: any) => state.cellSelectionCurrentCellChange({ rowKey, colKey }),
+        },
+        editing: {
+          enableStopEditing: ref(true),
+          isCellEditing: computed(() => false),
+          startEditingCell: (params: any) => { calls.push(['start', params]) },
+          stopEditingCell: () => { calls.push(['stop']) },
+          discardEditingCell: () => { calls.push(['discard']) },
+        },
+        clipboard: { deleteCellSelectionRangeValue: () => { calls.push(['delete']) } },
+        scrolling: {
+          columnToVisible: () => {},
+          rowToVisible: (_keyCode: number, rowKey: any) => state.cellSelectionCurrentCellChange({
+            rowKey,
+            colKey: state.cellSelectionData.value.currentCell.colKey,
+          }),
+        },
+      })
+      return { state, keyboard }
+    })
+    const press = (key: string, keyCode: number, target: EventTarget = root) => {
+      target.dispatchEvent(new KeyboardEvent('keydown', { key, keyCode, bubbles: true, cancelable: true } as any))
+    }
+    const cleanup = () => {
+      wrapper.unmount()
+      root.remove()
+    }
+    return { ...result, root, calls, press, cleanup }
+  }
+
+  it('resumes cell navigation from the table root, moves with the arrow keys and leaves with Esc (SEL-08)', async () => {
+    const { state, keyboard, root, calls, press, cleanup } = setup()
+    expect(keyboard.keyboardMode.value).toBe('table')
+
+    // 表格模式下在根元素上按 Enter：选中第一个非操作列单元格
+    press('Enter', 13)
+    expect(state.cellSelectionData.value.currentCell).toMatchObject({ rowKey: 'r0', colKey: 'a' })
+    expect(keyboard.keyboardMode.value).toBe('cell')
+
+    press('ArrowRight', 39)
+    press('ArrowDown', 40)
+    expect(state.cellSelectionData.value.currentCell).toMatchObject({ rowKey: 'r1', colKey: 'b' })
+    expect(calls).toEqual([['stop'], ['stop']])
+
+    press('Delete', 46)
+    expect(calls[2]).toEqual(['delete'])
+
+    press('Escape', 27)
+    expect(keyboard.keyboardMode.value).toBe('table')
+    expect(document.activeElement).toBe(root)
+    cleanup()
+  })
+
+  it('ignores keys from outside the table and from widgets inside cells (SEL-02, SEL-10)', () => {
+    const { state, keyboard, root, calls, press, cleanup } = setup()
+    keyboard.resumeCellKeyboardMode()
+    const outside = document.createElement('input')
+    document.body.appendChild(outside)
+    const widget = document.createElement('input')
+    root.appendChild(widget)
+
+    press('Delete', 46, outside)
+    press('Delete', 46, widget)
+    expect(calls).toEqual([])
+    expect(state.cellSelectionData.value.currentCell.rowKey).toBe('r0')
+
+    outside.remove()
+    cleanup()
+  })
+})
+
+describe('useContextmenu', () => {
+  function setup() {
+    const calls: any[] = []
+    const props = reactive({
+      contextmenuHeaderOption: {
+        contextmenus: [{ type: 'LEFT_FIXED_COLUMN_TO' }],
+        afterMenuClick: ({ type }: any) => { calls.push(['header', type]) },
+      },
+      contextmenuBodyOption: {
+        contextmenus: [{ type: 'INSERT_ROW_ABOVE' }, { type: 'EMPTY_CELL' }],
+        afterMenuClick: ({ type }: any) => { calls.push(['body', type]) },
+      },
+      tableData: [{ id: 'r0', a: 1 }, { id: 'r1', a: 2 }],
+      rowKeyFieldName: 'id',
+      cellSelectionOption: null,
+    }) as any
+    const root = document.createElement('div')
+    root.innerHTML = '<table class="ve-table-content"></table>'
+    // initGroupColumns 生成的叶子列带 _level
+    const columns = [{ key: 'a', field: 'a', title: 'A', _level: 1 }, { key: 'b', field: 'b', title: 'B', _level: 1 }]
+    const cloneColumns = ref<any[]>(columns)
+    const colgroups = ref<any[]>(columns)
+    const allRowKeys = computed(() => props.tableData.map((x: any) => x.id))
+    const { result } = withSetup(() => {
+      const state = useCellSelectionState({ props, colgroups, allRowKeys })
+      const contextmenu = useContextmenu({
+        props,
+        locale: ref({} as any),
+        rootElement: shallowRef(root),
+        editor: shallowRef(null),
+        colgroups,
+        allRowKeys,
+        cloneColumns,
+        enableColumnResize: computed(() => false),
+        state,
+        clipboard: {
+          contextmenuCopyOrCut: async () => true,
+          deleteCellSelectionRangeValue: () => { calls.push(['delete']) },
+        },
+        selectionDrag: { endSelectionDrag: () => { calls.push(['endDrag']) } },
+        autofill: { isAutofillStarting: ref(false), cancelAutofill: () => {} },
+        tableContext: createTableContext(),
+      })
+      return { state, contextmenu }
+    })
+    return { ...result, props, root, cloneColumns, calls }
+  }
+
+  it('listens on the table content and builds the body or header menu by the indicator', () => {
+    const { state, contextmenu, root } = setup()
+    expect(contextmenu.contextmenuEventTarget.value).toBe(root.firstElementChild)
+    expect(contextmenu.enableHeaderContextmenu.value).toBe(true)
+    expect(contextmenu.enableBodyContextmenu.value).toBe(true)
+
+    contextmenu.setContextmenuOptions({ key: 'a' })
+    expect(contextmenu.contextMenuType.value).toBe('bodyContextmenu')
+    expect(contextmenu.contextmenuOptions.value.map(x => x.type)).toEqual(['INSERT_ROW_ABOVE', 'EMPTY_CELL'])
+
+    state.headerIndicatorColKeysChange({ startColKey: 'a', endColKey: 'a' })
+    contextmenu.setContextmenuOptions({ key: 'a' })
+    expect(contextmenu.contextMenuType.value).toBe('headerContextmenu')
+    expect(contextmenu.contextmenuOptions.value.map(x => x.type)).toEqual(['LEFT_FIXED_COLUMN_TO'])
+  })
+
+  it('runs the clicked item after afterMenuClick, for the current cell only', () => {
+    const { state, contextmenu, props, cloneColumns, calls } = setup()
+
+    // 没有活动单元格：不执行
+    contextmenu.contextmenuItemClick('INSERT_ROW_ABOVE')
+    expect(calls).toEqual([['endDrag']])
+
+    state.cellSelectionCurrentCellChange({ rowKey: 'r1', colKey: 'a' })
+    contextmenu.contextmenuItemClick('INSERT_ROW_ABOVE')
+    expect(props.tableData.length).toBe(3)
+    expect(props.tableData[2].id).toBe('r1')
+
+    contextmenu.contextmenuItemClick('EMPTY_CELL')
+    expect(calls.slice(1)).toEqual([['endDrag'], ['body', 'INSERT_ROW_ABOVE'], ['endDrag'], ['body', 'EMPTY_CELL'], ['delete']])
+
+    // 表头菜单：固定到该列
+    state.headerIndicatorColKeysChange({ startColKey: 'a', endColKey: 'a' })
+    state.cellSelectionRangeDataChange({ leftColKey: 'a', rightColKey: 'a', topRowKey: 'r0', bottomRowKey: 'r1' })
+    contextmenu.contextmenuItemClick('LEFT_FIXED_COLUMN_TO')
+    expect(cloneColumns.value.map(x => x.fixed || '')).toEqual(['left', ''])
+  })
+})
+
+describe('useRowInsert', () => {
+  it('emits on-row-insert only while row insert is enabled, and passes the indicator props', () => {
+    const props = reactive({ rowInsertOption: { enable: true }, fixedHeader: true, fixedFooter: false }) as any
+    const emit = vi.fn()
+    const table = document.createElement('table')
+    const { result: rowInsert, stop } = runInScope(() => useRowInsert({
+      props,
+      emit,
+      parentRendered: ref(true),
+      containerElement: shallowRef(null),
+      tableElement: shallowRef(table),
+      colgroups: ref([{ key: 'a' }] as any[]),
+    }))
+
+    expect(rowInsert.rowInsertIndicatorProps.value).toMatchObject({
+      parentRendered: true,
+      tableContainerEl: null,
+      tableEl: table,
+      fixedHeader: true,
+      fixedFooter: false,
+    })
+
+    rowInsert.rowInsertIndicatorProps.value.onOnRowInsert({ insertRowIndex: 2 })
+    expect(emit).toHaveBeenCalledWith('on-row-insert', { insertRowIndex: 2 })
+
+    props.rowInsertOption = { enable: false }
+    rowInsert.handleRowInsert({ insertRowIndex: 3 })
+    expect(emit).toHaveBeenCalledTimes(1)
+    stop()
+  })
+})

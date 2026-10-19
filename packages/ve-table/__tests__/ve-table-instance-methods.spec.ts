@@ -2,6 +2,8 @@ import type { ColumnOption } from '@/ve-table/src/ve-table-types'
 import veTable from '@/ve-table'
 import { later, mockScrollTo } from '@test-utils'
 import { mount } from '@vue/test-utils'
+import { defineComponent, h, ref } from 'vue'
+import { INSTANCE_METHODS } from '../src/util/constant'
 
 describe('veTable instance methods', () => {
   const TABLE_DATA = [
@@ -139,6 +141,56 @@ describe('veTable instance methods', () => {
 
     // key 为 0 的列在左侧，需要向左滚动
     expect(containerEl.scrollLeft).toBeLessThan(300)
+    wrapper.unmount()
+  })
+
+  // MOD-02：组件改为 setup() 之后，通过模板 ref 拿到的实例仍然提供全部文档中的实例方法
+  it('exposes every instance method through a template ref', async () => {
+    const tableRef = ref<any>(null)
+    const Parent = defineComponent({
+      setup() {
+        return () => h(veTable, {
+          ref: tableRef,
+          columns: COLUMNS,
+          tableData: TABLE_DATA,
+          rowKeyFieldName: 'rowkey',
+        })
+      },
+    })
+    const wrapper = mount(Parent)
+    await later()
+
+    const names = Object.values(INSTANCE_METHODS)
+    expect(names).toEqual([
+      'scrollTo',
+      'scrollToRowKey',
+      'scrollToColKey',
+      'startEditingCell',
+      'stopEditingCell',
+      'setHighlightRow',
+      'setCellSelection',
+      'setRangeCellSelection',
+      'getRangeCellSelection',
+      'setAllCellSelection',
+      'hideColumnsByKeys',
+      'showColumnsByKeys',
+    ])
+    names.forEach(name => expect(typeof tableRef.value[name]).toBe('function'))
+
+    // 通过 ref 调用：选区、读取选区、隐藏 / 显示列
+    tableRef.value.setRangeCellSelection({ startRowKey: 1, startColKey: 'a', endRowKey: 2, endColKey: 'b' })
+    await later()
+    expect(tableRef.value.getRangeCellSelection()).toEqual({
+      selectionRangeKeys: { startColKey: 'a', endColKey: 'b', startRowKey: 1, endRowKey: 2 },
+      selectionRangeIndexes: { startColIndex: 0, endColIndex: 1, startRowIndex: 1, endRowIndex: 2 },
+    })
+    tableRef.value.hideColumnsByKeys(['b'])
+    await later()
+    expect(wrapper.findAll('.ve-table-header-th').length).toBe(3)
+    tableRef.value.showColumnsByKeys(['b'])
+    await later()
+    expect(wrapper.findAll('.ve-table-header-th').length).toBe(4)
+
     wrapper.unmount()
   })
 })

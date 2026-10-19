@@ -2,7 +2,7 @@
  * TanStack Virtual integration for ve-table.
  *
  * Wraps @tanstack/virtual-core's Virtualizer in a thin adapter that
- * can be driven from an Options-API component.  The module owns:
+ * is driven by useVirtualScroll (MOD-02).  The module owns:
  *   – creating / destroying the Virtualizer instance
  *   – bridging scroll-container & item measurement
  *   – exposing computed helpers (virtualItems, totalSize, spacers)
@@ -19,7 +19,7 @@ import {
 
   Virtualizer,
 } from '@tanstack/virtual-core'
-import { safeCall } from './util/safe-call.js'
+import { safeCall } from '../../util/safe-call.js'
 
 // Re-export for consumers
 export type { VirtualItem }

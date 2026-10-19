@@ -1,6 +1,7 @@
 import veTable from '@/ve-table'
 import { getVirtualRenderRange, later, mockVirtualScrollLayout } from '@test-utils'
 import { mount } from '@vue/test-utils'
+import { EMIT_EVENTS } from '../src/util/constant'
 
 /*
  * INFRA-08：可选的用户选项 / 回调不存在时不能抛错
@@ -211,8 +212,9 @@ describe('veTable optional and throwing user callbacks', () => {
         columns: COLUMNS,
         eventCustomOption: { bodyCellEvents: () => ({ click: boom('click') }) },
       })
+      // 表格收到的 BODY_CELL_CLICK（MOD-02：在表格上下文上计数，替换实例上的方法不再生效）
       const bodyCellClick = vi.fn()
-      ;(wrapper.vm as any).bodyCellClick = bodyCellClick
+      ;(wrapper.vm as any).tableContext.on(EMIT_EVENTS.BODY_CELL_CLICK, bodyCellClick)
 
       await wrapper.find('.ve-table-body-td').trigger('click')
       await later()

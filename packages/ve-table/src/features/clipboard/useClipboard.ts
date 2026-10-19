@@ -1,6 +1,5 @@
 /**
- * Clipboard methods extracted from ve-table.
- * Spread into defineComponent({ methods: { ...clipboardMethods } })
+ * 剪贴板（MOD-02）：编辑框上的复制、粘贴、剪切，Delete 清空选区，右键菜单的复制、剪切
  *
  * 执行顺序（CLIP-01、INFRA-07）：
  * 1. 先用 onBefore* 校验选区；选区失效（或粘贴内容不是文本）时直接返回，
@@ -13,7 +12,7 @@
  *    （放行原生行为只会作用于隐藏的 textarea，并不是用户想要的结果）；
  * 4. 先完成内部状态更新（数据、选区、CLIPBOARD_CELL_VALUE_CHANGE hook），最后才调用
  *    after* 回调，after* 抛出异常只会被记录，不影响表格状态。粘贴、剪切、删除都会
- *    触发该 hook（CLIP-08），自动填充也会（FILL-06，见 setCellSelectionByAutofill），
+ *    触发该 hook（CLIP-08），自动填充也会（FILL-06，见 useAutofill），
  *    以便单元格内容变化后重新定位选区边框。
  *
  * 设置了 editOption 时（CLIP-10，D12）：粘贴、剪切、删除（含右键菜单的剪切、清空）
@@ -33,11 +32,12 @@
  * 右键菜单的复制、剪切（contextmenuCopyOrCut，CLIP-06）没有 copy 事件，
  * 通过 writeClipboardText 主动写入，开关、校验和回调与键盘操作相同，见该方法的说明。
  */
+import type { ComputedRef, Ref } from 'vue'
+import type { VeTableProps } from '../../ve-table-props'
+import type { CellKey, CellSelectionRangeData, ColgroupData } from '../../ve-table-types'
+import type { TableContext } from '../table-context'
 import { isBoolean } from '@vue3-easytable/common/utils'
-import {
-  getCellValueCallbacks,
-  isCancelledByCallback,
-} from '../features/cell-value-change/index.js'
+import { computed } from 'vue'
 import {
   clearRangeValues,
   encodeToSpreadsheetStr,
@@ -51,10 +51,13 @@ import {
   onBeforeDelete,
   onBeforePaste,
   writeClipboardText,
-} from '../util/clipboard/index.js'
-import { HOOKS_NAME } from '../util/constant.js'
-import { getSelectionRangeData } from '../util/index.js'
-import { safeCall } from '../util/safe-call.js'
+} from '../../util/clipboard/index'
+import { HOOKS_NAME } from '../../util/constant'
+import { getSelectionRangeData } from '../../util/index'
+import { safeCall } from '../../util/safe-call'
+import { getCellValueCallbacks, isCancelledByCallback } from '../cell-value-change'
+
+type RowKey = string | number
 
 type CopyKind = 'copy' | 'cut'
 
@@ -62,55 +65,6 @@ const COPY_KINDS = {
   copy: { before: 'beforeCopy', after: 'afterCopy', onBefore: onBeforeCopy },
   cut: { before: 'beforeCut', after: 'afterCut', onBefore: onBeforeCut },
 } as const
-
-/**
- * 复制、剪切共用的前置检查：功能开关、编辑状态与选区（CLIP-01）
- * @return 不由表格处理时返回 null
- */
-function prepareCopyOrCut(vm: any, kind: CopyKind) {
-  const {
-    isCellEditing,
-    enableClipboard,
-    clipboardOption,
-    cellSelectionRangeData,
-    tableData,
-    colgroups,
-    allRowKeys,
-  } = vm
-
-  if (!enableClipboard)
-    return null
-
-  // 正在编辑的单元格不进行自定义复制、剪切功能
-  if (isCellEditing)
-    return null
-
-  const option = clipboardOption || {}
-
-  if (isBoolean(option[kind]) && !option[kind])
-    return null
-
-  // getSelectionRangeData 尚未标注类型（返回值被推断为 null），flat 模式下实际为二维数组
-  const selectionRangeData = getSelectionRangeData({
-    cellSelectionRangeData,
-    resultType: 'flat',
-    tableData,
-    colgroups,
-    allRowKeys,
-  }) as unknown as unknown[][]
-
-  const response = COPY_KINDS[kind].onBefore({
-    cellSelectionRangeData,
-    selectionRangeData,
-    colgroups,
-    allRowKeys,
-  })
-
-  if (!response)
-    return null
-
-  return { option, response, selectionRangeData }
-}
 
 /**
  * 剪贴板写入失败（CLIP-06）：调用 clipboardOption.writeError，未提供时输出警告，不再静默失败
@@ -127,10 +81,88 @@ function reportWriteError(callback: any, payload: { type: CopyKind, error: unkno
   )
 }
 
-export const clipboardMethods = {
-  // editor copy
-  editorCopy(this: any, event: any) {
-    const prepared = prepareCopyOrCut(this, 'copy')
+export interface UseClipboardOptions {
+  props: Pick<VeTableProps, 'clipboardOption' | 'tableData' | 'editOption' | 'rowKeyFieldName'>
+  colgroups: Ref<ColgroupData[]>
+  allRowKeys: ComputedRef<RowKey[]>
+  cellSelectionRangeData: Ref<CellSelectionRangeData>
+  cellSelectionCurrentCellChange: (cell: CellKey) => void
+  cellSelectionNormalEndCellChange: (cell: CellKey) => void
+  // 正在编辑的单元格使用原生的复制、粘贴、剪切
+  isCellEditing: ComputedRef<boolean>
+  tableContext: TableContext
+}
+
+export interface UseClipboard {
+  enableClipboard: ComputedRef<boolean>
+  editorCopy: (event: Event) => false | void
+  editorPaste: (event: Event) => false | void
+  editorCut: (event: Event) => false | void
+  contextmenuCopyOrCut: (kind: CopyKind) => Promise<boolean>
+  deleteCellSelectionRangeValue: () => false | void
+}
+
+export function useClipboard(options: UseClipboardOptions): UseClipboard {
+  const {
+    props,
+    colgroups,
+    allRowKeys,
+    cellSelectionRangeData,
+    cellSelectionCurrentCellChange,
+    cellSelectionNormalEndCellChange,
+    isCellEditing,
+    tableContext,
+  } = options
+
+  // 剪贴板依赖行 key
+  const enableClipboard = computed(() => !!props.rowKeyFieldName)
+
+  // 选区内的数据（二维数组，按行、列）
+  function getFlatSelectionRangeData() {
+    // getSelectionRangeData 尚未标注类型（返回值被推断为 null），flat 模式下实际为二维数组
+    return getSelectionRangeData({
+      cellSelectionRangeData: cellSelectionRangeData.value,
+      resultType: 'flat',
+      tableData: props.tableData,
+      colgroups: colgroups.value,
+      allRowKeys: allRowKeys.value,
+    }) as unknown as unknown[][]
+  }
+
+  /**
+   * 复制、剪切共用的前置检查：功能开关、编辑状态与选区（CLIP-01）
+   * @return 不由表格处理时返回 null
+   */
+  function prepareCopyOrCut(kind: CopyKind) {
+    if (!enableClipboard.value)
+      return null
+
+    // 正在编辑的单元格不进行自定义复制、剪切功能
+    if (isCellEditing.value)
+      return null
+
+    const option: Record<string, any> = props.clipboardOption || {}
+
+    if (isBoolean(option[kind]) && !option[kind])
+      return null
+
+    const selectionRangeData = getFlatSelectionRangeData()
+
+    const response = COPY_KINDS[kind].onBefore({
+      cellSelectionRangeData: cellSelectionRangeData.value,
+      selectionRangeData,
+      colgroups: colgroups.value,
+      allRowKeys: allRowKeys.value,
+    })
+
+    if (!response)
+      return null
+
+    return { option, response, selectionRangeData }
+  }
+
+  function editorCopy(event: Event) {
+    const prepared = prepareCopyOrCut('copy')
 
     // 选区失效：不拦截原生复制（CLIP-01）
     if (!prepared)
@@ -146,36 +178,33 @@ export const clipboardMethods = {
     onAfterCopy({ event, selectionRangeData })
 
     safeCall('afterCopy', option.afterCopy, response)
-  },
+  }
 
-  // editor paste
-  editorPaste(this: any, event: any) {
-    const { isCellEditing, enableClipboard, clipboardOption } = this
-
-    if (!enableClipboard)
+  function editorPaste(event: Event) {
+    if (!enableClipboard.value)
       return false
 
     // 正在编辑的单元格不进行自定义粘贴功能
-    if (isCellEditing)
+    if (isCellEditing.value)
       return false
 
     const {
       paste,
       beforePaste: beforePasteCallback,
       afterPaste: afterPasteCallback,
-    } = clipboardOption || {}
+    } = props.clipboardOption || {}
 
     if (isBoolean(paste) && !paste)
       return false
 
-    const cellValueCallbacks = getCellValueCallbacks(this.editOption)
+    const cellValueCallbacks = getCellValueCallbacks(props.editOption)
 
     const response = onBeforePaste({
       event,
-      cellSelectionRangeData: this.cellSelectionRangeData,
-      colgroups: this.colgroups,
-      allRowKeys: this.allRowKeys,
-      rowKeyFieldName: this.rowKeyFieldName,
+      cellSelectionRangeData: cellSelectionRangeData.value,
+      colgroups: colgroups.value,
+      allRowKeys: allRowKeys.value,
+      rowKeyFieldName: props.rowKeyFieldName,
       editableOnly: cellValueCallbacks.editableOnly,
     })
 
@@ -200,36 +229,27 @@ export const clipboardMethods = {
 
     // change table cell data（逐单元格 beforeCellValueChange，CLIP-10）
     const applied = onAfterPaste({
-      tableData: this.tableData,
-      colgroups: this.colgroups,
+      tableData: props.tableData,
+      colgroups: colgroups.value,
       beforePasteResponse: response,
       canChange: cellValueCallbacks.canChange,
     })
 
-    const { startColKey, endColKey, startRowKey, endRowKey }
-      = response.selectionRangeKeys
+    const { startColKey, endColKey, startRowKey, endRowKey } = response.selectionRangeKeys
 
-    this.cellSelectionCurrentCellChange({
-      rowKey: startRowKey,
-      colKey: startColKey,
-    })
-
-    this.cellSelectionNormalEndCellChange({
-      rowKey: endRowKey,
-      colKey: endColKey,
-    })
+    cellSelectionCurrentCellChange({ rowKey: startRowKey, colKey: startColKey })
+    cellSelectionNormalEndCellChange({ rowKey: endRowKey, colKey: endColKey })
 
     // clipboard cell value change
-    this.tableContext.emit(HOOKS_NAME.CLIPBOARD_CELL_VALUE_CHANGE)
+    tableContext.emit(HOOKS_NAME.CLIPBOARD_CELL_VALUE_CHANGE)
 
     // 内部状态已更新完毕，after 回调抛出异常不会留下“改了一半”的状态（INFRA-07）
     cellValueCallbacks.fireAfter(applied)
     safeCall('afterPaste', afterPasteCallback, response)
-  },
+  }
 
-  // editor cut
-  editorCut(this: any, event: any) {
-    const prepared = prepareCopyOrCut(this, 'cut')
+  function editorCut(event: Event) {
+    const prepared = prepareCopyOrCut('cut')
 
     // 选区失效：不拦截原生剪切（CLIP-01）
     if (!prepared)
@@ -242,12 +262,12 @@ export const clipboardMethods = {
     if (isCancelledByCallback('beforeCut', option.beforeCut, response))
       return false
 
-    const { editableOnly, canChange, fireAfter } = getCellValueCallbacks(this.editOption)
+    const { editableOnly, canChange, fireAfter } = getCellValueCallbacks(props.editOption)
 
     const applied = onAfterCut({
       event,
-      tableData: this.tableData,
-      colgroups: this.colgroups,
+      tableData: props.tableData,
+      colgroups: colgroups.value,
       selectionRangeData,
       selectionRangeIndexes: response.selectionRangeIndexes,
       editableOnly,
@@ -255,11 +275,11 @@ export const clipboardMethods = {
     })
 
     // 单元格内容已清空，刷新选区位置（CLIP-08）
-    this.tableContext.emit(HOOKS_NAME.CLIPBOARD_CELL_VALUE_CHANGE)
+    tableContext.emit(HOOKS_NAME.CLIPBOARD_CELL_VALUE_CHANGE)
 
     fireAfter(applied)
     safeCall('afterCut', option.afterCut, response)
-  },
+  }
 
   /**
    * 右键菜单复制、剪切（CLIP-06）
@@ -271,8 +291,8 @@ export const clipboardMethods = {
    * - 必须在菜单点击的同一调用栈内调用（用户手势），写入之前不能有 await。
    * @return Promise<boolean> 是否已写入剪贴板
    */
-  contextmenuCopyOrCut(this: any, kind: CopyKind): Promise<boolean> {
-    const prepared = prepareCopyOrCut(this, kind)
+  function contextmenuCopyOrCut(kind: CopyKind): Promise<boolean> {
+    const prepared = prepareCopyOrCut(kind)
 
     if (!prepared)
       return Promise.resolve(false)
@@ -284,7 +304,7 @@ export const clipboardMethods = {
       return Promise.resolve(false)
 
     // 选区对象会被原地修改，写入期间可能变化，先保存一份
-    const cellSelectionRangeData = { ...this.cellSelectionRangeData }
+    const rangeData = { ...cellSelectionRangeData.value }
     const text = encodeToSpreadsheetStr(selectionRangeData)
 
     return writeClipboardText(text).then(
@@ -292,22 +312,22 @@ export const clipboardMethods = {
         if (kind === 'cut') {
           // 写入期间行、列可能已变化：按 key 重新定位，找不到就不清空（CLIP-01）
           const current = onBeforeCut({
-            cellSelectionRangeData,
+            cellSelectionRangeData: rangeData,
             selectionRangeData,
-            colgroups: this.colgroups,
-            allRowKeys: this.allRowKeys,
+            colgroups: colgroups.value,
+            allRowKeys: allRowKeys.value,
           })
 
           if (current) {
-            const { editableOnly, canChange, fireAfter } = getCellValueCallbacks(this.editOption)
+            const { editableOnly, canChange, fireAfter } = getCellValueCallbacks(props.editOption)
             const applied = clearRangeValues({
-              tableData: this.tableData,
-              colgroups: this.colgroups,
+              tableData: props.tableData,
+              colgroups: colgroups.value,
               selectionRangeIndexes: current.selectionRangeIndexes,
               editableOnly,
               canChange,
             })
-            this.tableContext.emit(HOOKS_NAME.CLIPBOARD_CELL_VALUE_CHANGE)
+            tableContext.emit(HOOKS_NAME.CLIPBOARD_CELL_VALUE_CHANGE)
             fireAfter(applied)
           }
         }
@@ -320,25 +340,15 @@ export const clipboardMethods = {
         return false
       },
     )
-  },
+  }
 
-  // delete selection cell value
-  deleteCellSelectionRangeValue(this: any) {
-    const {
-      isCellEditing,
-      enableClipboard,
-      clipboardOption,
-      cellSelectionRangeData,
-      tableData,
-      colgroups,
-      allRowKeys,
-    } = this
-
-    if (!enableClipboard)
+  // Delete：清空选区内的值
+  function deleteCellSelectionRangeValue() {
+    if (!enableClipboard.value)
       return false
 
     // 正在编辑的单元格不进行删除区域单元格功能
-    if (isCellEditing)
+    if (isCellEditing.value)
       return false
 
     const {
@@ -346,24 +356,18 @@ export const clipboardMethods = {
       delete: delete2,
       beforeDelete: beforeDeleteCallback,
       afterDelete: afterDeleteCallback,
-    } = clipboardOption || {}
+    } = props.clipboardOption || {}
 
     if (isBoolean(delete2) && !delete2)
       return false
 
-    const selectionRangeData = getSelectionRangeData({
-      cellSelectionRangeData,
-      resultType: 'flat',
-      tableData,
-      colgroups,
-      allRowKeys,
-    })
+    const selectionRangeData = getFlatSelectionRangeData()
 
     const response = onBeforeDelete({
-      cellSelectionRangeData,
+      cellSelectionRangeData: cellSelectionRangeData.value,
       selectionRangeData,
-      colgroups,
-      allRowKeys,
+      colgroups: colgroups.value,
+      allRowKeys: allRowKeys.value,
     })
 
     // 选区失效：不删除任何数据（CLIP-01）
@@ -373,20 +377,29 @@ export const clipboardMethods = {
     if (isCancelledByCallback('beforeDelete', beforeDeleteCallback, response))
       return false
 
-    const { editableOnly, canChange, fireAfter } = getCellValueCallbacks(this.editOption)
+    const { editableOnly, canChange, fireAfter } = getCellValueCallbacks(props.editOption)
 
     const applied = onAfterDelete({
-      tableData,
-      colgroups,
+      tableData: props.tableData,
+      colgroups: colgroups.value,
       selectionRangeIndexes: response.selectionRangeIndexes,
       editableOnly,
       canChange,
     })
 
     // 单元格内容已清空，刷新选区位置（CLIP-08）
-    this.tableContext.emit(HOOKS_NAME.CLIPBOARD_CELL_VALUE_CHANGE)
+    tableContext.emit(HOOKS_NAME.CLIPBOARD_CELL_VALUE_CHANGE)
 
     fireAfter(applied)
     safeCall('afterDelete', afterDeleteCallback, response)
-  },
+  }
+
+  return {
+    enableClipboard,
+    editorCopy,
+    editorPaste,
+    editorCut,
+    contextmenuCopyOrCut,
+    deleteCellSelectionRangeValue,
+  }
 }
