@@ -739,10 +739,12 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
   - **Done:** `body-td.tsx` no longer passes `column` to `BodyCheckboxContent` / `BodyRadioContent`, and `header-th.tsx` no longer passes it to `HeaderCheckboxContent` (the header select-all checkbox had the same stray attribute). None of them used it. The `ve-table-row-checkbox` and `ve-table-row-radio` `render` snapshots were updated; the only change is the removed `column="[object Object]"` (5 body cells each, plus the header checkbox).
   - **Verified:** `ve-table-render-cells.spec.tsx` › "checkbox and radio cells have no stray column attribute (RENDER-07)" › "checkbox cells" / "radio cells" (both found `column=` before).
 
-- [ ] **RENDER-08** 🟢 Render-callback types: `h: any`, and `renderFooterCell` / `filterIcon` are missing (found in batch 7)
+- [x] ✅ 2026-10-19 · refactor/audit-wave2-table-parts · **RENDER-08** 🟢 Render-callback types: `h: any`, and `renderFooterCell` / `filterIcon` are missing (found in batch 7)
   - **Where:** `ve-table-types.ts` `ColumnOption`: `renderBodyCell` / `renderHeaderCell` are typed `(data: any, h: any) => any`. `renderFooterCell` and `filter.filterIcon` are not declared, so they fall through the `[key: string]: any` index signature.
   - **Effect:** since RENDER-01 the callbacks receive the real `h`, but TypeScript users get no types or completion for it, and none at all for the two missing callbacks.
   - **Fix:** type `h` as `typeof import('vue').h`, give `data` a shape per callback, and declare `renderFooterCell` and `filterIcon`.
+  - **Done:** `ve-table-types.ts` adds `RenderH` (`typeof h` from `vue`), `RenderBodyCellParams` (`{ row, column, rowIndex }`), `RenderHeaderCellParams` (`{ column }`), `RenderFooterCellParams` (`{ row, column, rowIndex }`), and `ColumnFilterOption` / `ColumnFilterItem` (`filterList`, `isMultiple`, `maxHeight`, `beforeVisibleChange`, `filterConfirm`, `filterReset`, `filterIcon: (h) => VNodeChild`). `ColumnOption` types `renderBodyCell`, `renderHeaderCell` and the new `renderFooterCell` as `(params, h: RenderH) => VNodeChild` and declares `filter`. The index signature stays, so other column keys still type-check. The shapes match what `body-td`, `header-th`, `footer-td` and `header-filter-content` pass.
+  - **Verified:** new `ve-table-types.spec.ts` (`expectTypeOf` plus three `@ts-expect-error` lines, checked by `vue-tsc`): with the old types it gave 11 errors (`h`, `rowIndex`, `column` and `filterList` typed as `any`, and the three `@ts-expect-error` lines unused); with the new types, 0. Its runtime part calls `renderFooterCell` and `filterIcon` with the real `h`.
 
 ---
 
