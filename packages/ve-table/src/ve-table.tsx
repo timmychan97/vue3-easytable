@@ -68,7 +68,6 @@ import {
   clsName,
   getColgroupKeysByHeaderColumn,
   getColumnByColkey,
-  getDomResizeObserverCompKey,
   getEmitEventName,
   getLeftmostColKey,
   getRowKey,
@@ -927,6 +926,26 @@ export default defineComponent({
       },
       immediate: false,
     },
+    /*
+     * COL-15：列变化后 initGroupColumns 重新生成 colgroups（_realTimeWidth 回到列配置的宽度），
+     * 但测量单元格按列 key 复用，宽度没有变化时 ResizeObserver 不会回调。
+     * 这里重新上报最近测得的宽度（与 header-tr 的 RENDER-12 相同）；宽度确实变化的列之后会由 ResizeObserver 再上报。
+     * 已不存在的列从缓存中删除，之后再显示时等待新单元格的测量结果。
+     * flush: 'post'：在本次更新（包括重新生成 colgroups 与测量单元格）之后执行
+     */
+    'columnsOptionResetTime': {
+      handler() {
+        const { measureColsWidths, colgroups } = this
+        const colKeys = new Set(colgroups.map(x => x.key))
+        Array.from(measureColsWidths.keys()).forEach((key) => {
+          if (!colKeys.has(key))
+            measureColsWidths.delete(key)
+        })
+        if (measureColsWidths.size)
+          this.debouncedMeasureCellWidthChange?.(measureColsWidths)
+      },
+      flush: 'post',
+    },
     // group columns change watch
     'groupColumns': {
       handler(val) {
@@ -1125,7 +1144,9 @@ export default defineComponent({
     // Applies measured column widths
     measureCellWidthChange(colWidths) {
       this.colgroups = this.colgroups.map((item) => {
-        item._realTimeWidth = colWidths.get(item.key)
+        // 还没有测量过的列（例如刚显示、测量单元格的 ResizeObserver 尚未回调）保留当前宽度（COL-15）
+        if (colWidths.has(item.key))
+          item._realTimeWidth = colWidths.get(item.key)
         return item
       })
 
@@ -2332,7 +2353,6 @@ export default defineComponent({
       bodyClass: [clsName('body'), this.tableBodyClass],
       stripe: this.tableBodyClass[clsName('stripe')],
       tableViewportWidth,
-      columnsOptionResetTime: this.columnsOptionResetTime,
       colgroups,
       expandOption,
       checkboxOption,
@@ -2577,10 +2597,8 @@ export default defineComponent({
                   <tr style={{ height: 0 }}>
                     {colgroups.map((column) => {
                       const measureTdProps = {
-                        key: getDomResizeObserverCompKey(
-                          column.key,
-                          this.columnsOptionResetTime,
-                        ),
+                        // COL-15：只按列 key 复用，列变化时不再重新创建（宽度由 columnsOptionResetTime watcher 重新上报）
+                        key: column.key,
                         tagName: 'td',
                         id: column.key,
                         onOnDomResizeChange: this.measureCellSizeChange,

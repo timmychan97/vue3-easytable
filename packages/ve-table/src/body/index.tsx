@@ -35,10 +35,6 @@ export default defineComponent({
       type: Number,
       default: 0,
     },
-    columnsOptionResetTime: {
-      type: Number,
-      default: 0,
-    },
     colgroups: {
       type: Array as PropType<ColgroupData[]>,
       required: true,
