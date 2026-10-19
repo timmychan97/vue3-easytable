@@ -90,17 +90,13 @@ export default defineComponent({
       rowKeyFieldName: () => props.rowKeyFieldName,
       allRowKeys,
     }))
-    // 模板 ref（render 中以同名字符串引用）
+    // 模板 ref（render 中以同名字符串引用）。RENDER-15：只保留有代码读取的 ref
     const tableRootRef = shallowRef<HTMLElement | null>(null)
-    const tableContainerWrapperRef = shallowRef<ComponentPublicInstance | null>(null)
     const tableContainerRef = shallowRef<HTMLElement | null>(null)
     const tableRef = shallowRef<HTMLTableElement | null>(null)
-    const tableBodyRef = shallowRef<ComponentPublicInstance | null>(null)
     const tableContentWrapperRef = shallowRef<ComponentPublicInstance | null>(null)
-    const virtualPhantomRef = shallowRef<HTMLElement | null>(null)
     const editInputRef = shallowRef<EditorInstance | null>(null)
     const cellSelectionRef = shallowRef<SelectionInstance | null>(null)
-    const contextmenuRef = shallowRef<ComponentPublicInstance | null>(null)
 
     // 列：cloneColumns、分组表头、colgroups，隐藏 / 显示列，拖动列宽
     const columns = useColumns({
@@ -384,7 +380,6 @@ export default defineComponent({
 
       return (
         <div
-          ref="virtualPhantomRef"
           class={[
             clsName('virtual-phantom'),
           ]}
@@ -438,15 +433,11 @@ export default defineComponent({
       tableContainerScroll,
       getVirtualViewPhantom,
       tableRootRef,
-      tableContainerWrapperRef,
       tableContainerRef,
       tableRef,
-      tableBodyRef,
       tableContentWrapperRef,
-      virtualPhantomRef,
       editInputRef,
       cellSelectionRef,
-      contextmenuRef,
     }
   },
   render() {
@@ -514,7 +505,6 @@ export default defineComponent({
 
     // body props
     const bodyProps = {
-      ref: 'tableBodyRef',
       // 虚拟滚动时 Body 渲染多个 <tbody>（片段根节点），class 无法 fall-through，因此作为 prop 显式传入
       bodyClass: [clsName('body'), this.tableBodyClass],
       stripe: this.tableBodyClass[clsName('stripe')],
@@ -585,7 +575,6 @@ export default defineComponent({
 
     // table container wrapper props
     const tableContainerWrapperProps = {
-      ref: 'tableContainerWrapperRef',
       style: this.tableContainerWrapperStyle,
       class: {
         've-table': true,
@@ -693,7 +682,6 @@ export default defineComponent({
 
     // 直接在组件上写事件，单元测试无法通过。如 on={{"on-node-click":()=>{}}}
     const contextmenuProps = {
-      ref: 'contextmenuRef',
       eventTarget: this.contextmenuEventTarget,
       options: contextmenuOptions,
       onOnNodeClick: (type: string) => {

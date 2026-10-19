@@ -984,6 +984,12 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
   - **Done:** type-only changes. `headerRows` is `PropType<RowHeight[]>` in `header/index.tsx`, `header-tr.tsx` and `header-th.tsx` (`ve-table.tsx` already holds `RowHeight[]`, so no new error at the call site); `indicatorColKeys` is `ColKey[]`; `getTheadThStyle` types its params (`{ align?: string }`, `rowIndex: number`) and assigns `getValByUnit(rowHeight)` straight to `result.top` instead of back into `rowHeight` (same value); the JSX result variables are `JSX.Element | null` (`JSX` from `vue/jsx-runtime`, as in `ve-select`). `header-tr.tsx`, `header/index.tsx` and `header-filter-content.tsx` had no errors of their own.
   - **Verified:** vue-tsc 219 → 207: all 12 errors in `header/` are gone, with no new errors (diffed the sorted error lists). Full suite passes (75 files, 954 tests) with no snapshot change; eslint is clean.
 
+- [x] ✅ 2026-10-19 · fix/audit-final-sweep · **RENDER-15** 🟢 Template refs that nothing reads (found in wave 4)
+  - **Where:** `ve-table.tsx`: `tableContainerWrapperRef` (the outer `VueDomResizeObserver`), `tableBodyRef` (`Body`), `virtualPhantomRef` (the expand-row viewport phantom) and `contextmenuRef` (`VeContextmenu`). Each was a `shallowRef` returned from `setup()` plus a string `ref` in the render.
+  - **Effect:** dead code: Vue filled them on every mount and nothing read them (no composable, no render code, no spec). They were not documented either: the ve-table API pages (`docs/src/docs/*/ve-table/api/`) and the instance-method docs list only the 12 `INSTANCE_METHODS`; the `ref`s in the docs are the user's own refs to the table.
+  - **Done:** the four `shallowRef`s, their `setup()` return entries and the string `ref`s are removed. The other six template refs (`tableRootRef`, `tableContainerRef`, `tableRef`, `tableContentWrapperRef`, `editInputRef`, `cellSelectionRef`) are passed to the composables and stay. An app that read these internals through a table ref (`$refs.tableBodyRef`, or the instance members, which MOD-02 had already changed from ref-name strings to the element / component) no longer finds them; none of this was public.
+  - **Verified:** a search for the four names in `packages`, `docs` and `tests` finds nothing. Full suite passes with no snapshot change (string refs don't reach the DOM); vue-tsc has no new error.
+
 ---
 
 ## MENU — contextmenu (table menus and the `ve-contextmenu` component)
