@@ -367,10 +367,12 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
   - **Done:** `[INSTANCE_METHODS.SET_CELL_SELECTION]` calls `clearCellSelectionNormalEndCell()` right after changing the current cell. The other internal callers (cell click, keyboard navigation, `resumeCellKeyboardMode`) already cleared the end cell themselves or had none, so only the public API changes: it now always gives a single-cell selection.
   - **Verified:** `ve-table-cell-selection.spec.ts` › "setCellSelection after a range selects a single cell (SEL-12)" (failed before: `normalEndCell` stayed on `4/c`, so the selection stayed a range). It also checks `currentCellSelectionType`, `cellSelectionRangeData` and `getRangeCellSelection()`.
 
-- [ ] **SEL-13** 🟢 `getSelectionCurrent` passes a `showCorner` argument that `getBorders` ignores (found in batch 7)
+- [x] ✅ 2026-10-19 · refactor/audit-wave2-selection · **SEL-13** 🟢 `getSelectionCurrent` passes a `showCorner` argument that `getBorders` ignores (found in batch 7)
   - **Where:** `selection/index.tsx` `getSelectionCurrent` passes `showCorner: !normalEndCellRect.width` to `getBorders`, which uses the `showCorner` computed instead.
   - **Effect:** none at runtime, but the code suggests that the corner depends on the caller.
   - **Fix:** drop the argument during MOD-05.
+  - **Done (with MOD-05):** the argument is gone. The two inputs that decide the corner are now explicit: `getCurrentCellBorders(rect, { hasNormalEndCell })` sets `corner.show` from whether a range exists, and `adjustSelectionBorders` hides it when the autofill option does not allow a corner (`showCorner`, from the pure `isCornerEnabled`). No caller passes a corner flag any more.
+  - **Verified:** `ve-table-selection-geometry.spec.ts` › "hides the corner when there is a range; the autofill option is applied by adjustSelectionBorders (SEL-13)". The rendered DOM is unchanged (see MOD-05).
 
 - [ ] **SEL-14** 🟢 `getColumnByColkey` treats colKey `0` as "no column" (found in batch 7)
   - **Where:** `util/index.ts` `getColumnByColkey`: `if (colKey)`.
@@ -1020,13 +1022,21 @@ These are structural changes. Several of them remove whole bug classes above (no
 - [x] ✅ 2026-10-16 · fix/audit-batch5-clipboard-codec · **MOD-04** Split `clipboard.ts` into `tsv-codec.ts` (pure encode/decode with round-trip unit tests) and `handlers.ts` (`onBefore*`/`onAfter*`). [CLIP-02 … CLIP-05]
   - **Done:** `util/clipboard/` now holds `tsv-codec.ts` (pure `decodeSpreadsheetStr` / `encodeToSpreadsheetStr`), `handlers.ts` (`onBefore*` / `onAfter*`, plus the private `getRangeResponse`, `clearRangeValues` and clipboard read/write helpers) and `index.ts` (re-exports both). The move was its own commit with no behaviour change; `methods/clipboard.ts` imports from `../util/clipboard/index.js`.
   - **Verified:** the full suite passed unchanged after the move commit; the codec is covered by `ve-table-tsv-codec.spec.ts` (CLIP-03, CLIP-04).
-- [ ] **MOD-05** Split `selection/index.tsx` into:
+- [x] ✅ 2026-10-19 · refactor/audit-wave2-selection · **MOD-05** Split `selection/index.tsx` into:
   - `geometry.ts`: pure rect → border boxes and autofill direction
   - `SelectionBorders.tsx`
   - `cell-dom.ts`: escaped lookups
   - `useSelectionPositions.ts`: element tracking, hook registration and removal, debounces, unmount cleanup
 
   [FILL-01, SEL-07, INFRA-04]
+  - **Done:** `selection/index.tsx` (1.5k lines, Options API) is now four files in the `selection/` feature folder:
+    - `geometry.ts`: pure functions only, no component state and no DOM. Added `getCellSelectionRange` (the range keys the layer emits to the table), `isSelectionInVirtualView`, `isCornerEnabled`, `getCornerCellInfo`, `isFirstSelectionRow` / `isFirstSelectionCol` / `isFirstNotFixedSelectionCol`, `createEmptyCellRect`, `getCellRectInTable`, `getCurrentCellBorders`, `getRangeBorders`, `getAutofillAreaBorders`, `getAutofillAreaColKeys` and `getCornerPosition`, next to the existing `getAutofillDirection`, `adjustSelectionBorders` and `getAreaLayerRect`.
+    - `useSelectionPositions.ts`: a composable that owns the cell elements (`shallowRef`) and their rects, the `parentRendered` watcher that registers the four table hooks (removing the old ones first), the three cell watchers, both debounces, and an `onBeforeUnmount` that removes the hooks and cancels the debounces. It takes the props plus `{ isSelectionVisible, onSelectionCellChange }`.
+    - `SelectionBorders.tsx`: two functional components, `SelectionBorders` (four borders + corner) and `SelectionAreaLayer`. They declare their props and set `inheritAttrs: false`, so the corner callbacks never fall through to the DOM.
+    - `index.tsx` (489 lines): the component, now with `setup()` (D1). It composes the three files, keeps the same props, name and render output, and still exposes `clearCurrentCellRect` / `clearNormalEndCellRect` (used by `ve-table.tsx` through the ref) plus the computeds and tracking functions the specs read on the instance. The `emitter` mixin is replaced by `inject('eventBus')` for the two corner events, and `emits` now declares the range-change event.
+
+    The escaped lookups were already in `util/cell-dom.ts` (INFRA-04); the composable uses them. The `selection/` folder is the feature folder, so the files were not moved under `features/`.
+  - **Verified:** the full suite passed before and after with no snapshot change. A temporary spec (not committed) rendered the selection layer in 144 states (plain, left/right-fixed and operation-column layouts × four autofill options × single cell on the first/middle/last cell, ranges in both directions, and fill previews in all four directions from a cell and from a range) with the old and the new component: the HTML was identical in all 144. New `ve-table-selection-geometry.spec.ts`: 31 unit tests for the new pure functions. `ve-table-lifecycle.spec.ts` › "pending selection debounces do not run after unmount (INFRA-03)" spied on instance methods, which can't see calls inside the composable's closures, so it would have passed vacuously. It now checks the effect: no `getBoundingClientRect` call after the layer is unmounted (it fails when the `cancel()` is removed). Headless Chromium: the SEL-11 probe gives the same results after the split, and a fill dragged in the table shows the preview and commits (`afterAutofill`, `a0,a0,a0`). vue-tsc: no errors left in `selection/` (38 before); the total went from 426 to 388.
 - [ ] **MOD-06** `useFixedColumns(colgroups)`: one `Map<colKey, { style, class }>` computed at table level and shared by header, body and footer, replacing three divergent implementations. [COL-06]
 - [ ] **MOD-07** `bindCustomEvents(customEvents, extra)`: replace the nine forwarding methods (`cellClick` … `rowClick` …) copied across six components.
 - [x] ✅ 2026-10-16 · fix/audit-batch4-row-state · **MOD-08** `useRowSelection` / `useRowExpand` composables that return derived state as props, and remove the local `isSelected` mirrors in the checkbox and radio content components. [ROW-03, ROW-04, ROW-05]
