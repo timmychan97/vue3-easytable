@@ -64,11 +64,8 @@ export const contextmenuMethods = {
 
   // contextmenu item click
   contextmenuItemClick(this: any, type: any) {
-    // Reset mouse state flags to prevent selection from following mouse
-    // after context menu action is performed
-    this.isHeaderCellMousedown = false
-    this.isBodyCellMousedown = false
-    this.isBodyOperationColumnMousedown = false
+    // 结束拖动选择，菜单操作后选区不再跟随鼠标；同时移除拖动期间的 mouseup / blur 监听（SEL-19）
+    this.endSelectionDrag()
     this.isAutofillStarting = false
 
     // header contextmenu

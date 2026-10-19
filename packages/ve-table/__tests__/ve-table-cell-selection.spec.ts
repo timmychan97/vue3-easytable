@@ -819,6 +819,47 @@ describe('veTable cell selection', () => {
       add.mockRestore()
       remove.mockRestore()
     })
+
+    // SEL-19：点击右键菜单项时结束拖动，同时移除 document 上的 mouseup 监听
+    it('a contextmenu item click ends the drag and removes its document listener (SEL-19)', async () => {
+      const ParentComp = {
+        template: `
+          <veTable
+            :columns="columns"
+            :tableData="tableData"
+            rowKeyFieldName="rowKey"
+            :contextmenuBodyOption="contextmenuBodyOption"
+          />
+        `,
+        data() {
+          return {
+            columns: COLUMNS,
+            tableData: TABLE_DATA,
+            // 返回 false：只测试拖动状态，不执行菜单动作
+            contextmenuBodyOption: { contextmenus: [{ type: 'CUSTOM' }], afterMenuClick: () => false },
+          }
+        },
+      }
+      const add = vi.spyOn(document, 'addEventListener')
+      const remove = vi.spyOn(document, 'removeEventListener')
+      wrapper = mount(ParentComp, { attachTo: document.body })
+      const vm = wrapper.findComponent(veTable).vm as any
+      const added = () => add.mock.calls.filter(([type]) => type === 'mouseup')
+      const isRemoved = ([type, fn, options]: any[]) =>
+        remove.mock.calls.some(([t, f, o]) => t === type && f === fn && o === options)
+
+      mouse('mousedown', td(1, 1))
+      expect(vm.isBodyCellMousedown).toBe(true)
+      expect(added().length).toBe(1)
+
+      vm.contextmenuItemClick('CUSTOM')
+
+      expect(vm.isBodyCellMousedown).toBe(false)
+      expect(added().every(isRemoved)).toBe(true)
+
+      add.mockRestore()
+      remove.mockRestore()
+    })
   })
 
   // SEL-12：区域选择之后调用 setCellSelection 应该得到单个单元格，而不是从新单元格到旧结束单元格的区域

@@ -421,6 +421,12 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
   - **Tests adjusted:** the two SEL-15 indicator drags in `ve-table-cell-selection-indicator.spec.ts` and the SEL-10 "dragging from an input inside a cell" test in `ve-table-keyboard.spec.ts` now pass `buttons: 1` on their `mouseover`, since a drag is a hover with the button held (without it the fallback ends the drag, and the SEL-10 test would pass for the wrong reason). The FILL-02 listener-count test in `ve-table-autofill.spec.ts` now counts the selection drag's `blur` listener too (every cell mousedown adds one, removed on release).
   - **Verified:** `ve-table-cell-selection.spec.ts` › "releasing a drag outside the table (SEL-11)": "a window blur ends a range drag (SEL-18)", "a window blur ends a column drag over the header (SEL-18)", "hovering a cell with no button held ends a drag whose mouseup was lost (SEL-18)", "hovering a header cell with no button held ends a column drag whose mouseup was lost (SEL-18)" and "removes its window blur listener when the drag ends and on unmount (SEL-18)" (all five failed before: the drag flags stayed `true` and the selection kept following the mouse, and no `blur` listener was added).
 
+- [x] ✅ 2026-10-19 · fix/audit-wave3-selection-autofill · **SEL-19** 🟢 The contextmenu path leaves the one-shot drag listener behind (found in wave 2)
+  - **Where:** `methods/contextmenu.ts` `contextmenuItemClick` reset `isHeaderCellMousedown` / `isBodyCellMousedown` / `isBodyOperationColumnMousedown` directly.
+  - **Effect:** the SEL-11 `document` `mouseup` listener (and now the SEL-18 `window` `blur` listener) stayed registered until the next mouseup.
+  - **Done:** `contextmenuItemClick` calls `endSelectionDrag()`, which resets the same three flags and removes the listeners. `isAutofillStarting = false` is unchanged.
+  - **Verified:** `ve-table-cell-selection.spec.ts` › "a contextmenu item click ends the drag and removes its document listener (SEL-19)" (failed before: the flag was reset but the `mouseup` listener was not removed).
+
 ---
 
 ## CLIP — clipboard
