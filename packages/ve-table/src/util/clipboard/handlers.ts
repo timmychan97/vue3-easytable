@@ -7,6 +7,7 @@ type RowKey = string | number
 interface ClipboardColumn {
   key: RowKey
   field?: string
+  operationColumn?: boolean
   [key: string]: any
 }
 
@@ -40,7 +41,7 @@ interface BeforeRangeParams {
 /**
  * 读取剪贴板文本（IE 下为 window.clipboardData）
  */
-function getClipboardText(event: any): string | undefined {
+export function getClipboardText(event: any): string | undefined {
   if (event?.clipboardData)
     return event.clipboardData.getData('text/plain')
 
@@ -62,6 +63,20 @@ function setClipboardText(event: any, text: string) {
   // IE browser
   else if ((window as any).clipboardData)
     (window as any).clipboardData.setData('Text', text)
+}
+
+/**
+ * 列是否对应行数据中的一个字段，可以被粘贴、剪切、删除写入（CLIP-07）
+ * 操作列（即使配置了 field）和没有 field 的列只用于展示，写入会在用户的行数据里
+ * 生成 "undefined"、"index" 之类的多余属性，因此跳过。
+ * 复制时这些列仍按位置输出空字符串（或其值），保证粘贴回来时列对齐。
+ */
+export function isClipboardWritableColumn(column: ClipboardColumn | undefined): boolean {
+  if (!column || column.operationColumn)
+    return false
+
+  const { field } = column
+  return field !== undefined && field !== null && field !== ''
 }
 
 /**
@@ -94,9 +109,9 @@ function getRangeResponse({
 }
 
 /**
- * 清空选区内的单元格（剪切、删除共用）
+ * 清空选区内的单元格（剪切、删除共用），跳过不对应数据字段的列（CLIP-07）
  */
-function clearRangeValues({
+export function clearRangeValues({
   tableData,
   colgroups,
   selectionRangeIndexes,
@@ -110,12 +125,13 @@ function clearRangeValues({
 
   const fieldNames = colgroups
     .slice(startColIndex, endColIndex + 1)
-    .map(x => x.field)
+    .filter(isClipboardWritableColumn)
+    .map(x => x.field as string)
 
   tableData.forEach((rowData, rowIndex) => {
     if (rowIndex >= startRowIndex && rowIndex <= endRowIndex) {
       fieldNames.forEach((fieldName) => {
-        rowData[fieldName as string] = ''
+        rowData[fieldName] = ''
       })
     }
   })
@@ -201,9 +217,10 @@ export function onBeforePaste({
     allRowKeys.length - 1,
   )
 
+  // 不对应数据字段的列记为 null：粘贴时跳过该位置的值，其余列保持原位（CLIP-07）
   const sourceFieldNames = colgroups
     .slice(startColIndex, endColIndex + 1)
-    .map(x => x.field)
+    .map(x => (isClipboardWritableColumn(x) ? (x.field as string) : null))
 
   const data = decodePasteData
     .slice(0, endRowIndex - startRowIndex + 1)
@@ -211,8 +228,9 @@ export function onBeforePaste({
       const newRow: Record<string, string> = {}
 
       rowData.forEach((cellData, cellIndex) => {
-        if (cellIndex <= endColIndex - startColIndex)
-          newRow[sourceFieldNames[cellIndex] as string] = cellData
+        const fieldName = sourceFieldNames[cellIndex]
+        if (cellIndex <= endColIndex - startColIndex && fieldName !== null)
+          newRow[fieldName] = cellData
       })
       return newRow
     })

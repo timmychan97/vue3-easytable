@@ -1,10 +1,11 @@
 /*
 剪贴板单元测试：handlers 与 ve-table 的复制/剪切/粘贴/删除
-（CLIP-01、CLIP-02、CLIP-03、CLIP-05，以及 INFRA-07 的剪贴板部分）
+（CLIP-01 … CLIP-03、CLIP-05 … CLIP-09，以及 INFRA-07 的剪贴板部分）
 
 jsdom 没有真实的 ClipboardEvent 数据，这里用普通 Event 加一个假的 clipboardData。
 */
 
+import type { Mock } from 'vitest'
 import veTable from '@/ve-table'
 import {
   onBeforeCopy,
@@ -12,7 +13,7 @@ import {
   onBeforeDelete,
   onBeforePaste,
 } from '@/ve-table/src/util/clipboard/index'
-import { HOOKS_NAME } from '@/ve-table/src/util/constant'
+import { CONTEXTMENU_NODE_TYPES, HOOKS_NAME } from '@/ve-table/src/util/constant'
 import { later } from '@test-utils'
 import { mount } from '@vue/test-utils'
 import { cloneDeep } from 'lodash'
@@ -31,6 +32,14 @@ const TABLE_DATA = [
 ]
 
 const ALL_ROW_KEYS = TABLE_DATA.map(x => x.rowKey)
+
+// 含非数据列：操作列（有 field）与没有 field 的列（CLIP-07）
+const COLUMNS_WITH_NON_DATA = [
+  { field: 'index', key: 'op', title: '#', operationColumn: true },
+  { field: 'name', key: 'a', title: 'Name' },
+  { key: 'x', title: 'Actions' },
+  { field: 'date', key: 'b', title: 'Date' },
+]
 
 function createClipboardEvent(type: string, text = '') {
   const store: Record<string, string> = { 'text/plain': text }
@@ -148,6 +157,19 @@ describe('clipboard handlers', () => {
         { name: '6' },
       ])
     })
+
+    // CLIP-07
+    it('skips operation columns and columns without field', () => {
+      const { event } = createClipboardEvent('paste', 'p\tq\tr\ts\n')
+      const response = onBeforePaste({
+        event,
+        cellSelectionRangeData: range('1', 'op'),
+        colgroups: COLUMNS_WITH_NON_DATA,
+        allRowKeys: ALL_ROW_KEYS,
+      })
+      expect(response!.selectionRangeKeys).toMatchObject({ startColKey: 'op', endColKey: 'b' })
+      expect(response!.data).toEqual([{ name: 'q', date: 's' }])
+    })
   })
 })
 
@@ -162,13 +184,14 @@ describe('veTable clipboard', () => {
     vi.restoreAllMocks()
   })
 
-  async function mountTable(clipboardOption: Record<string, any> = {}) {
+  async function mountTable(clipboardOption: Record<string, any> = {}, props: Record<string, any> = {}) {
     const wrapper = mount(veTable, {
       props: {
         columns: COLUMNS,
         tableData,
         rowKeyFieldName: 'rowKey',
         clipboardOption,
+        ...props,
       },
     })
     await later()
@@ -303,15 +326,41 @@ describe('veTable clipboard', () => {
       wrapper.unmount()
     })
 
-    it('paste does not throw, prevent the native paste or change data', async () => {
-      const wrapper = await mountWithStaleRange()
+    it('paste does not throw, call beforePaste or change data', async () => {
+      const beforePaste = vi.fn()
+      const wrapper = await mountWithStaleRange({ beforePaste })
       const snapshot = cloneDeep(tableData)
 
       const { event } = createClipboardEvent('paste', 'x')
       expect(() => wrapper.vm.editorPaste(event)).not.toThrow()
 
-      expect(event.defaultPrevented).toBe(false)
       expect(tableData).toEqual(snapshot)
+      expect(beforePaste).not.toHaveBeenCalled()
+      wrapper.unmount()
+    })
+
+    // CLIP-09
+    it('paste keeps the text out of the hidden editor textarea', async () => {
+      const wrapper = await mountWithStaleRange()
+      const snapshot = cloneDeep(tableData)
+
+      const { event } = createClipboardEvent('paste', 'x')
+      textarea(wrapper).dispatchEvent(event)
+
+      // 未编辑时原生粘贴只会落进隐藏的 textarea，因此阻止
+      expect(event.defaultPrevented).toBe(true)
+      expect(tableData).toEqual(snapshot)
+      wrapper.unmount()
+    })
+
+    // CLIP-09
+    it('paste with no selection at all keeps the text out of the hidden editor textarea', async () => {
+      const wrapper = await mountTable()
+
+      const { event } = createClipboardEvent('paste', 'x')
+      textarea(wrapper).dispatchEvent(event)
+
+      expect(event.defaultPrevented).toBe(true)
       wrapper.unmount()
     })
 
@@ -481,6 +530,300 @@ describe('veTable clipboard', () => {
 
       expect(tableData[0].name).toBe('')
       expectLogged('afterDelete')
+      wrapper.unmount()
+    })
+  })
+
+  describe('columns that hold no data (CLIP-07)', () => {
+    async function mountWithNonDataColumns() {
+      const wrapper = await mountTable({}, { columns: COLUMNS_WITH_NON_DATA })
+      await select(wrapper, '1', 'op', '2', 'b')
+      return wrapper
+    }
+
+    function expectNoForeignKeys(row: Record<string, any>) {
+      expect(row).not.toHaveProperty('undefined')
+      expect(row).not.toHaveProperty('index')
+    }
+
+    it('paste skips them and keeps the remaining cells in place', async () => {
+      const wrapper = await mountWithNonDataColumns()
+
+      wrapper.vm.editorPaste(createClipboardEvent('paste', 'p\tq\tr\ts\n').event)
+
+      expect(tableData[0]).toMatchObject({ name: 'q', date: 's' })
+      expectNoForeignKeys(tableData[0])
+      wrapper.unmount()
+    })
+
+    it('cut copies them as empty cells and clears only data columns', async () => {
+      const wrapper = await mountWithNonDataColumns()
+
+      const { event, clipboardData } = createClipboardEvent('cut')
+      wrapper.vm.editorCut(event)
+
+      expect(clipboardData.setData).toHaveBeenCalledWith(
+        'text/plain',
+        '\tJohn\t\t1900-05-20\n\tDickerson\t\t1910-06-20\n',
+      )
+      expect(tableData[0]).toMatchObject({ name: '', date: '' })
+      expect(tableData[1]).toMatchObject({ name: '', date: '' })
+      expectNoForeignKeys(tableData[0])
+      expectNoForeignKeys(tableData[1])
+      wrapper.unmount()
+    })
+
+    it('delete clears only data columns', async () => {
+      const wrapper = await mountWithNonDataColumns()
+
+      wrapper.vm.deleteCellSelectionRangeValue()
+
+      expect(tableData[0]).toMatchObject({ name: '', date: '' })
+      expectNoForeignKeys(tableData[0])
+      expectNoForeignKeys(tableData[1])
+      wrapper.unmount()
+    })
+  })
+
+  describe('cut and delete refresh the selection (CLIP-08)', () => {
+    /**
+     * 记录 hook 与 after 回调的调用顺序
+     */
+    function recordOrder(wrapper: any, calls: string[]) {
+      const original = wrapper.vm.hooks.triggerHook.bind(wrapper.vm.hooks)
+      return vi.spyOn(wrapper.vm.hooks, 'triggerHook').mockImplementation((name: any, ...args: any[]) => {
+        calls.push(name)
+        return original(name, ...args)
+      })
+    }
+
+    it('cut triggers the cell value change hook before afterCut', async () => {
+      const calls: string[] = []
+      const wrapper = await mountTable({ afterCut: () => calls.push('afterCut') })
+      await select(wrapper, '1', 'a', '2', 'b')
+      recordOrder(wrapper, calls)
+
+      wrapper.vm.editorCut(createClipboardEvent('cut').event)
+
+      expect(calls).toEqual([HOOKS_NAME.CLIPBOARD_CELL_VALUE_CHANGE, 'afterCut'])
+      wrapper.unmount()
+    })
+
+    it('delete triggers the cell value change hook before afterDelete', async () => {
+      const calls: string[] = []
+      const wrapper = await mountTable({ afterDelete: () => calls.push('afterDelete') })
+      await select(wrapper, '1', 'a', '2', 'b')
+      recordOrder(wrapper, calls)
+
+      wrapper.vm.deleteCellSelectionRangeValue()
+
+      expect(calls).toEqual([HOOKS_NAME.CLIPBOARD_CELL_VALUE_CHANGE, 'afterDelete'])
+      wrapper.unmount()
+    })
+
+    it('a cancelled cut or delete does not trigger the hook', async () => {
+      const wrapper = await mountTable({ beforeCut: () => false, beforeDelete: () => false })
+      await select(wrapper, '1', 'a')
+      const triggerHook = vi.spyOn(wrapper.vm.hooks, 'triggerHook')
+
+      wrapper.vm.editorCut(createClipboardEvent('cut').event)
+      wrapper.vm.deleteCellSelectionRangeValue()
+
+      expect(triggerHook).not.toHaveBeenCalledWith(HOOKS_NAME.CLIPBOARD_CELL_VALUE_CHANGE)
+      wrapper.unmount()
+    })
+  })
+
+  describe('contextmenu copy and cut (CLIP-06)', () => {
+    const CONTEXTMENU_BODY_OPTION = {
+      contextmenus: [{ type: 'COPY' }, { type: 'CUT' }],
+    }
+    const COPIED_TEXT = 'John\t1900-05-20\nDickerson\t1910-06-20\n'
+
+    let writeText: Mock<[text: string], Promise<void>>
+    let execCommand: Mock<[command: string], boolean>
+    // execCommand('copy') 触发的 copy 事件中写入的数据
+    let execCommandData: Record<string, string>
+
+    function setAsyncClipboard(clipboard: any) {
+      Object.defineProperty(navigator, 'clipboard', { configurable: true, value: clipboard })
+    }
+
+    /**
+     * 模拟 execCommand('copy')：在当前焦点元素上派发 copy 事件，
+     * 浏览器在命令执行后返回 true（是否写入由 copy 事件的处理决定）
+     */
+    function mockExecCommand(supported = true) {
+      execCommand = vi.fn((command: string) => {
+        if (!supported || command !== 'copy')
+          return false
+        const { event, clipboardData } = createClipboardEvent('copy')
+        clipboardData.setData = vi.fn((format: string, value: string) => {
+          execCommandData[format] = value
+        })
+        ;(document.activeElement || document.body).dispatchEvent(event)
+        return true
+      })
+      Object.defineProperty(document, 'execCommand', { configurable: true, value: execCommand })
+    }
+
+    beforeEach(() => {
+      execCommandData = {}
+      writeText = vi.fn((_text: string) => Promise.resolve())
+      setAsyncClipboard({ writeText })
+      mockExecCommand()
+    })
+
+    afterEach(() => {
+      delete (navigator as any).clipboard
+      delete (document as any).execCommand
+    })
+
+    async function mountWithMenu(clipboardOption: Record<string, any> = {}) {
+      const wrapper = await mountTable(clipboardOption, {
+        contextmenuBodyOption: CONTEXTMENU_BODY_OPTION,
+      })
+      await select(wrapper, '1', 'a', '2', 'b')
+      return wrapper
+    }
+
+    async function clickMenu(wrapper: any, type: string) {
+      wrapper.vm.contextmenuItemClick(type)
+      // 等待异步写入完成
+      await later()
+    }
+
+    it('copy writes the selection with navigator.clipboard', async () => {
+      const beforeCopy = vi.fn()
+      const afterCopy = vi.fn()
+      const wrapper = await mountWithMenu({ beforeCopy, afterCopy })
+
+      await clickMenu(wrapper, CONTEXTMENU_NODE_TYPES.COPY)
+
+      expect(writeText).toHaveBeenCalledWith(COPIED_TEXT)
+      expect(execCommand).not.toHaveBeenCalled()
+      expect(beforeCopy).toHaveBeenCalledTimes(1)
+      expect(afterCopy).toHaveBeenCalledTimes(1)
+      expect(tableData).toEqual(TABLE_DATA)
+      wrapper.unmount()
+    })
+
+    it('cut writes the clipboard, then clears the cells and refreshes the selection', async () => {
+      const afterCut = vi.fn()
+      const wrapper = await mountWithMenu({ afterCut })
+      const triggerHook = vi.spyOn(wrapper.vm.hooks, 'triggerHook')
+
+      await clickMenu(wrapper, CONTEXTMENU_NODE_TYPES.CUT)
+
+      expect(writeText).toHaveBeenCalledWith(COPIED_TEXT)
+      expect(tableData[0]).toMatchObject({ name: '', date: '', hobby: 'coding' })
+      expect(tableData[1]).toMatchObject({ name: '', date: '', hobby: 'reading' })
+      expect(triggerHook).toHaveBeenCalledWith(HOOKS_NAME.CLIPBOARD_CELL_VALUE_CHANGE)
+      expect(afterCut).toHaveBeenCalledTimes(1)
+      wrapper.unmount()
+    })
+
+    it('falls back to execCommand without navigator.clipboard (insecure context)', async () => {
+      setAsyncClipboard(undefined)
+      const beforeCopy = vi.fn()
+      const wrapper = await mountWithMenu({ beforeCopy })
+
+      await clickMenu(wrapper, CONTEXTMENU_NODE_TYPES.COPY)
+
+      expect(execCommand).toHaveBeenCalledWith('copy')
+      expect(execCommandData['text/plain']).toBe(COPIED_TEXT)
+      // 回退写入不会再次走表格自身的 copy 处理
+      expect(beforeCopy).toHaveBeenCalledTimes(1)
+      wrapper.unmount()
+    })
+
+    it('falls back to execCommand when navigator.clipboard rejects', async () => {
+      writeText.mockImplementation(() => Promise.reject(new Error('NotAllowedError')))
+      const afterCut = vi.fn()
+      const writeError = vi.fn()
+      const wrapper = await mountWithMenu({ afterCut, writeError })
+
+      await clickMenu(wrapper, CONTEXTMENU_NODE_TYPES.CUT)
+
+      expect(execCommandData['text/plain']).toBe(COPIED_TEXT)
+      expect(tableData[0].name).toBe('')
+      expect(afterCut).toHaveBeenCalledTimes(1)
+      expect(writeError).not.toHaveBeenCalled()
+      wrapper.unmount()
+    })
+
+    it('reports a failed write through writeError and keeps the cut cells', async () => {
+      const error = new Error('NotAllowedError')
+      writeText.mockImplementation(() => Promise.reject(error))
+      mockExecCommand(false)
+      const afterCut = vi.fn()
+      const writeError = vi.fn()
+      const wrapper = await mountWithMenu({ afterCut, writeError })
+
+      await clickMenu(wrapper, CONTEXTMENU_NODE_TYPES.CUT)
+
+      expect(writeError).toHaveBeenCalledTimes(1)
+      expect(writeError).toHaveBeenCalledWith({
+        type: 'cut',
+        error,
+        text: COPIED_TEXT,
+        data: [['John', '1900-05-20'], ['Dickerson', '1910-06-20']],
+        selectionRangeIndexes: { startColIndex: 0, endColIndex: 1, startRowIndex: 0, endRowIndex: 1 },
+        selectionRangeKeys: { startColKey: 'a', endColKey: 'b', startRowKey: '1', endRowKey: '2' },
+      })
+      // 写入失败时不能清空单元格，否则数据就丢了
+      expect(tableData).toEqual(TABLE_DATA)
+      expect(afterCut).not.toHaveBeenCalled()
+      wrapper.unmount()
+    })
+
+    it('logs a failed write when there is no writeError callback', async () => {
+      setAsyncClipboard(undefined)
+      mockExecCommand(false)
+      const consoleWarn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+      const wrapper = await mountWithMenu()
+
+      await clickMenu(wrapper, CONTEXTMENU_NODE_TYPES.COPY)
+
+      expect(consoleWarn).toHaveBeenCalledTimes(1)
+      expect(String(consoleWarn.mock.calls[0][0])).toContain('clipboard')
+      wrapper.unmount()
+    })
+
+    it('a throwing writeError is logged, not thrown', async () => {
+      setAsyncClipboard(undefined)
+      mockExecCommand(false)
+      const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+      const wrapper = await mountWithMenu({
+        writeError: () => {
+          throw new Error('writeError failed')
+        },
+      })
+
+      await clickMenu(wrapper, CONTEXTMENU_NODE_TYPES.COPY)
+
+      expect(consoleError).toHaveBeenCalled()
+      expect(String(consoleError.mock.calls[0][0])).toContain('writeError')
+      wrapper.unmount()
+    })
+
+    it('beforeCopy returning false cancels the menu copy', async () => {
+      const wrapper = await mountWithMenu({ beforeCopy: () => false })
+
+      await clickMenu(wrapper, CONTEXTMENU_NODE_TYPES.COPY)
+
+      expect(writeText).not.toHaveBeenCalled()
+      expect(execCommand).not.toHaveBeenCalled()
+      wrapper.unmount()
+    })
+
+    it('copy: false disables the menu copy', async () => {
+      const wrapper = await mountWithMenu({ copy: false })
+
+      await clickMenu(wrapper, CONTEXTMENU_NODE_TYPES.COPY)
+
+      expect(writeText).not.toHaveBeenCalled()
+      expect(execCommand).not.toHaveBeenCalled()
       wrapper.unmount()
     })
   })
