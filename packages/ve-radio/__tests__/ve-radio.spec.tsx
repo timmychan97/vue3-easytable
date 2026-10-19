@@ -164,4 +164,70 @@ describe('veRadio', () => {
       expect(wrapper.emitted('update:modelValue')).toEqual([[true]])
     })
   })
+
+  describe('a parent that rejects the change (FORM-04)', () => {
+    const input = (wrapper: { find: (selector: string) => { element: Element } }) =>
+      wrapper.find('input').element as HTMLInputElement
+
+    it('isControlled: the native input goes back when isSelected does not change', async () => {
+      const wrapper = mount(veRadio, {
+        props: { isControlled: true, isSelected: false, label: 'a' },
+      })
+
+      await wrapper.find('.ve-radio').trigger('click')
+      await nextTick()
+
+      expect(wrapper.emitted('on-radio-change')).toEqual([[true]])
+      expect(input(wrapper).checked).toBe(false)
+      expect(wrapper.find('.ve-radio-checked').exists()).toBe(false)
+    })
+
+    it('v-model: a rejected update:modelValue keeps the old state', async () => {
+      const wrapper = mount({
+        data() {
+          return { value: false }
+        },
+        render() {
+          return <veRadio modelValue={this.value} onUpdate:modelValue={() => {}} label="a" />
+        },
+      })
+
+      await wrapper.find('.ve-radio').trigger('click')
+      await nextTick()
+
+      expect(input(wrapper).checked).toBe(false)
+      expect(wrapper.find('.ve-radio-checked').exists()).toBe(false)
+    })
+
+    it('v-model: an accepted update:modelValue is shown', async () => {
+      const wrapper = mount({
+        data() {
+          return { value: false }
+        },
+        render() {
+          return <veRadio v-model={this.value} label="a" />
+        },
+      })
+
+      await wrapper.find('.ve-radio').trigger('click')
+      await nextTick()
+
+      expect((wrapper.vm as any).value).toBe(true)
+      expect(input(wrapper).checked).toBe(true)
+      expect(wrapper.find('.ve-radio-checked').exists()).toBe(true)
+    })
+  })
+
+  describe('disabled attribute (FORM-05)', () => {
+    it('a disabled radio renders a disabled native input', async () => {
+      const wrapper = mount(veRadio, {
+        props: { modelValue: false, disabled: true, label: 'a' },
+      })
+
+      expect((wrapper.find('input').element as HTMLInputElement).disabled).toBe(true)
+
+      await wrapper.setProps({ disabled: false })
+      expect((wrapper.find('input').element as HTMLInputElement).disabled).toBe(false)
+    })
+  })
 })

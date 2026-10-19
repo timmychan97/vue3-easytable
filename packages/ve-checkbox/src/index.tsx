@@ -1,3 +1,4 @@
+import { isModelValueBound } from '@vue3-easytable/common/utils/v-model'
 import { injectCheckboxGroup } from '@vue3-easytable/ve-checkbox-group'
 import { clsName } from './util'
 import { COMPS_NAME, EMIT_EVENTS } from './util/constant'
@@ -30,7 +31,8 @@ export default defineComponent({
     },
   },
   setup(props, { emit, slots }) {
-    const { onCheckboxGroupUpdate, updateCheckboxGroup, inCheckboxGroup, isVerticalShow, groupModelValue } = injectCheckboxGroup()
+    const instance = getCurrentInstance()
+    const { onCheckboxGroupUpdate, updateCheckboxGroup, inCheckboxGroup, isVerticalShow, groupModelValue, isGroupModelBound } = injectCheckboxGroup()
     const offCheckboxGroupUpdate = onCheckboxGroupUpdate(updateModelByGroup)
     // 卸载后不再接收 checkbox-group 的更新
     onBeforeUnmount(() => {
@@ -93,6 +95,32 @@ export default defineComponent({
         // update parent comp:checkbox-group
         updateCheckboxGroup(props.label, isChecked)
       }
+
+      syncAfterChange(target)
+    }
+
+    /**
+     * 受控时以父组件的值为准（FORM-04）：父组件处理完事件并重新渲染后，
+     * 重新读取数据来源，并把原生 input 恢复为该状态。
+     * 父组件不接受这次修改时（值没有变化），Vue 不会修补原生 input，需要在这里恢复。
+     * - isControlled：以 isSelected 为准
+     * - 在通过 v-model 绑定的 checkbox-group 中：以 group 的值为准
+     * - 自身通过 v-model 绑定：以 modelValue 为准
+     * - 其余（非受控）：保持本地状态
+     */
+    function syncAfterChange(target: HTMLInputElement) {
+      nextTick(() => {
+        if (!props.isControlled) {
+          if (isCheckBoxGroup()) {
+            if (isGroupModelBound())
+              updateModelByGroup(Array.isArray(groupModelValue.value) ? groupModelValue.value : [])
+          }
+          else if (isModelValueBound(instance)) {
+            updateModelBySingle()
+          }
+        }
+        target.checked = !!internalIsSelected.value
+      })
     }
 
     // is checkbox group
@@ -140,6 +168,7 @@ export default defineComponent({
             class={clsName('input')}
             type="checkbox"
             value={props.label}
+            disabled={props.disabled}
             onChange={checkboxChange}
           />
           <span class={clsName('inner')}></span>

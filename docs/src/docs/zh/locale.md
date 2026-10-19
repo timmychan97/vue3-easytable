@@ -43,6 +43,7 @@ createApp(AppB).use(useVeTable({ locale: zhCN })).mount('#app-b')
 ```
 
 - `useVeTable({ locale })` 只设置该 app 的语言，不修改全局语言，`VeLocale.getMessage()` 返回的仍是全局语言。
+- `app.use(VeLocale, { locale })` 的效果相同，在 `app.use(useVeTable())` 之前或之后调用都可以。两者都传入语言时，后安装的覆盖它所设置的键。每个 app 只传一次：Vue 会跳过已经在该 app 上安装过的插件，第二次 `app.use(VeLocale, { locale })` 不会生效（Vue 只在开发模式下给出警告）。之后要切换语言，请使用 `this.$veLocale.use(...)` 或 `VeConfigProvider`。
 - 组件中的 `this.$veLocale.use(...)` 和 `this.$veLocale.update(...)` 只修改该组件所在 app 的语言。
 - `VeLocale.use(...)` 和 `VeLocale.update(...)` 仍然作用于所有 app（合并在各 app 自己的语言之上）。
 - 在 app 内部，`VeConfigProvider` 为其子组件设置语言（合并在 app 的语言之上）。

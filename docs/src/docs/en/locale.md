@@ -43,6 +43,7 @@ createApp(AppB).use(useVeTable({ locale: zhCN })).mount('#app-b')
 ```
 
 - `useVeTable({ locale })` sets the language of that app only. It does not change the global language, so `VeLocale.getMessage()` still returns the global one.
+- `app.use(VeLocale, { locale })` does the same, before or after `app.use(useVeTable())`. If both pass a language, the one installed last wins for the keys it sets. Pass it only once per app: Vue skips a plugin that is already installed on the app, so a second `app.use(VeLocale, { locale })` is ignored (Vue only warns in development). To switch the language later, use `this.$veLocale.use(...)` or a `VeConfigProvider`.
 - `this.$veLocale.use(...)` and `this.$veLocale.update(...)` inside a component change only the language of the component's app.
 - `VeLocale.use(...)` and `VeLocale.update(...)` still apply to every app, on top of each app's own language.
 - Inside an app, a `VeConfigProvider` sets the language of its children, on top of the app's language.
