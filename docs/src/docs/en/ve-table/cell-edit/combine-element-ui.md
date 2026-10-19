@@ -1,6 +1,6 @@
-:::anchor Combined with Element UI
+:::anchor Combined with Element Plus
 
-:::demo 1. You can also combine with Element UI components for date, number, dropdown, and other editing features<br/>2. Note: The component itself may conflict with third-party library component shortcuts. In this case, you can disable cell selection via `cellSelectionOption`
+:::demo 1. You can also combine with Element Plus components for date, number, dropdown, and other editing features<br/>2. Note: The component itself may conflict with third-party library component shortcuts. In this case, you can disable cell selection via `cellSelectionOption`
 
 ```html
 <template>
@@ -20,6 +20,8 @@
 </template>
 
 <script>
+    import { ElDatePicker, ElInputNumber, ElOption, ElSelect } from "element-plus";
+
     export default {
         data() {
             return {
@@ -74,8 +76,8 @@
                                         this.cellDataChange(row, column, val);
                                     }}
                                     type="date"
-                                    value-format="yyyy-MM-dd"
-                                    placeholder="选择日期"
+                                    value-format="YYYY-MM-DD"
+                                    placeholder="Select date"
                                 />
                             );
                         },
@@ -88,7 +90,7 @@
                         width: "30%",
                         renderBodyCell: ({ row, column, rowIndex }, h) => {
                             return (
-                                <el-input-number
+                                <ElInputNumber
                                     size="small"
                                     min={1}
                                     modelValue={row["age"]}
@@ -98,7 +100,7 @@
                                     onChange={(val) => {
                                         this.cellDataChange(row, column, val);
                                     }}
-                                ></el-input-number>
+                                />
                             );
                         },
                     },
@@ -110,18 +112,22 @@
                         width: "40%",
                         renderBodyCell: ({ row, column, rowIndex }, h) => {
                             return (
-                                <el-select
+                                <ElSelect
                                     size="small"
                                     modelValue={row["gender"]}
                                     onUpdate:modelValue={(val) => {
                                         row["gender"] = val;
                                         this.cellDataChange(row, column, val);
                                     }}
-                                    placeholder="请选择"
+                                    placeholder="Select"
                                 >
-                                    <el-option label="female" value="female"></el-option>
-                                    <el-option label="male" value="male"></el-option>
-                                </el-select>
+                                    {{
+                                        default: () => [
+                                            <ElOption label="female" value="female" />,
+                                            <ElOption label="male" value="male" />,
+                                        ],
+                                    }}
+                                </ElSelect>
                             );
                         },
                     },

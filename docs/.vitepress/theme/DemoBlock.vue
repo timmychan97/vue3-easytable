@@ -1,15 +1,51 @@
-<script setup lang="ts">
+<script lang="ts">
 import { useData } from 'vitepress'
-import { computed, defineComponent, onMounted, ref, shallowRef } from 'vue'
+import * as Vue from 'vue'
+import { computed, defineComponent, onErrorCaptured, onMounted, ref, shallowRef } from 'vue'
+import { compileTemplate } from './runtimeCompiler'
 
+// Modules demos may import. A runtime `import(spec)` cannot resolve bare specifiers
+// in the browser, so each one must be a static import Vite can see and bundle.
+const localeModules = import.meta.glob('../../../packages/common/locale/lang/*.ts')
+const demoModules: Record<string, () => Promise<any>> = {
+  'vue': async () => Vue,
+  '@vue3-easytable/vue': () => import('@vue3-easytable/vue'),
+  'echarts': () => import('echarts'),
+  'element-plus': () => import('./elementPlus'),
+  'lodash': () => import('lodash'),
+  'mockjs': () => import('mockjs'),
+}
+for (const [file, load] of Object.entries(localeModules)) {
+  const lang = file.match(/([\w-]+)\.ts$/)![1]
+  demoModules[`@vue3-easytable/vue/libs/locale/lang/${lang}`] = load
+}
+
+function loadDemoModule(spec: string): Promise<any> {
+  const load = demoModules[spec.replace(/\.js$/, '')]
+  if (!load)
+    throw new Error(`[DemoBlock] Unknown module "${spec}" — add it to demoModules in DemoBlock.vue`)
+  return load()
+}
+</script>
+
+<script setup lang="ts">
 const props = defineProps<{
   code: string
-  description?: string
+  // Pre-rendered inline markdown from the :::demo plugin (trusted docs content)
+  descriptionHtml?: string
 }>()
 
 const showCode = ref(false)
 const demoComp = shallowRef<any>(null)
 const errorMsg = ref('')
+
+// Contain errors thrown by the demo itself (hooks, render, handlers). Left unhandled,
+// dev mode rethrows them mid-patch and corrupts the page's vnode tree.
+onErrorCaptured((err) => {
+  errorMsg.value = String(err)
+  console.error('[DemoBlock] Demo threw:', err)
+  return false
+})
 
 const { lang } = useData()
 const expandLabel = computed(() => {
@@ -25,7 +61,8 @@ const rawCode = new TextDecoder().decode(Uint8Array.from(atob(props.code), c => 
 
 onMounted(async () => {
   try {
-    const templateMatch = rawCode.match(/<template>([\s\S]*?)<\/template>/)
+    // Greedy: the root template may contain nested <template #slot> blocks
+    const templateMatch = rawCode.match(/<template>([\s\S]*)<\/template>/)
     const scriptMatch = rawCode.match(/<script>([\s\S]*?)<\/script>/)
 
     const template = templateMatch ? templateMatch[1].trim() : '<div></div>'
@@ -61,25 +98,21 @@ onMounted(async () => {
 
       // Dynamically import all modules
       for (const imp of importMatches) {
-        try {
-          const mod = await import(/* @vite-ignore */ imp.modulePath)
-          if (imp.isNamespace) {
-            imports[imp.names[0]] = mod
-            importNames.push(imp.names[0])
-          }
-          else if (imp.isDefault) {
-            imports[imp.names[0]] = mod.default || mod
-            importNames.push(imp.names[0])
-          }
-          else {
-            for (const name of imp.names) {
-              imports[name] = mod[name]
-              importNames.push(name)
-            }
-          }
+        const mod = await loadDemoModule(imp.modulePath)
+        if (imp.isNamespace) {
+          imports[imp.names[0]] = mod
+          importNames.push(imp.names[0])
         }
-        catch (e) {
-          console.warn(`[DemoBlock] Failed to import "${imp.modulePath}":`, e)
+        else if (imp.isDefault) {
+          imports[imp.names[0]] = mod.default || mod
+          importNames.push(imp.names[0])
+        }
+        else {
+          for (const name of imp.names) {
+            // CJS packages (lodash) may only expose names on the default export
+            imports[name] = mod[name] ?? mod.default?.[name]
+            importNames.push(name)
+          }
         }
       }
 
@@ -91,20 +124,10 @@ onMounted(async () => {
 
       // eslint-disable-next-line no-new-func
       const getOptions = new Function('Vue', ...importNames, cleanScript)
-      const vueModule = await import('vue')
-      options = getOptions(vueModule, ...importNames.map(n => imports[n]))
+      options = getOptions(Vue, ...importNames.map(n => imports[n]))
     }
 
-    // Compile the template to a render function using Vue's compiler
-    // Dynamic import to avoid SSR issues
-    const { compile } = await import('@vue/compiler-dom')
-    const { code: renderCode } = compile(template, {
-      mode: 'function',
-    })
-    // eslint-disable-next-line no-new-func
-    const renderFn = new Function('Vue', renderCode)({ ...await import('vue') })
-
-    options.render = renderFn
+    options.render = compileTemplate(template)
     demoComp.value = defineComponent(options)
   }
   catch (e) {
@@ -116,12 +139,11 @@ onMounted(async () => {
 
 <template>
   <div class="demo-block">
-    <p v-if="description" class="demo-description">
-      {{ description }}
-    </p>
+    <!-- eslint-disable-next-line vue/no-v-html -->
+    <p v-if="descriptionHtml" class="demo-description" v-html="descriptionHtml" />
     <div class="demo-preview">
       <component :is="demoComp" v-if="demoComp" />
-      <div v-else-if="errorMsg" class="demo-error">
+      <div v-if="errorMsg" class="demo-error">
         {{ errorMsg }}
       </div>
     </div>

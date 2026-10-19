@@ -59,7 +59,7 @@ export function demoPlugin(md: MarkdownIt): void {
     validate(params: string) {
       return !!params.trim().match(/^demo/)
     },
-    render(tokens: any[], idx: number) {
+    render(tokens: any[], idx: number, _options: any, env: any) {
       const token = tokens[idx]
       if (token.nesting === 1) {
         const description = token.info.trim().replace(/^demo\s*/, '')
@@ -75,7 +75,8 @@ export function demoPlugin(md: MarkdownIt): void {
             // Suppress the fence from rendering normally
             t.type = 'html_block'
             t.content = ''
-            const descAttr = description ? ` description="${escapeAttr(description)}"` : ''
+            // Descriptions use inline markdown (`code`, [links](...), <br/>): render them here
+            const descAttr = description ? ` description-html="${escapeAttr(md.renderInline(description, env))}"` : ''
             return `<ClientOnly><DemoBlock code="${code}"${descAttr}>`
           }
         }

@@ -1,16 +1,16 @@
 :::anchor Long Text Breaking Layout
 
-:::demo 1. When cell text content is too long, it can break the layout. You can control this with the CSS property [word-break](https://developer.mozilla.org/en-US/docs/Web/CSS/word-break)<br>2. You can also use this in combination with the [cell ellipsis](#/en/doc/table/cell-ellipsis) feature
+:::demo 1. When cell text content is too long, it can break the layout. You can control this with the CSS property [word-break](https://developer.mozilla.org/en-US/docs/Web/CSS/word-break)<br>2. You can also use this in combination with the [cell ellipsis](/en/ve-table/cell-ellipsis) feature
 
 ```html
 <template>
     <div>
         word-break:
         <el-radio-group size="small" v-model="wordBreak">
-            <el-radio-button label="normal">normal</el-radio-button>
-            <el-radio-button label="keep-all">keep-all</el-radio-button>
-            <el-radio-button label="break-all">break-all</el-radio-button>
-            <el-radio-button label="break-word">break-word</el-radio-button>
+            <el-radio-button value="normal">normal</el-radio-button>
+            <el-radio-button value="keep-all">keep-all</el-radio-button>
+            <el-radio-button value="break-all">break-all</el-radio-button>
+            <el-radio-button value="break-word">break-word</el-radio-button>
         </el-radio-group>
         <br />
         <br />

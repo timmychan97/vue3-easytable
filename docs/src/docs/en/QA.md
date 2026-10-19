@@ -29,7 +29,7 @@ renderBodyCell: ({ row, column, rowIndex },h) => {
 :::anchor Long Text Breaks Layout
 Q: Why does the set width not take effect when cell content is too long?
 
-A: When cell text content is too long, it can break the layout. You can control this with the CSS property [word-break](https://developer.mozilla.org/en-US/docs/Web/CSS/word-break) ([see this example for reference](#/en/doc/table/column-width?anchor=long-text-destroys-layout)), for example:
+A: When cell text content is too long, it can break the layout. You can control this with the CSS property [word-break](https://developer.mozilla.org/en-US/docs/Web/CSS/word-break) ([see this example for reference](/en/ve-table/column-width)), for example:
 
 ```html
 <template>

@@ -10,6 +10,9 @@
   },
   "dependencies": {
     "@vue3-easytable/vue": "workspace:^0.0.5",
+    "echarts": "^6.1.0",
+    "element-plus": "^2.14.7",
+    "lodash": "^4.17.21",
     "mockjs": "^1.1.0",
     "vue": "^3.5.13"
   },

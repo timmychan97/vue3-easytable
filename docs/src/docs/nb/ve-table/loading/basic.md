@@ -1,6 +1,6 @@
 :::anchor Eksempel
 
-For mer om bruk av Loading, se [Loading-komponenten](#/nb/doc/base/loading)
+For mer om bruk av Loading, se [Loading-komponenten](/nb/ve-loading)
 
 :::demo
 

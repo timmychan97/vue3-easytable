@@ -1,6 +1,6 @@
 :::anchor Example
 
-For more Loading usage, please refer to the [Loading Component](#/en/doc/base/loading)
+For more Loading usage, please refer to the [Loading Component](/en/ve-loading)
 
 :::demo
 

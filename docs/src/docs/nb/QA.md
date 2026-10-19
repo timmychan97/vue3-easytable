@@ -29,7 +29,7 @@ renderBodyCell: ({ row, column, rowIndex },h) => {
 :::anchor Lang tekst odelegger layouten
 Q: Hvorfor fungerer ikke den angitte bredden nar celleinnholdet er for langt?
 
-A: Nar celleteksten er for lang, kan den odelegge layouten. Du kan kontrollere dette med CSS-egenskapen [word-break](https://developer.mozilla.org/en-US/docs/Web/CSS/word-break) ([se dette eksempelet som referanse](#/nb/doc/table/column-width?anchor=long-text-destroys-layout)), for eksempel:
+A: Nar celleteksten er for lang, kan den odelegge layouten. Du kan kontrollere dette med CSS-egenskapen [word-break](https://developer.mozilla.org/en-US/docs/Web/CSS/word-break) ([se dette eksempelet som referanse](/nb/ve-table/column-width)), for eksempel:
 
 ```html
 <template>

@@ -1,16 +1,16 @@
 :::anchor 长文本破坏布局
 
-:::demo 1、当单元格文本内容过多时会破坏布局，此时可以通过样式 [word-break](https://developer.mozilla.org/zh-CN/docs/Web/CSS/word-break) 控制<br>2、你也可以结合[单元格省略](#/zh/doc/table/cell-ellipsis)功能一起使用
+:::demo 1、当单元格文本内容过多时会破坏布局，此时可以通过样式 [word-break](https://developer.mozilla.org/zh-CN/docs/Web/CSS/word-break) 控制<br>2、你也可以结合[单元格省略](/zh/ve-table/cell-ellipsis)功能一起使用
 
 ```html
 <template>
     <div>
         word-break：
         <el-radio-group size="small" v-model="wordBreak">
-            <el-radio-button label="normal">normal</el-radio-button>
-            <el-radio-button label="keep-all">keep-all</el-radio-button>
-            <el-radio-button label="break-all">break-all</el-radio-button>
-            <el-radio-button label="break-word">break-word</el-radio-button>
+            <el-radio-button value="normal">normal</el-radio-button>
+            <el-radio-button value="keep-all">keep-all</el-radio-button>
+            <el-radio-button value="break-all">break-all</el-radio-button>
+            <el-radio-button value="break-word">break-word</el-radio-button>
         </el-radio-group>
         <br />
         <br />

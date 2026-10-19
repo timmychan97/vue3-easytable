@@ -328,12 +328,13 @@ export default defineConfig({
       noExternal: ['lodash'],
     },
     optimizeDeps: {
-      include: ['@vue/compiler-dom', 'mockjs'],
+      include: ['@vue/compiler-dom', 'mockjs', 'lodash', 'echarts'],
     },
     resolve: {
+      // First match wins: the more specific locale alias must come first
       alias: [
-        { find: '@vue3-easytable/vue', replacement: path.resolve(__dirname, '../../packages/vue/src') },
         { find: '@vue3-easytable/vue/libs/locale', replacement: path.resolve(__dirname, '../../packages/common/locale') },
+        { find: '@vue3-easytable/vue', replacement: path.resolve(__dirname, '../../packages/vue/src') },
       ],
     },
   },

@@ -1,16 +1,16 @@
 :::anchor Lang tekst som bryter layouten
 
-:::demo 1. Nar celletekstinnholdet er for langt, kan det bryte layouten. Du kan kontrollere dette med CSS-egenskapen [word-break](https://developer.mozilla.org/en-US/docs/Web/CSS/word-break)<br>2. Du kan ogsa kombinere dette med funksjonen [celleellipse](#/nb/doc/table/cell-ellipsis)
+:::demo 1. Nar celletekstinnholdet er for langt, kan det bryte layouten. Du kan kontrollere dette med CSS-egenskapen [word-break](https://developer.mozilla.org/en-US/docs/Web/CSS/word-break)<br>2. Du kan ogsa kombinere dette med funksjonen [celleellipse](/nb/ve-table/cell-ellipsis)
 
 ```html
 <template>
     <div>
         word-break:
         <el-radio-group size="small" v-model="wordBreak">
-            <el-radio-button label="normal">normal</el-radio-button>
-            <el-radio-button label="keep-all">keep-all</el-radio-button>
-            <el-radio-button label="break-all">break-all</el-radio-button>
-            <el-radio-button label="break-word">break-word</el-radio-button>
+            <el-radio-button value="normal">normal</el-radio-button>
+            <el-radio-button value="keep-all">keep-all</el-radio-button>
+            <el-radio-button value="break-all">break-all</el-radio-button>
+            <el-radio-button value="break-word">break-word</el-radio-button>
         </el-radio-group>
         <br />
         <br />

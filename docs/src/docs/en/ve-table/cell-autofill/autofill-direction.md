@@ -6,9 +6,9 @@
 <template>
     <div>
         <el-radio-group @change="autofillTypeChang" v-model="autofillType">
-            <el-radio label="Horizontal">Horizontal</el-radio>
-            <el-radio label="Vertical">Vertical</el-radio>
-            <el-radio label="All">All</el-radio>
+            <el-radio value="Horizontal">Horizontal</el-radio>
+            <el-radio value="Vertical">Vertical</el-radio>
+            <el-radio value="All">All</el-radio>
         </el-radio-group>
         <br />
         <br />

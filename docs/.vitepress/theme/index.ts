@@ -42,6 +42,8 @@ export default {
       const { useVeTable } = await import('@vue3-easytable/vue')
       await import('../../../packages/theme-default/index.less')
       app.use(useVeTable())
+      const { installElementPlus } = await import('./elementPlus')
+      installElementPlus(app)
     }
   },
   setup() {

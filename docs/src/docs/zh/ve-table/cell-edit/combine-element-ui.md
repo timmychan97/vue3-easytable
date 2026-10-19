@@ -1,6 +1,6 @@
-:::anchor 结合 element-ui
+:::anchor 结合 Element Plus
 
-:::demo 1、你也可以结合 element-ui 组件做日期、数字、下拉等编辑功能<br/>2、注意：组件本身可能会和第三方库组件的快捷键冲突，此时你可以通过 `cellSelectionOption`去禁用单元格选择功能
+:::demo 1、你也可以结合 Element Plus 组件做日期、数字、下拉等编辑功能<br/>2、注意：组件本身可能会和第三方库组件的快捷键冲突，此时你可以通过 `cellSelectionOption`去禁用单元格选择功能
 
 ```html
 <template>
@@ -20,6 +20,8 @@
 </template>
 
 <script>
+    import { ElDatePicker, ElInputNumber, ElOption, ElSelect } from "element-plus";
+
     export default {
         data() {
             return {
@@ -74,7 +76,7 @@
                                         this.cellDataChange(row, column, val);
                                     }}
                                     type="date"
-                                    value-format="yyyy-MM-dd"
+                                    value-format="YYYY-MM-DD"
                                     placeholder="选择日期"
                                 />
                             );
@@ -88,7 +90,7 @@
                         width: "30%",
                         renderBodyCell: ({ row, column, rowIndex }, h) => {
                             return (
-                                <el-input-number
+                                <ElInputNumber
                                     size="small"
                                     min={1}
                                     modelValue={row["age"]}
@@ -98,7 +100,7 @@
                                     onChange={(val) => {
                                         this.cellDataChange(row, column, val);
                                     }}
-                                ></el-input-number>
+                                />
                             );
                         },
                     },
@@ -110,7 +112,7 @@
                         width: "40%",
                         renderBodyCell: ({ row, column, rowIndex }, h) => {
                             return (
-                                <el-select
+                                <ElSelect
                                     size="small"
                                     modelValue={row["gender"]}
                                     onUpdate:modelValue={(val) => {
@@ -119,9 +121,13 @@
                                     }}
                                     placeholder="请选择"
                                 >
-                                    <el-option label="female" value="female"></el-option>
-                                    <el-option label="male" value="male"></el-option>
-                                </el-select>
+                                    {{
+                                        default: () => [
+                                            <ElOption label="female" value="female" />,
+                                            <ElOption label="male" value="male" />,
+                                        ],
+                                    }}
+                                </ElSelect>
                             );
                         },
                     },
