@@ -9,6 +9,7 @@ import { useContextmenu } from '@/ve-table/src/features/contextmenu/useContextme
 import { useEditing } from '@/ve-table/src/features/editing/useEditing'
 import { useKeyboard } from '@/ve-table/src/features/keyboard/useKeyboard'
 import { useTableLayout } from '@/ve-table/src/features/layout/useTableLayout'
+import { useRowInsert } from '@/ve-table/src/features/row-insert/useRowInsert'
 import { useScrolling } from '@/ve-table/src/features/scrolling/useScrolling'
 import { createTableContext } from '@/ve-table/src/features/table-context'
 import { useVirtualScroll } from '@/ve-table/src/features/virtual-scroll/useVirtualScroll'
@@ -895,5 +896,37 @@ describe('useContextmenu', () => {
     state.cellSelectionRangeDataChange({ leftColKey: 'a', rightColKey: 'a', topRowKey: 'r0', bottomRowKey: 'r1' })
     contextmenu.contextmenuItemClick('LEFT_FIXED_COLUMN_TO')
     expect(cloneColumns.value.map(x => x.fixed || '')).toEqual(['left', ''])
+  })
+})
+
+describe('useRowInsert', () => {
+  it('emits on-row-insert only while row insert is enabled, and passes the indicator props', () => {
+    const props = reactive({ rowInsertOption: { enable: true }, fixedHeader: true, fixedFooter: false }) as any
+    const emit = vi.fn()
+    const table = document.createElement('table')
+    const { result: rowInsert, stop } = runInScope(() => useRowInsert({
+      props,
+      emit,
+      parentRendered: ref(true),
+      containerElement: shallowRef(null),
+      tableElement: shallowRef(table),
+      colgroups: ref([{ key: 'a' }] as any[]),
+    }))
+
+    expect(rowInsert.rowInsertIndicatorProps.value).toMatchObject({
+      parentRendered: true,
+      tableContainerEl: null,
+      tableEl: table,
+      fixedHeader: true,
+      fixedFooter: false,
+    })
+
+    rowInsert.rowInsertIndicatorProps.value.onOnRowInsert({ insertRowIndex: 2 })
+    expect(emit).toHaveBeenCalledWith('on-row-insert', { insertRowIndex: 2 })
+
+    props.rowInsertOption = { enable: false }
+    rowInsert.handleRowInsert({ insertRowIndex: 3 })
+    expect(emit).toHaveBeenCalledTimes(1)
+    stop()
   })
 })

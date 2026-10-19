@@ -221,7 +221,7 @@ export const TABLE_CONTEXT_KEY: InjectionKey<TableContext> = Symbol('veTableCont
 
 /**
  * 在 setup() 中创建并 provide 表格上下文
- * ve-table 仍是 Options API（MOD-02），在 data() 中创建、在 provide() 选项中提供
+ * ve-table 在 setup() 中创建上下文（markRaw）并通过这里提供（MOD-02）
  */
 export function provideTableContext(context: TableContext = createTableContext()): TableContext {
   provide(TABLE_CONTEXT_KEY, context)

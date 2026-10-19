@@ -1,5 +1,5 @@
 /**
- * Shared TypeScript interfaces for ve-table and its extracted method modules.
+ * Shared TypeScript interfaces for ve-table and its feature composables (features/*).
  */
 
 import type { h, VNodeChild } from 'vue'
