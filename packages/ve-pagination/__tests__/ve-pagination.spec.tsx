@@ -495,4 +495,16 @@ describe('vePagination', () => {
       expect(wrapper.emitted('on-page-number-change')).toBeFalsy()
     })
   })
+
+  it('pageSizeChangeHandler uses its argument (PAG-03)', async () => {
+    const wrapper = mount(vePagination, {
+      props: { total: 600, pageSizeOption: [5, 10, 15], pageSize: 5, pageIndex: 3 },
+    })
+
+    ;(wrapper.vm as any).pageSizeChangeHandler(15)
+    await nextTick()
+
+    expect(wrapper.emitted('on-page-size-change')).toEqual([[15]])
+    expect(wrapper.find('.ve-pagination-li-active').text()).toBe('1')
+  })
 })

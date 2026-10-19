@@ -281,15 +281,14 @@ export default defineComponent({
       }
     },
 
-    // 改变页面大小
-    pageSizeChangeHandler() {
-      const item = this.newPageSizeOption.find(x => x.selected)
+    // 改变页面大小（使用传入的值；下拉框不再修改缓存的选项对象，不能再从 newPageSizeOption 中查找）
+    pageSizeChangeHandler(pageSize: number) {
+      if (typeof pageSize !== 'number' || !(pageSize > 0))
+        return
 
-      if (item) {
-        this.newPageSize = item.value
-        this.newPageIndex = 1
-        this.$emit(EMIT_EVENTS.PAGE_SIZE_CHANGE, this.newPageSize)
-      }
+      this.newPageSize = pageSize
+      this.newPageIndex = 1
+      this.$emit(EMIT_EVENTS.PAGE_SIZE_CHANGE, this.newPageSize)
     },
 
     // 回到初始页码

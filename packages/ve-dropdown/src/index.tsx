@@ -127,8 +127,6 @@ export default defineComponent({
       internalVisible: false,
       internalOptions: [] as VeDropdownItem[],
       inputValue: '',
-      // 是否显示触发器被点击了（被点击将忽略 clickOutside 事件）
-      isDropdownShowTriggerClicked: false,
       // root id
       rootId: '',
       // dropdown items panel id
@@ -235,7 +233,8 @@ export default defineComponent({
   },
   methods: {
     init() {
-      this.internalOptions = Object.assign([], this.modelValue)
+      // 复制每个选项对象：用户确认之前不能修改调用方传入的对象（例如 ve-table 的 column.filter.filterList）
+      this.internalOptions = (this.modelValue ?? []).map(x => ({ ...x }))
 
       if (this.isInput)
         this.setInputValue()
@@ -252,12 +251,7 @@ export default defineComponent({
     // operation filter reset
     reset() {
       if (this.internalOptions.some(x => x.selected)) {
-        this.internalOptions.map((x) => {
-          if (x.selected)
-            x.selected = false
-
-          return x
-        })
+        this.internalOptions = this.internalOptions.map(x => ({ ...x, selected: false }))
 
         // 使用户传入的v-model 生效
         this.$emit('update:modelValue', this.internalOptions)
@@ -460,7 +454,6 @@ export default defineComponent({
     },
 
     dropdownPanelClick() {
-      this.isDropdownShowTriggerClicked = true
       this.dropdownShowToggle()
     },
 
@@ -472,15 +465,11 @@ export default defineComponent({
     },
 
     singleSelectOptionClick(e: MouseEvent, item: VeDropdownItem) {
-      this.internalOptions = this.internalOptions.map((x) => {
-        if (item.label === x.label)
-          x.selected = true
-
-        else
-          x.selected = false
-
-        return x
-      })
+      // 生成新的选项对象，不修改原对象（它们可能已通过 update:modelValue 交给了调用方）
+      this.internalOptions = this.internalOptions.map(x => ({
+        ...x,
+        selected: item.label === x.label,
+      }))
 
       if (this.hideByItemClick)
         this.hideDropDown()
@@ -499,26 +488,32 @@ export default defineComponent({
       return clsName(`items-li-a-${this.textAlign}`)
     },
 
-    dropdownClickOutside() {
-      // 是否显示触发器被点击了（被点击将忽略 clickOutside 事件）
+    dropdownClickOutside(e?: MouseEvent) {
+      // 已关闭的下拉框不需要处理（否则页面上每个下拉框在每次点击时都会发出隐藏事件）
+      if (!this.isDropdownVisible)
+        return
+
+      // 点击触发器时由 dropdownPanelClick 负责切换。
+      // clickoutside 在捕获阶段执行，早于触发器自身的 click 事件，所以这里直接判断事件目标
+      const triggerEl = this.$refs.dropdownTrigger as HTMLElement | undefined
+      const target = e?.target as Node | null | undefined
+      if (triggerEl && target && triggerEl.contains(target))
+        return
+
       this.clearClickOutsideTimer()
       this.clickOutsideTimer = setTimeout(() => {
         this.clickOutsideTimer = null
-        if (this.isDropdownShowTriggerClicked)
-          this.isDropdownShowTriggerClicked = false
-        else
+        // 等待期间可能已经被关闭（例如受控模式下父组件已修改 visible）
+        if (this.isDropdownVisible)
           this.hideDropDown()
       })
     },
 
     // checbox 受控属性管理
     checkedChangeControl(item: VeDropdownItem, isChecked: boolean) {
-      this.internalOptions = this.internalOptions.map((i) => {
-        if (i.label === item.label)
-          i.selected = isChecked
-
-        return i
-      })
+      this.internalOptions = this.internalOptions.map(i =>
+        i.label === item.label ? { ...i, selected: isChecked } : i,
+      )
 
       this.$emit(EMIT_EVENTS.ITEM_SELECT_CHANGE, this.internalOptions)
     },
@@ -673,7 +668,7 @@ export default defineComponent({
 
     return (
       <dl {...dropdownProps}>
-        <dt class="ve-dropdown-dt" onClick={dropdownPanelClick}>
+        <dt ref="dropdownTrigger" class="ve-dropdown-dt" onClick={dropdownPanelClick}>
           <a
             class={[isSelect ? clsName('dt-selected') : '']}
             style={{ width: `${width}px` }}

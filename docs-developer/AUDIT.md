@@ -626,15 +626,22 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
   - **Done:** new `removeRootElement()` runs in `beforeUnmount` (it replaces the old `removeOrEmptyRootPanel()` call in `unmounted`). The `nextTick` in `addRootElementToElement` returns early if the instance is already unmounted. MOD-09 is still the long-term fix.
   - **Verified:** `ve-dropdown.spec.tsx` › "unmount removes the body container (DD-02)" (5 mount / open / unmount cycles leave `document.body.children.length` unchanged; it was +5 before) and "unmount before the container is created leaves nothing behind (DD-02)" (mount + immediate unmount, ×5). These tests mount without `attachTo`, because the shared `wrapMount` helper leaves its own container in `body` on every mount.
 
-- [ ] **DD-03** 🟠 Every document click "hides" every closed dropdown
+- [x] ✅ 2026-10-19 · fix/audit-batch7-dropdown-pagination-ssr · **DD-03** 🟠 Every document click "hides" every closed dropdown
   - **Where:** `ve-dropdown/src/index.tsx:472-480, 640`. `v-click-outside` is always bound, and `hideDropDown()` has no visibility check.
   - **Effect:** every click emits `on-dropdown-visible-change(false)` and schedules a timer for every dropdown on the page.
   - **Fix:** `if (!this.isDropdownVisible) return`.
+  - **Done:** the guard is in `dropdownClickOutside`, not in `hideDropDown`. In controlled mode, the parent has already set `visible = false` by the time the watcher calls `hideDropDown`, so a guard there would stop the panel from being emptied. An early return on its own was not enough either. `clickoutside` listens in the capture phase, so it runs before the trigger's own click handler. When a trigger click opened the dropdown, the old `isDropdownShowTriggerClicked` flag stayed set, and the next outside click was swallowed. The flag is gone. The handler now checks whether the event target is inside the trigger (`ref="dropdownTrigger"`), and the deferred hide checks `isDropdownVisible` again before hiding.
+  - **Verified:** `ve-dropdown.spec.tsx` › "a document click does nothing for closed dropdowns (DD-03)". Before the fix, one click left 4 pending timers and every closed dropdown emitted `on-dropdown-visible-change(false)`. Now there are none. Also "a click outside still hides an open dropdown (DD-03)", which runs three sequences: open then outside, open then trigger then outside, and open then outside again. Each now emits exactly one `true, false` pair. Before the fix, closing with the trigger was followed by an extra `false`.
 
-- [ ] **DD-04** 🟠 The dropdown mutates the caller's option objects before the user confirms
+- [x] ✅ 2026-10-19 · fix/audit-batch7-dropdown-pagination-ssr · **DD-04** 🟠 The dropdown mutates the caller's option objects before the user confirms
   - **Where:** `ve-dropdown/src/index.tsx:244` (shallow `Object.assign([], modelValue)`), `261-263`, `445-452`, `484-489`. ve-table passes `column.filter.filterList` straight in (`header-filter-content.tsx:28`).
   - **Trigger:** tick a filter item, then click outside without confirming. The user's column config is changed permanently.
   - **Fix:** `this.internalOptions = (this.modelValue ?? []).map(x => ({ ...x }))`.
+  - **Done:** `init()` copies each option, as proposed. `singleSelectOptionClick`, `checkedChangeControl` and `reset` now build new objects instead of setting `selected` in place. The internal objects reach the parent through `update:modelValue`, so mutating them on later clicks would change what the parent received. Fixed together with PAG-03. One behaviour change: ve-table's `filterList` objects no longer show the ticked state. `filterConfirm` / `filterReset` still receive the new state. The dropdown also still shows it, because the `modelValue` reference does not change.
+  - **Verified:** three tests in `ve-dropdown.spec.tsx`, all of which failed before the fix because the caller's `selected` flags changed:
+    - "ticking a checkbox and clicking outside leaves the caller options unchanged (DD-04)"
+    - "clicking a single-select item leaves the caller options unchanged (DD-04)", which also checks that the emitted options are new objects with the new selection
+    - "reset leaves the caller options unchanged (DD-04)"
 
 - [x] ✅ 2026-10-16 · fix/audit-batch1-crash-oneliners **DD-05** 🟠 🔍 VeSelect's open/closed arrow never toggles
   - **Where:** [ve-select/src/index.tsx:152](../packages/ve-select/src/index.tsx#L152). It listens with `onDropdownVisibleChange`, but the dropdown emits `'on-dropdown-visible-change'`, whose handler key is `onOnDropdownVisibleChange`.
@@ -663,8 +670,10 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
   - **Where:** `ve-pagination/src/index.tsx:82, 89, 123, 127` (`ve-pagination-size-label`, `ve-pagination-jumper`). (Re-checked at `0c5b732`: unchanged.) `aria-labelledby` points at the wrong instance.
   - **Fix:** per-instance ids (`useId()` or a random suffix).
 
-- [ ] **PAG-03** 🟢 `pageSizeChangeHandler` ignores its argument
+- [x] ✅ 2026-10-19 · fix/audit-batch7-dropdown-pagination-ssr · **PAG-03** 🟢 `pageSizeChangeHandler` ignores its argument
   - **Where:** `ve-pagination/src/index.tsx:103` vs `277`. It works only because the dropdown mutates the cached option objects (DD-04). Fixing DD-04 alone will break page-size changes, so fix both together.
+  - **Done:** `pageSizeChangeHandler(pageSize)` now uses its argument. It ignores anything that isn't a positive number. Committed together with DD-04.
+  - **Verified:** `ve-pagination.spec.tsx` › "pageSizeChangeHandler uses its argument (PAG-03)". Before the fix, it emitted the current size `5` instead of `15`. With only DD-04 applied, the existing "on-page-size-change emit" failed (`[5]` instead of `[10]`). With both fixes, it passes.
 
 ---
 
