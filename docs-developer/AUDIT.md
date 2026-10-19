@@ -1084,6 +1084,18 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
 
 ---
 
+## DOCS — documentation
+
+Findings in the docs site content (`docs/src/docs/{en,nb,zh}`).
+
+- [x] ✅ 2026-10-19 · fix/audit-small-nontable · **DOCS-01** 🟢 The cell-autofill "features" demo has a heading that does not match it (found in wave 2)
+  - **Where:** `docs/src/docs/{en,nb,zh}/ve-table/cell-autofill/features.md`, included by `docs/{en,nb,zh}/ve-table/cell-autofill.md`.
+  - **Trigger:** the heading and demo text ("Disable Cell Selection … `cellSelectionOption.enable = false`") were copied from `cell-selection/disable-selection.md`, but the demo shows autofill with `cellSelectionOption.enable: true`, `rowKeyFieldName` and both fill directions.
+  - **Done:** the section is now "Autofill and Cell Selection" ("自动填充与单元格选择", "Autofyll og cellevalg"). The text says that autofill is built on cell selection (you drag the handle at the corner of the selected range), so it needs `rowKeyFieldName` and cell selection enabled. `cellSelectionOption.enable` is `true` by default, and with `false` there is no autofill handle. The demo code is unchanged.
+  - **Verified:** by reading the source. In `ve-table.tsx`, the `Selection` component (which renders the autofill handle) only renders when `enableCellSelection` is true. That computed is `false` without `rowKeyFieldName` or with `cellSelectionOption.enable === false`. No page links to the old heading's anchor.
+
+---
+
 ## MOD — modularity
 
 These are structural changes. Several of them remove whole bug classes above (noted in brackets).
