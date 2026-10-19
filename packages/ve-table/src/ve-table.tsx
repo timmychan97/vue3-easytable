@@ -1,3 +1,4 @@
+import type { PropType } from 'vue'
 import type { AutofillingDirection } from './selection/geometry'
 import type { KeyboardMode } from './util/constant.js'
 import type {
@@ -132,8 +133,9 @@ export default defineComponent({
       type: Boolean,
       default: true,
     },
+    // INFRA-17：列配置的类型
     columns: {
-      type: Array,
+      type: Array as PropType<ColumnOption[]>,
       required: true,
     },
     // row key field for row expand、row selection

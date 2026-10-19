@@ -1,3 +1,4 @@
+import type { ColumnOption } from '@/ve-table/src/ve-table-types'
 import veTable from '@/ve-table'
 import { later } from '@test-utils'
 import { mount } from '@vue/test-utils'
@@ -42,7 +43,7 @@ describe('veTable header sort', () => {
   ]
 
   it('render single field sort', () => {
-    const columns = [
+    const columns: ColumnOption[] = [
       {
         field: 'name',
         key: 'a',
@@ -98,7 +99,7 @@ describe('veTable header sort', () => {
   })
 
   it('render multiple field sort', () => {
-    const columns = [
+    const columns: ColumnOption[] = [
       {
         field: 'name',
         key: 'a',
@@ -155,7 +156,7 @@ describe('veTable header sort', () => {
   })
 
   it('single field sort', async () => {
-    const columns = [
+    const columns: ColumnOption[] = [
       {
         field: 'name',
         key: 'a',
@@ -297,7 +298,7 @@ describe('veTable header sort', () => {
   })
 
   it('multiple field sort', async () => {
-    const columns = [
+    const columns: ColumnOption[] = [
       {
         field: 'name',
         key: 'a',
@@ -372,7 +373,7 @@ describe('veTable header sort', () => {
   })
 
   it('sort always', async () => {
-    const columns = [
+    const columns: ColumnOption[] = [
       {
         field: 'name',
         key: 'a',

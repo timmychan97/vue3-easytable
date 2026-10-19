@@ -62,7 +62,8 @@ export interface ColumnFilterOption {
 export type ColumnFixedType = 'left' | 'right' | ''
 
 export interface ColumnOption {
-  key: string
+  // 叶子列必须有 key（数字列 key，包括 0，也是有效的列 key，SEL-14）；分组表头列可以没有 key
+  key?: string | number
   field?: string
   title?: string
   width?: number | string

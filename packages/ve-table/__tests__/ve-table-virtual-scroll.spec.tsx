@@ -1,3 +1,4 @@
+import type { ColumnOption } from '@/ve-table/src/ve-table-types'
 import veTable from '@/ve-table'
 import { queryBodyRows } from '@/ve-table/src/util/cell-dom'
 import {
@@ -91,7 +92,7 @@ describe('veTable virtual scroll', () => {
     await later()
   }
 
-  const COLUMNS = [
+  const COLUMNS: ColumnOption[] = [
     {
       field: 'name',
       key: 'b',

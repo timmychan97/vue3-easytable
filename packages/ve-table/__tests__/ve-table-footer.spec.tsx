@@ -1,3 +1,4 @@
+import type { ColumnOption } from '@/ve-table/src/ve-table-types'
 import veTable from '@/ve-table'
 import { mount } from '@vue/test-utils'
 import { expect } from 'vitest'
@@ -58,14 +59,14 @@ describe('veTable footer', () => {
     },
   ]
 
-  const COLUMNS = [
+  const COLUMNS: ColumnOption[] = [
     {
       field: 'name',
       key: 'a',
       title: 'Name',
       align: 'center',
       fixed: 'left',
-      renderFooterCell: ({ row, _column, _rowIndex }, _h) => {
+      renderFooterCell: ({ row }, _h) => {
         return (
           <span class="text-bold" style="">
             {row.name}

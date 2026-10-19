@@ -32,10 +32,10 @@ export function isLastColumnByColKey(colKey: ColKey, colgroups: ColgroupsParam) 
 /**
  * @isOperationColumn
  * @desc is operation column
- * @param {string} colKey - column key
+ * @param {string} colKey - column key（分组表头列可以没有 key，INFRA-17：ColumnOption.key 可选）
  * @param {arrat<object>} colgroups - column key
  */
-export function isOperationColumn(colKey: ColKey, colgroups: ColgroupsParam) {
+export function isOperationColumn(colKey: ColKey | null | undefined, colgroups: ColgroupsParam) {
   if (!isEmptyValue(colKey) && !isEmptyArray(colgroups)) {
     const firstCol = colgroups[0]
     if (firstCol.key === colKey && firstCol.operationColumn)

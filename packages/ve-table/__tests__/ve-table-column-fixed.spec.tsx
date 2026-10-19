@@ -1,3 +1,4 @@
+import type { ColumnOption } from '@/ve-table/src/ve-table-types'
 import veTable from '@/ve-table'
 import { later, wrapMount } from '@test-utils'
 import { mount } from '@vue/test-utils'
@@ -66,7 +67,7 @@ describe('veTable column fixed', () => {
     },
   ]
 
-  const COLUMNS = [
+  const COLUMNS: ColumnOption[] = [
     {
       field: 'col1',
       key: 'a',
@@ -112,7 +113,7 @@ describe('veTable column fixed', () => {
   ]
 
   // 固定列改变
-  const COLUMNS_FIXED_CHANGE = [
+  const COLUMNS_FIXED_CHANGE: ColumnOption[] = [
     {
       field: 'col1',
       key: 'a',
@@ -304,7 +305,7 @@ describe('veTable column fixed', () => {
   describe('fixed edge detection by key (COL-06)', () => {
     const renderCell = ({ rowIndex }) => rowIndex
     // 两个左固定列、两个右固定列都没有 field（如复选框列、序号列、操作按钮列）
-    const COLUMNS_WITHOUT_FIELD = [
+    const COLUMNS_WITHOUT_FIELD: ColumnOption[] = [
       { key: 'l1', title: 'L1', width: 50, fixed: 'left', renderBodyCell: renderCell },
       { key: 'l2', title: 'L2', width: 50, fixed: 'left', renderBodyCell: renderCell },
       { field: 'col3', key: 'c', title: 'Title3', width: 100 },

@@ -1,6 +1,6 @@
 # Migration Guide
 
-- **Library users:** [Locale message keys renamed](#locale-message-keys-renamed-breaking-change-deprecated-aliases), [Language per app](#language-per-app-usevetable-locale--no-longer-changes-the-global-language), [Norwegian language pack renamed](#norwegian-language-pack-renamed-no-nb--nb-no), [Clipboard and autofill respect `editOption`](#clipboard-respects-editoption-paste-cut-and-delete-skip-non-editable-columns)
+- **Library users:** [Locale message keys renamed](#locale-message-keys-renamed-breaking-change-deprecated-aliases), [Language per app](#language-per-app-usevetable-locale--no-longer-changes-the-global-language), [Norwegian language pack renamed](#norwegian-language-pack-renamed-no-nb--nb-no), [Clipboard and autofill respect `editOption`](#clipboard-respects-editoption-paste-cut-and-delete-skip-non-editable-columns), [Typed `columns` prop](#typed-columns-prop-typescript-only)
 - **Contributors:** [Development setup improvements](#migration-guide-development-setup-improvements)
 
 ## Locale message keys renamed (breaking change, deprecated aliases)
@@ -66,6 +66,23 @@ This also applies to autofill (dragging the fill handle), see [Autofill](#autofi
 - If users should paste or autofill into a column, mark it `edit: true` (this also allows editing it by typing).
 - If your `beforeCellValueChange` / `afterCellValueChange` assume they only run for typed edits (for example, they focus the edited cell or show a toast), check how they behave for a paste or an autofill into many cells. Each changed cell gets its own call.
 - If you validated or saved clipboard or autofill changes in `afterPaste` / `afterCut` / `afterDelete` / `afterAutofill`, you can now do it in `afterCellValueChange` instead. Keep only one of the two, or each change is handled twice.
+
+## Typed `columns` prop (TypeScript only)
+
+**What changed:** the column types are exported from the package entry (type-only): `ColumnOption`, `ColumnFixedType`, `ColumnFilterOption`, `ColumnFilterItem`, `RenderH`, `RenderBodyCellParams`, `RenderHeaderCellParams` and `RenderFooterCellParams`. The `columns` prop of `VeTable` is typed `ColumnOption[]` (it was a plain `Array`). Runtime behaviour is unchanged.
+
+**Impact:** with `vue-tsc` or a type-checking editor, a columns array declared without a type can now fail to type-check, because TypeScript widens `align: 'left'` or `fixed: 'left'` in an untyped literal to `string`.
+
+**What to do:** annotate the array.
+
+```typescript
+import type { ColumnOption } from '@vue3-easytable/vue'
+
+const columns: ColumnOption[] = [
+  { field: 'name', key: 'a', title: 'Name', align: 'left', fixed: 'left' },
+  { title: 'Group', children: [{ field: 'age', key: 'b', title: 'Age' }] },
+]
+```
 
 ---
 

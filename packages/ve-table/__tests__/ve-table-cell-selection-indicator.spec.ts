@@ -1,3 +1,4 @@
+import type { ColumnOption } from '@/ve-table/src/ve-table-types'
 import veTable from '@/ve-table'
 import { later, wrapMount } from '@test-utils'
 import { KEY_CODES } from '@test-utils/constant'
@@ -42,7 +43,7 @@ describe('veTable cell selection', () => {
     },
   ]
 
-  const COLUMNS = [
+  const COLUMNS: ColumnOption[] = [
     {
       field: 'index',
       key: 'index',

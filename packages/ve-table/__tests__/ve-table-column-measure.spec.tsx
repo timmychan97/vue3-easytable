@@ -1,10 +1,11 @@
+import type { ColumnOption } from '@/ve-table/src/ve-table-types'
 import veTable from '@/ve-table'
 import { later, mockVirtualScrollLayout } from '@test-utils'
 import { mount } from '@vue/test-utils'
 
 // COL-07：列宽必须在真实表格里测量（隐藏的独立表格没有内容，自动布局时宽度与真实表格不一致）
 describe('veTable column width measurement', () => {
-  const COLUMNS = [
+  const COLUMNS: ColumnOption[] = [
     { field: 'name', key: 'a', title: 'Name', width: 120, fixed: 'left' },
     { field: 'hobby', key: 'b', title: 'Hobby' },
     { field: 'address', key: 'c', title: 'Address', width: 200 },

@@ -1,3 +1,4 @@
+import type { ColumnOption } from '@/ve-table/src/ve-table-types'
 import veTable from '@/ve-table'
 import { later } from '@test-utils'
 import { mount } from '@vue/test-utils'
@@ -57,7 +58,7 @@ describe('veTable header filter', () => {
   })
 
   // filter single
-  const TABLE_COLUMNS_FILTER_SINGLE = [
+  const TABLE_COLUMNS_FILTER_SINGLE: ColumnOption[] = [
     {
       field: 'name',
       key: 'a',
@@ -110,7 +111,7 @@ describe('veTable header filter', () => {
   ]
 
   // filter multiple
-  const TABLE_COLUMNS_FILTER_MULTIPLE = [
+  const TABLE_COLUMNS_FILTER_MULTIPLE: ColumnOption[] = [
     {
       field: 'name',
       key: 'a',
@@ -163,7 +164,7 @@ describe('veTable header filter', () => {
   ]
 
   // filter custom icon
-  const TABLE_COLUMNS_CUSTOM_ICON = [
+  const TABLE_COLUMNS_CUSTOM_ICON: ColumnOption[] = [
     {
       field: 'name',
       key: 'a',

@@ -1,3 +1,4 @@
+import type { ColumnOption } from '@/ve-table/src/ve-table-types'
 import veTable from '@/ve-table'
 import { later } from '@test-utils'
 import { mount } from '@vue/test-utils'
@@ -16,7 +17,7 @@ describe('veTable column hidden', () => {
     },
   ]
 
-  const COLUMNS = [
+  const COLUMNS: ColumnOption[] = [
     { field: 'col1', key: 'col1', title: 'col1', width: '10%' },
     {
       title: 'col2-col3',
