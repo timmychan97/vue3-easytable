@@ -5,14 +5,17 @@ interface Payload {
   inCheckboxGroup: boolean
   isVerticalShow: Ref<boolean>
   groupModelValue: Ref<string[]>
+  // checkbox-group 是否通过 v-model 绑定（此时 checkbox 的状态以 groupModelValue 为准）
+  isGroupModelBound: () => boolean
 }
 
 export const CheckboxGroupInjectionKey: InjectionKey<Payload> = Symbol('CheckboxGroupInjectionKey')
 
-export function provideCheckboxGroup({ onCheckboxUpdate, isVerticalShow, groupModelValue }: {
+export function provideCheckboxGroup({ onCheckboxUpdate, isVerticalShow, groupModelValue, isGroupModelBound }: {
   onCheckboxUpdate: Payload['updateCheckboxGroup']
   isVerticalShow: Payload['isVerticalShow']
   groupModelValue: Payload['groupModelValue']
+  isGroupModelBound: Payload['isGroupModelBound']
 }) {
   const callbacks: ((val: string[]) => void)[] = []
   provide(CheckboxGroupInjectionKey, {
@@ -28,6 +31,7 @@ export function provideCheckboxGroup({ onCheckboxUpdate, isVerticalShow, groupMo
     inCheckboxGroup: true,
     isVerticalShow,
     groupModelValue,
+    isGroupModelBound,
   })
 
   return {
@@ -46,5 +50,6 @@ export function injectCheckboxGroup() {
     inCheckboxGroup: false,
     isVerticalShow: ref(false),
     groupModelValue: ref([]),
+    isGroupModelBound: () => false,
   })
 }

@@ -418,4 +418,127 @@ describe('veCheckbox', () => {
       expect(injected).toBe('not provided')
     })
   })
+
+  describe('a parent that rejects the change (FORM-04)', () => {
+    const input = (wrapper: { find: (selector: string) => { element: Element } }) =>
+      wrapper.find('input').element as HTMLInputElement
+
+    it('isControlled: the native input goes back when isSelected does not change', async () => {
+      const wrapper = mount(veCheckbox, {
+        props: { isControlled: true, isSelected: false, label: 'orange' },
+      })
+
+      await wrapper.find('.ve-checkbox').trigger('click')
+      await nextTick()
+
+      expect(wrapper.emitted('on-checked-change')).toEqual([[true]])
+      expect(input(wrapper).checked).toBe(false)
+      expect(wrapper.find('.ve-checkbox-checked').exists()).toBe(false)
+    })
+
+    it('isControlled: an accepted change stays checked', async () => {
+      const wrapper = mount(veCheckbox, {
+        props: {
+          'isControlled': true,
+          'isSelected': false,
+          'label': 'orange',
+          'onOn-checked-change': (checked: boolean) => wrapper.setProps({ isSelected: checked }),
+        },
+      })
+
+      await wrapper.find('.ve-checkbox').trigger('click')
+      await nextTick()
+
+      expect(input(wrapper).checked).toBe(true)
+      expect(wrapper.find('.ve-checkbox-checked').exists()).toBe(true)
+    })
+
+    it('v-model: a rejected update:modelValue keeps the old state', async () => {
+      const wrapper = mount({
+        template: `<ve-checkbox :modelValue="value" @update:modelValue="reject" label="orange" />`,
+        data() {
+          return { value: false }
+        },
+        methods: {
+          reject() {},
+        },
+      })
+
+      await wrapper.find('.ve-checkbox').trigger('click')
+      await nextTick()
+
+      expect(input(wrapper).checked).toBe(false)
+      expect(wrapper.find('.ve-checkbox-checked').exists()).toBe(false)
+    })
+
+    it('v-model: an accepted update:modelValue is shown', async () => {
+      const wrapper = mount({
+        template: `<ve-checkbox v-model="value" label="orange" />`,
+        data() {
+          return { value: false }
+        },
+      })
+
+      await wrapper.find('.ve-checkbox').trigger('click')
+      await nextTick()
+
+      expect((wrapper.vm as any).value).toBe(true)
+      expect(input(wrapper).checked).toBe(true)
+      expect(wrapper.find('.ve-checkbox-checked').exists()).toBe(true)
+    })
+
+    it('checkbox-group v-model: a rejected group update keeps the old state', async () => {
+      const wrapper = mount({
+        template: `
+                <ve-checkbox-group :modelValue="value" @update:modelValue="reject">
+                    <ve-checkbox label="a" />
+                    <ve-checkbox label="b" />
+                </ve-checkbox-group>
+            `,
+        data() {
+          return { value: ['a'] }
+        },
+        methods: {
+          reject() {},
+        },
+      })
+      const box = () => wrapper.findAll('.ve-checkbox')[1]
+
+      await box().trigger('click')
+      await nextTick()
+
+      expect((box().find('input').element as HTMLInputElement).checked).toBe(false)
+      expect(box().find('.ve-checkbox-checked').exists()).toBe(false)
+    })
+  })
+
+  describe('disabled attribute (FORM-05)', () => {
+    it('a disabled checkbox renders a disabled native input', async () => {
+      const wrapper = mount(veCheckbox, {
+        props: { modelValue: false, disabled: true, label: 'orange' },
+      })
+
+      expect((wrapper.find('input').element as HTMLInputElement).disabled).toBe(true)
+
+      await wrapper.setProps({ disabled: false })
+      expect((wrapper.find('input').element as HTMLInputElement).disabled).toBe(false)
+    })
+
+    it('a disabled checkbox in a group renders a disabled native input', () => {
+      const wrapper = mount({
+        template: `
+                <ve-checkbox-group v-model="value">
+                    <ve-checkbox label="a" />
+                    <ve-checkbox disabled label="b" />
+                </ve-checkbox-group>
+            `,
+        data() {
+          return { value: [] }
+        },
+      })
+      const inputs = wrapper.findAll('input').map(x => (x.element as HTMLInputElement).disabled)
+
+      expect(inputs).toEqual([false, true])
+    })
+  })
 })

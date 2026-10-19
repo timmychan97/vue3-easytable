@@ -908,15 +908,24 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
   - **Done:** `expose: ['modelValue']`, and the `provide() { aaa }` option is removed. `updateModel` was never implemented or documented, so nothing to migrate.
   - **Verified:** `ve-checkbox.spec.ts` › "checkbox-group leftovers (FORM-03)": "every exposed member exists on the instance" (failed before: `updateModel` was `undefined` on the ref) and "does not provide debug values to its children" (failed before: a child could inject `aaa`).
 
-- [ ] **FORM-04** 🟢 A controlled checkbox or radio can show the wrong tick when the parent rejects the change (found in batch 7)
+- [x] ✅ 2026-10-19 · refactor/audit-wave2-misc · **FORM-04** 🟢 A controlled checkbox or radio can show the wrong tick when the parent rejects the change (found in batch 7)
   - **Where:** `ve-checkbox/src/index.tsx`, `ve-radio/src/index.tsx` change handlers (controlled mode).
   - **Trigger:** a parent that ignores `update:modelValue` (keeps the old value). The browser has already toggled the native `<input>`, and Vue does not patch it back because the vnode's `checked` did not change, so the input shows the rejected state. FORM-02 resets the input only for disabled controls.
   - **Fix:** after emitting, reset `target.checked` to the model value in `nextTick`.
+  - **Done:** both change handlers end with `syncAfterChange(target)`. In `nextTick` (after the parent has handled the events and re-rendered) it re-reads the source of truth and sets `target.checked` to it:
+    - `isControlled`: `isSelected` (ve-table and ve-dropdown use this mode).
+    - A checkbox inside a `ve-checkbox-group` bound with v-model: the group value. The group context has a new `isGroupModelBound()`.
+    - A control bound with v-model itself: `modelValue`.
+    - Otherwise (no v-model, FORM-02): the local state, as before.
+  - **Proposed decision:** "bound with v-model" means the parent passes both `modelValue` and an `onUpdate:modelValue` listener (new `common/utils/v-model.ts` › `isModelValueBound`, which reads the vnode props). A `modelValue` passed without a listener still works as an initial value and the control keeps its own state, so nothing that works today changes. Only a parent that listens and does not accept the new value now sees the old state.
+  - **Verified:** `ve-checkbox.spec.ts` › "a parent that rejects the change (FORM-04)": "isControlled: the native input goes back when isSelected does not change", "v-model: a rejected update:modelValue keeps the old state", "checkbox-group v-model: a rejected group update keeps the old state" (all three failed before: the input stayed checked). Guards that passed before and still pass: "isControlled: an accepted change stays checked", "v-model: an accepted update:modelValue is shown". `ve-radio.spec.tsx` › same block: the isControlled and rejected v-model cases failed before, the accepted v-model case is a guard. The ve-table row checkbox/radio, header filter and ve-dropdown specs pass unchanged.
 
-- [ ] **FORM-05** 🟢 The checkbox and radio `<input>` never gets the `disabled` attribute (found in batch 7)
+- [x] ✅ 2026-10-19 · refactor/audit-wave2-misc · **FORM-05** 🟢 The checkbox and radio `<input>` never gets the `disabled` attribute (found in batch 7)
   - **Where:** `ve-checkbox/src/index.tsx`, `ve-radio/src/index.tsx`. `disabled` only adds the `*-disabled` class and blocks the change in the handler.
   - **Effect (a11y):** assistive technology announces an enabled control, and it can still be focused and toggled with Space (FORM-02 then resets it).
   - **Fix:** bind `disabled` on the `<input>`. The snapshots of every disabled checkbox / radio will change.
+  - **Done:** both components bind `disabled` on the native `<input>`. The FORM-02 reset in the change handler stays as a fallback.
+  - **Verified:** `ve-checkbox.spec.ts` › "disabled attribute (FORM-05)": "a disabled checkbox renders a disabled native input" (also checks that the attribute goes away when `disabled` becomes `false`) and "a disabled checkbox in a group renders a disabled native input". `ve-radio.spec.tsx` › "a disabled radio renders a disabled native input". All three failed before. Three snapshots changed, each only by `disabled=""` on the disabled inputs: `veCheckbox > render with checkbox group`, `veCheckbox > render with indeterminate` (the disabled one; the two checkbox snapshot names are swapped in the spec) and `veRadio > render`. No ve-table snapshot has a disabled checkbox or radio.
 
 ---
 
