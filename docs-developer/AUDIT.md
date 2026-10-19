@@ -198,6 +198,16 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
     - `filter.filterConfirm` / `filterReset` (`header-filter-content.tsx`): only the two calls changed.
   - **Verified:** `ve-table-callback-guards.spec.tsx` › "more throwing callbacks go through safeCall (INFRA-13)" (16 tests). Failed before: "a throwing sortChange is logged and the sort still changes" (the error reached the app `errorHandler`), "a throwing bodyCellClass is logged and the body still renders" and "a throwing eventCustomOption.* is logged and the table still renders" (×6; the render threw), "a truthy eventCustomOption.* that is not a function is ignored" (×6; `… is not a function`), "a throwing cell event handler is logged and the table still handles the click" (the error escaped and `BODY_CELL_CLICK` was not dispatched), "throwing filterConfirm / filterReset are logged". `ve-table-bind-custom-events.spec.ts` covers `getCustomEvents` directly.
 
+- [x] ✅ 2026-10-19 · fix/audit-small-nontable · **INFRA-14** 🟢 lint-staged's automatic backup uses the git stash stack, which every worktree shares (found in wave 2)
+  - **Where:** `.husky/pre-commit` (`npx --no-install lint-staged`), root `package.json` › `lint-staged` (12.5.0).
+  - **Trigger:** commits from several worktrees at the same time. Each run stores a "lint-staged automatic backup" stash entry, and later finds it again *by that message* (`getBackupStash` takes the first matching line of `git stash list`) to apply it on failure and drop it at the end. With concurrent runs, one session can apply or drop another session's entry.
+  - **Done:** the hook runs `lint-staged --no-stash` (supported by 12.x: "disable the backup stash, and do not revert in case of errors"). A Chinese comment in the hook explains why, and how to recover.
+  - **Trade-off:** without the backup there is no automatic revert when a task fails. Partially staged files are still handled: lint-staged hides their unstaged hunks in `<git-dir>/lint-staged_unstaged.patch` (per worktree) and restores them after the tasks succeed. When a task fails, it skips the restore, so those unstaged hunks are missing from the working tree until `git apply <git-dir>/lint-staged_unstaged.patch`. The next lint-staged run overwrites that file. Fixes from `eslint --fix` are staged even when the commit is then rejected. Neither matters for a commit of fully staged files, which is the normal case here.
+  - **Verified:**
+    - In a throwaway repo (its own stash) with a partially staged file: a passing task left `git stash list` empty, staged the task's change and restored the unstaged hunk. A failing task (`false`) also left the stash empty, but the unstaged hunk was only in `.git/lint-staged_unstaged.patch` (the trade-off above).
+    - In this worktree, a staged probe with a `debugger` statement: `git commit` was rejected by the hook (`no-debugger`, "Skipping backup because `--no-stash` was used").
+    - Every commit on this branch went through the updated hook: eslint ran on the staged files and printed the "Skipping backup" warning.
+
 ---
 
 ## COL — columns (fixed, hide/show, resize)
@@ -944,6 +954,12 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
   - **Done:** `pageSizeChangeHandler(pageSize)` now uses its argument. It ignores anything that isn't a positive number. Committed together with DD-04.
   - **Verified:** `ve-pagination.spec.tsx` › "pageSizeChangeHandler uses its argument (PAG-03)". Before the fix, it emitted the current size `5` instead of `15`. With only DD-04 applied, the existing "on-page-size-change emit" failed (`[5]` instead of `[10]`). With both fixes, it passes.
 
+- [x] ✅ 2026-10-19 · fix/audit-small-nontable · **PAG-04** 🟢 The jump-prev button has a dead `disabled` class (found in wave 2)
+  - **Where:** `ve-pagination/src/pager.tsx`, the jump-prev `li`: `pageIndex === 1 ? 'disabled' : ''`.
+  - **Trigger:** none in practice. The button only renders when `pageIndex > pagingCount`, so with the default (or any positive) `pagingCount` it is never on page 1. It could only apply with `pagingCount <= 0`, and even then nothing styles an unprefixed `disabled` class (the theme uses `ve-pagination-disabled`).
+  - **Done:** the class is removed; the `li` keeps `ve-pagination-li ve-pagination-jump-prev`.
+  - **Verified:** the rendered HTML is unchanged: Vue already dropped the empty string, and every snapshot shows `class="ve-pagination-li ve-pagination-jump-prev"`. The ve-pagination and ve-locale specs pass without `-u` (67 tests, no snapshot written).
+
 ---
 
 ## LOAD — loading service
@@ -995,6 +1011,18 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
   - **Fix:** bind `disabled` on the `<input>`. The snapshots of every disabled checkbox / radio will change.
   - **Done:** both components bind `disabled` on the native `<input>`. The FORM-02 reset in the change handler stays as a fallback.
   - **Verified:** `ve-checkbox.spec.ts` › "disabled attribute (FORM-05)": "a disabled checkbox renders a disabled native input" (also checks that the attribute goes away when `disabled` becomes `false`) and "a disabled checkbox in a group renders a disabled native input". `ve-radio.spec.tsx` › "a disabled radio renders a disabled native input". All three failed before. Three snapshots changed, each only by `disabled=""` on the disabled inputs: `veCheckbox > render with checkbox group`, `veCheckbox > render with indeterminate` (the disabled one; the two checkbox snapshot names are swapped in the spec) and `veRadio > render`. No ve-table snapshot has a disabled checkbox or radio.
+
+- [x] ✅ 2026-10-19 · fix/audit-small-nontable · **FORM-06** 🟢 A checkbox group whose model becomes `null` crashes its checkboxes (found in wave 2)
+  - **Where:** `ve-checkbox/src/index.tsx` `updateModelByGroup`, called by the `ve-checkbox-group` `modelValue` watcher. Also `ve-checkbox-group/src/index.tsx` `onCheckboxUpdate` (`[...props.modelValue]`).
+  - **Trigger:** `<ve-checkbox-group v-model="x">` with `x` later set to `null`: the watcher passes `null` to every checkbox and `checkBoxGroup.includes` throws. A click on a checkbox while the group model is `null` threw `props.modelValue is not iterable` in the group.
+  - **Done:** both places treat a non-array model as `[]`. A `null` model unchecks every checkbox, and a click on one starts a new array with that label. `initModel` and `syncAfterChange` already had this guard.
+  - **Verified:** `ve-checkbox.spec.ts` › "checkbox-group model set to null (FORM-06)": "a group model set to null unchecks every checkbox" (failed before: `Cannot read properties of null (reading 'includes')`) and "clicking a checkbox in a group whose model is null selects it" (failed before: the model stayed `null` and the click threw `props.modelValue is not iterable`).
+
+- [x] ✅ 2026-10-19 · fix/audit-small-nontable · **FORM-07** 🟢 Two checkbox snapshot tests have swapped names (found in wave 2)
+  - **Where:** `ve-checkbox/__tests__/ve-checkbox.spec.ts` (noted in FORM-05).
+  - **Trigger:** "render with disabled" rendered the indeterminate checkbox and "render with indeterminate" rendered the disabled one, so a failure would point at the wrong feature.
+  - **Done:** the two test names are swapped, so each name matches what it renders. The two snapshot entries are re-keyed by hand (and reordered to vitest's sorted order); their contents are unchanged.
+  - **Verified:** a script compared the old and new `.snap` files: same keys, the two bodies exactly swapped, every other entry identical. The "render with disabled" snapshot has `ve-checkbox-disabled` and `disabled=""`, the "render with indeterminate" one has `ve-checkbox-indeterminate`. `ve-checkbox.spec.ts` passes without `-u` (no snapshot written or obsolete).
 
 ---
 
@@ -1066,6 +1094,18 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
   - **Fix:** delete it.
   - **Done:** deleted, together with its two imports (`LocaleMessage`, `createI18N`). `common/utils/index.ts` no longer imports `common/locale`, which removes one import cycle (`common/locale` imports `isFunction` from `common/utils`).
   - **Verified:** a repo-wide search for `createLocale` outside `node_modules` finds only this entry. The common, ve-locale, ve-pagination and vue specs pass, and `vue-tsc` stays at 426 errors.
+
+---
+
+## DOCS — documentation
+
+Findings in the docs site content (`docs/src/docs/{en,nb,zh}`).
+
+- [x] ✅ 2026-10-19 · fix/audit-small-nontable · **DOCS-01** 🟢 The cell-autofill "features" demo has a heading that does not match it (found in wave 2)
+  - **Where:** `docs/src/docs/{en,nb,zh}/ve-table/cell-autofill/features.md`, included by `docs/{en,nb,zh}/ve-table/cell-autofill.md`.
+  - **Trigger:** the heading and demo text ("Disable Cell Selection … `cellSelectionOption.enable = false`") were copied from `cell-selection/disable-selection.md`, but the demo shows autofill with `cellSelectionOption.enable: true`, `rowKeyFieldName` and both fill directions.
+  - **Done:** the section is now "Autofill and Cell Selection" ("自动填充与单元格选择", "Autofyll og cellevalg"). The text says that autofill is built on cell selection (you drag the handle at the corner of the selected range), so it needs `rowKeyFieldName` and cell selection enabled. `cellSelectionOption.enable` is `true` by default, and with `false` there is no autofill handle. The demo code is unchanged.
+  - **Verified:** by reading the source. In `ve-table.tsx`, the `Selection` component (which renders the autofill handle) only renders when `enableCellSelection` is true. That computed is `false` without `rowKeyFieldName` or with `cellSelectionOption.enable === false`. No page links to the old heading's anchor.
 
 ---
 

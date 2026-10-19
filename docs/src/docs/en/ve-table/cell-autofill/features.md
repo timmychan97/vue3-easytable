@@ -1,6 +1,6 @@
-:::anchor Disable Cell Selection
+:::anchor Autofill and Cell Selection
 
-:::demo Cell selection is enabled by default. You can disable it via `cellSelectionOption.enable = false`
+:::demo Autofill is built on cell selection: you fill cells by dragging the handle at the corner of the selected range. It needs `rowKeyFieldName`, and cell selection must stay enabled. `cellSelectionOption.enable` is `true` by default; with `false` there is no selection, and so no autofill handle
 
 ```html
 <template>

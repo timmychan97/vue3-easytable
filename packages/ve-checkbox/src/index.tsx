@@ -154,8 +154,9 @@ export default defineComponent({
     }
 
     // 父组件调用更新 model（disabled 时同样要与 checkbox-group 的值保持一致）
-    function updateModelByGroup(checkBoxGroup: string[]) {
-      model.value = checkBoxGroup.includes(props.label)
+    // group 的值被设为 null 等非数组时按空数组处理（FORM-06）
+    function updateModelByGroup(checkBoxGroup: string[] | null | undefined) {
+      model.value = Array.isArray(checkBoxGroup) && checkBoxGroup.includes(props.label)
     }
 
     initModel()

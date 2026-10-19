@@ -23,7 +23,8 @@ export default defineComponent({
     const instance = getCurrentInstance()
     const { updateCheckbox } = provideCheckboxGroup({
       onCheckboxUpdate(label, checked) {
-        const newValue = [...props.modelValue]
+        // modelValue 被设为 null 等非数组时按空数组处理（FORM-06）
+        const newValue = Array.isArray(props.modelValue) ? [...props.modelValue] : []
         const index = newValue.indexOf(label)
         if (index > -1) {
           if (!checked)
