@@ -313,17 +313,11 @@ export function getHeaderContextmenuOptionCollection(t) {
     //     label: t("paste"),
     //     type: CONTEXTMENU_NODE_TYPES.PASTE,
     // },
-    {
-      label: t('删除列'),
-      type: CONTEXTMENU_NODE_TYPES.REMOVE_COLUMN,
-    },
+    // 删除列（REMOVE_COLUMN）、隐藏列（HIDE_COLUMN）尚未实现，其类型常量也已注释，
+    // 放在这里会得到 type: undefined，误匹配用户未写 type 的菜单项（MENU-01）
     {
       label: t('清空列'),
       type: CONTEXTMENU_NODE_TYPES.EMPTY_COLUMN,
-    },
-    {
-      label: t('隐藏列'),
-      type: CONTEXTMENU_NODE_TYPES.HIDE_COLUMN,
     },
     {
       label: t('左列冻结'),
@@ -378,10 +372,7 @@ export function getBodyContextmenuOptionCollection(t) {
       label: t('清空行'),
       type: CONTEXTMENU_NODE_TYPES.EMPTY_ROW,
     },
-    {
-      label: t('删除列'),
-      type: CONTEXTMENU_NODE_TYPES.REMOVE_COLUMN,
-    },
+    // 删除列（REMOVE_COLUMN）尚未实现，见 getHeaderContextmenuOptionCollection（MENU-01）
     {
       label: t('清空单元格'),
       type: CONTEXTMENU_NODE_TYPES.EMPTY_CELL,
@@ -581,10 +572,6 @@ export function setBodyContextmenuOptions({
             = selectionRangeIndexes.endRowIndex
               - selectionRangeIndexes.startRowIndex
               + 1
-    const colCount
-            = selectionRangeIndexes.endColIndex
-              - selectionRangeIndexes.startColIndex
-              + 1
 
     const { contextmenus, beforeShow } = contextmenuBodyOption
 
@@ -640,22 +627,6 @@ export function setBodyContextmenuOptions({
           === CONTEXTMENU_NODE_TYPES.EMPTY_CELL
         ) {
           isContinue = !isWholeRowSelection
-        }
-        // remove column.没选中整行时支持
-        else if (
-          contentmenuCollectionItem.type
-          === CONTEXTMENU_NODE_TYPES.REMOVE_COLUMN
-        ) {
-          if (isWholeRowSelection) {
-            isContinue = false
-          }
-          else {
-            contentmenuCollectionItem.label
-                            = contentmenuCollectionItem.label.replace(
-                '$1',
-                colCount,
-              )
-          }
         }
 
         if (isContinue)
@@ -1112,6 +1083,10 @@ export function getNextColKey({ colgroups, currentColKey }) {
 
   if (!isEmptyValue(currentColKey)) {
     const index = colgroups.findIndex(x => x.key === currentColKey)
+    // 未知的列 key 返回 null（与 getPreviewColKey 一致）
+    if (index < 0)
+      return result
+
     if (index === colgroups.length - 1)
       result = currentColKey
 
@@ -1486,7 +1461,7 @@ export function setColumnFixed({
 
       if (COLUMN_FIXED_TYPE.LEFT === fixedType) {
         // 不允许左冻结最后一列
-        if (index <= fixedColIndex && index < cloneColumns.length)
+        if (index <= fixedColIndex && index < cloneColumns.length - 1)
           colItem.fixed = fixedType
       }
       else {

@@ -161,9 +161,11 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
   - **Done:** `setColumnFixed` now returns the unchanged `cloneColumns` (same reference, so the watcher doesn't fire). `setHeaderContextmenuOptions` disables "Left fixed column to" when the range's right edge column is right-fixed, and "Right fixed column to" when the left edge column is left-fixed (the same edges `setColumnFixed` checks).
   - **Verified:** `ve-table-contextmenu.spec.tsx` › "header contextmenu right fixed column to on a left fixed column" (the menu node is `ve-contextmenu-node-disabled`; calling `contextmenuItemClick('RIGHT_FIXED_COLUMN_TO')` directly no longer reaches the app `errorHandler` with `cloneColumns.forEach is not a function`, and the columns and header stay intact). `ve-table-util.spec.ts` › `setColumnFixed` (both directions return the same array unchanged) and `setHeaderContextmenuOptions` (disabled per direction, both enabled on an unfixed column, multi-column range uses the same edges).
 
-- [ ] **COL-02** 🟢 🔍 The "don't left-fix the last column" guard is a no-op
+- [x] ✅ 2026-10-19 · fix/audit-batch7-columns · **COL-02** 🟢 🔍 The "don't left-fix the last column" guard is a no-op
   - **Where:** [util/index.ts:1471](../packages/ve-table/src/util/index.ts#L1471). `index < cloneColumns.length` is always true. The RIGHT branch (`index > 0`) is correct.
   - **Fix:** `index < cloneColumns.length - 1`.
+  - **Done:** `setColumnFixed` uses `index < cloneColumns.length - 1`. "Left fixed column to" on the last column now fixes every column except the last.
+  - **Verified:** `ve-table-util.spec.ts` › `setColumnFixed` › "does not left-fix the last column (COL-02)" (failed before: `['left', 'left', 'left']`). "does not right-fix the first column" guards the RIGHT branch.
 
 - [ ] **COL-03** 🟠 Hide/show columns mutates the user's prop and discards resize and fixed state
   - **Where:** `ve-table.tsx:1122` (`this.hiddenColumns = defaultHiddenColumnKeys` keeps the prop reference, and `showColumnsByKeys` ~1958 `splice`s it); `ve-table.tsx:1129-1153` (rebuilds from `cloneDeep(this.columns)`, then `initColumnWidthByColumnResize` resets widths).
@@ -182,10 +184,12 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
     - There is no unmount cleanup (also listed in INFRA-03). → Fixed by INFRA-03 (batch 2). The other two bullets are still open.
   - **Fix:** use `addEventListener('selectstart', prevent)` and remove it afterwards. In mousemove, `if (e.buttons === 0) end()`; also end on `window` `blur` and on Escape.
 
-- [ ] **COL-06** 🟢 🔍 Fixed-column edge detection compares `field` instead of `key`
+- [x] ✅ 2026-10-19 · fix/audit-batch7-columns · **COL-06** 🟢 🔍 Fixed-column edge detection compares `field` instead of `key`
   - **Where:** `body/index.tsx:423-462` and `footer-td.tsx` (last-left / first-right shadow classes); `selection/index.tsx:238` (`isFirstNotFixedSelectionCol` compares `col.field` to `leftColKey`). `header-th.tsx` correctly uses `_keys`.
   - **Trigger:** two left-fixed columns without `field` (checkbox plus index) mean neither gets the shadow class. When `key !== field`, the selection's 1px left-border fix never applies.
   - **Fix:** compare by `key` everywhere. Long term: MOD-06.
+  - **Done:** `isLastLeftFixedColumn` / `isfirstRightFixedColumn` in `body/index.tsx` and `footer/footer-td.tsx` compare `key`, and `isFirstNotFixedSelectionCol` compares `col.key` with `leftColKey`. Kept minimal; the three implementations are still separate until MOD-06. Also worse than described for right-fixed columns: with two field-less right-fixed columns, **both** got `first-right-fixed-column`.
+  - **Verified:** `ve-table-column-fixed.spec.tsx` › "fixed edge detection by key (COL-06)": "body cells of fixed columns without field" and "footer cells of fixed columns without field" (both failed before: the second left-fixed column had no `last-left-fixed-column`, and the last right-fixed column also had `first-right-fixed-column`); "selection treats the first not-fixed column by key when key differs from field" (failed before: `isFirstNotFixedSelectionCol` was `false`).
 
 - [x] ✅ 2026-10-16 · fix/audit-batch0-regressions **COL-07** 🟠 Column widths are now measured in a separate hidden table that may not match the real one
   - **Where:** `ve-table.tsx:2427-2468`, added in `442962c`. The old zero-height measurement row inside the real `<tbody>` was replaced by a second, absolutely positioned `<table>` that mirrors only the `<colgroup>`. `measureCellWidthChange` (1047) writes those widths into `colgroups[]._realTimeWidth`.
@@ -233,9 +237,11 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
   - **Where:** [util/index.ts:725](../packages/ve-table/src/util/index.ts#L725). It should test `index2`. An unknown `colKey2` returns `slice(-1, …)` garbage instead of `null`.
   - **Verified:** `ve-table-util.spec.ts` › `getColKeysByRangeColKeys` › "returns null when colKey2 is unknown" (failed with `[]` before the fix).
 
-- [ ] **SEL-05** 🟢 🔍 `getNextColKey` with an unknown key returns the first column
+- [x] ✅ 2026-10-19 · fix/audit-batch7-columns · **SEL-05** 🟢 🔍 `getNextColKey` with an unknown key returns the first column
   - **Where:** [util/index.ts:1092-1102](../packages/ve-table/src/util/index.ts#L1092-L1102). `-1 < length - 1` is true.
   - **Fix:** return `null` when `index < 0`.
+  - **Done:** `getNextColKey` returns `null` when the key is not in `colgroups`, like `getPreviewColKey` already did.
+  - **Verified:** `ve-table-util.spec.ts` › `getNextColKey` › "returns null for an unknown key (SEL-05)" (failed before: returned `'a'`).
 
 - [ ] **SEL-06** 🟢 `columnToVisible(undefined)` throws
   - **Where:** `methods/scrolling.ts:10-20` (`nextColumn.fixed`). The public `setCellSelection` / `setRangeCellSelection` (`ve-table.tsx:1816-1818, 1861-1863`) reach it with an unknown colKey when there is a horizontal scrollbar.
@@ -565,10 +571,12 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
 
 ## MENU — contextmenu (table menus and the `ve-contextmenu` component)
 
-- [ ] **MENU-01** 🟢 Commented-out contextmenu types give items `type: undefined`
+- [x] ✅ 2026-10-19 · fix/audit-batch7-columns · **MENU-01** 🟢 Commented-out contextmenu types give items `type: undefined`
   - **Where:** `ve-table/src/util/constant.ts:254, 258` (`REMOVE_COLUMN`, `HIDE_COLUMN`); used at `util/index.ts:318, 326, 383`.
   - **Effect:** a user menu item with no `type` matches "removeColumn", and a user `type: 'REMOVE_COLUMN'` renders with no label.
   - **Fix:** restore the constants (implementing them is optional), or remove them from the collections.
+  - **Done:** removed the two "remove column" entries and the "hide column" entry from `getHeaderContextmenuOptionCollection` / `getBodyContextmenuOptionCollection`, and the dead `REMOVE_COLUMN` branch (with its now unused `colCount`) from `setBodyContextmenuOptions`. Restoring the constants was not an option on its own: there is no click handler for them, and their locale keys (`删除列`, `隐藏列`) are commented out in every language, so the items would render with a raw key and do nothing. The constants stay commented in `constant.ts`. A user item with `type: 'REMOVE_COLUMN'` is now treated like any other custom item (shown as written, label included).
+  - **Verified:** `ve-table-util.spec.ts` › "contextmenu option collections (MENU-01)": "keeps a header menu item without a type as the user wrote it" and "keeps a body menu item without a type as the user wrote it" (both failed before: the custom item was replaced by `{ label: '删除列', type: undefined }`).
 
 - [ ] **MENU-02** 🟠 Changing `eventTarget` leaves a listener on the old element
   - **Where:** `ve-contextmenu/src/index.tsx:109-115, 458-474`. The old listener is never removed, and a string selector is resolved by an `immediate` watcher before mount, so it gets `null` and is never retried.

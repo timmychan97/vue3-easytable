@@ -266,12 +266,13 @@ export default defineComponent({
       const { fixed } = column
 
       if (fixed === 'left') {
-        const { field } = column
+        // 按 key 比较：没有 field 的列（如复选框列、序号列）field 都是 undefined（COL-06）
+        const { key } = column
         const leftFixedColumns = colgroups.filter(
           x => x.fixed === 'left',
         )
         const index = leftFixedColumns.findIndex(
-          x => x.field === field,
+          x => x.key === key,
         )
 
         if (index === leftFixedColumns.length - 1)
@@ -289,12 +290,13 @@ export default defineComponent({
       const { fixed } = column
 
       if (fixed === 'right') {
-        const { field } = column
+        // 按 key 比较（COL-06）
+        const { key } = column
         const rightFixedColumns = colgroups.filter(
           x => x.fixed === 'right',
         )
 
-        if (rightFixedColumns[0].field === field)
+        if (rightFixedColumns[0].key === key)
           result = true
       }
       return result
