@@ -58,12 +58,15 @@ export interface ColumnFilterOption {
 
 // ── Column / Colgroup ──
 
+// 固定列方向；'' 表示不固定（右键菜单取消固定列、隐藏 / 显示列恢复列状态时写入）（COL-11）
+export type ColumnFixedType = 'left' | 'right' | ''
+
 export interface ColumnOption {
   key: string
   field?: string
   title?: string
   width?: number | string
-  fixed?: 'left' | 'right'
+  fixed?: ColumnFixedType
   align?: 'left' | 'center' | 'right'
   edit?: boolean
   sortBy?: string

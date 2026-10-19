@@ -49,7 +49,8 @@ export function isOperationColumn(colKey: ColKey, colgroups: ColgroupsParam) {
  * @desc
  * @return Array<colKeys>
  */
-export function getColKeysByHeaderColumn({ headerColumnItem }: { headerColumnItem: { _keys?: any } }): string[] {
+// headerColumnItem 可以是分组表头列或列配置（ColumnOption），只读取 _keys
+export function getColKeysByHeaderColumn({ headerColumnItem }: { headerColumnItem: { _keys?: unknown, [key: string]: unknown } }): string[] {
   let result: string[]
 
   const { _keys } = headerColumnItem

@@ -1,7 +1,7 @@
 /**
  * 固定列（MOD-03）：固定列的偏移宽度，右键菜单（取消）固定列，隐藏 / 显示列后恢复列状态
  */
-import type { CellSelectionRangeData } from '../../ve-table-types'
+import type { CellSelectionRangeData, ColumnFixedType, ColumnOption } from '../../ve-table-types'
 import type { ColgroupsParam, ColKey } from '../core'
 import {
   isEmptyArray,
@@ -115,12 +115,12 @@ export function setColumnFixed({
   enableColumnResize,
 }: {
   // 列配置（会被直接修改，fixed 可能被设为 ''）
-  cloneColumns: any[]
+  cloneColumns: ColumnOption[]
   cellSelectionRangeData: Pick<CellSelectionRangeData, 'leftColKey' | 'rightColKey'>
-  fixedType: string
+  fixedType: Exclude<ColumnFixedType, ''>
   colgroups: ColgroupsParam
   enableColumnResize: boolean
-}) {
+}): ColumnOption[] {
   let result = cloneColumns
 
   const { leftColKey, rightColKey } = cellSelectionRangeData
@@ -208,18 +208,18 @@ export function restoreColumnsState({
   colgroups,
   enableColumnResize,
 }: {
-  cloneColumns: any[]
-  prevCloneColumns: any[]
+  cloneColumns: ColumnOption[]
+  prevCloneColumns: ColumnOption[]
   colgroups: ColgroupsParam
   enableColumnResize: boolean
-}) {
+}): ColumnOption[] {
   // 列的标识：有 key 用 key；没有 key 的分组表头用其叶子列的 key
-  const getLeafKeys = (column: any): ColKey[] => {
+  const getLeafKeys = (column: ColumnOption): ColKey[] => {
     if (!isEmptyArray(column.children))
-      return column.children.flatMap(getLeafKeys)
+      return column.children!.flatMap(getLeafKeys)
     return isEmptyValue(column.key) ? [] : [column.key]
   }
-  const getIdentityKeys = (column: any): ColKey[] =>
+  const getIdentityKeys = (column: ColumnOption): ColKey[] =>
     isEmptyValue(column.key) ? getLeafKeys(column) : [column.key]
 
   const prevColumns = cloneColumns.map((column) => {
@@ -268,9 +268,9 @@ export function restoreColumnsState({
 
   // 拖动调整后的列宽
   if (enableColumnResize) {
-    const restoreWidth = (column: any) => {
+    const restoreWidth = (column: ColumnOption) => {
       if (!isEmptyArray(column.children)) {
-        column.children.forEach(restoreWidth)
+        column.children!.forEach(restoreWidth)
         return
       }
       const colgroup = colgroups.find(
@@ -300,11 +300,11 @@ export function cancelColumnFixed({
   fixedType,
   enableColumnResize,
 }: {
-  cloneColumns: any[]
+  cloneColumns: ColumnOption[]
   colgroups: ColgroupsParam
-  fixedType: string
+  fixedType: Exclude<ColumnFixedType, ''>
   enableColumnResize: boolean
-}) {
+}): ColumnOption[] {
   return cloneColumns.map((colItem) => {
     // 允许列自适应 && 不是多列表头
     if (
