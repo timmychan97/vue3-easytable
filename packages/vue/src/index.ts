@@ -55,6 +55,18 @@ const useVeTable = function (options?: { locale?: LocaleMessageInput }): Plugin 
 // if (typeof window !== 'undefined' && window.Vue)
 //   install(window.Vue)
 
+// 列配置相关的类型（INFRA-17，只导出类型）
+export type {
+  ColumnFilterItem,
+  ColumnFilterOption,
+  ColumnFixedType,
+  ColumnOption,
+  RenderBodyCellParams,
+  RenderFooterCellParams,
+  RenderH,
+  RenderHeaderCellParams,
+} from '@vue3-easytable/ve-table/src'
+
 export {
   useVeTable,
   VeCheckbox,

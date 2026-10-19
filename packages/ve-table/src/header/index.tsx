@@ -1,9 +1,12 @@
 import type { ColgroupData } from '../ve-table-types'
+import type { HeaderFilterState } from './header-filter-content'
+import { isEmptyValue } from '@vue3-easytable/common/utils'
 import { markRaw } from 'vue'
 import { useTableContext } from '../features/table-context'
 import { clsName } from '../util'
 import { COMPS_NAME, EMIT_EVENTS } from '../util/constant'
 import { safeCall } from '../util/safe-call'
+import { HEADER_FILTER_STATES_KEY } from './header-filter-content'
 import HeaderTr from './header-tr'
 
 export default defineComponent({
@@ -92,12 +95,19 @@ export default defineComponent({
   data() {
     return {
       /*
-            sort columns
+            sort columns：列 key -> 排序方向（COL-12：按列 key 保存，同一个 field 的多列、没有 field 的列各自排序）
             不要使用computed代替，属性动态添加会造成响应式问题
             */
-      sortColumns: {},
-      // COL-08：上一次看到的列排序配置（key -> { field, sortBy }），只用于比较，不需要响应式
-      sortConfigsByKey: markRaw(new Map<string, { field: string, sortBy: string }>()),
+      sortColumns: {} as Record<string, string>,
+      // COL-08：上一次看到的列排序配置（key -> sortBy），只用于比较，不需要响应式
+      sortConfigsByKey: markRaw(new Map<string, string>()),
+      // DD-09：表头筛选的已确认状态（列 key -> 状态）；表头行重新创建时由筛选组件恢复
+      filterStates: markRaw(new Map<string, HeaderFilterState>()),
+    }
+  },
+  provide() {
+    return {
+      [HEADER_FILTER_STATES_KEY as symbol]: this.filterStates,
     }
   },
   computed: {
@@ -119,25 +129,50 @@ export default defineComponent({
   },
   methods: {
     // sort change
-    sortChange({ currentField, sortResult }) {
+    sortChange({ currentKey, sortResult }) {
       const { sortColumns, sortOption } = this
       // INFRA-08：sortOption 和 sortChange 都是可选的
       const multipleSort = sortOption?.multipleSort
       const sortChange = sortOption?.sortChange
+      const currentColKey = String(currentKey)
 
-      this.sortColumns[currentField] = sortResult
+      sortColumns[currentColKey] = sortResult
 
       if (!multipleSort) {
-        for (const field in sortColumns) {
-          if (field !== currentField)
-            sortColumns[field] = ''
+        for (const colKey in sortColumns) {
+          if (colKey !== currentColKey)
+            sortColumns[colKey] = ''
         }
       }
 
-      this.tableEvents.emit(EMIT_EVENTS.SORT_CHANGE, sortColumns)
+      const sortParams = this.getSortParams()
+
+      this.tableEvents.emit(EMIT_EVENTS.SORT_CHANGE, sortParams)
 
       // invoke（INFRA-13：抛出异常时只记录，排序状态已经更新）
-      safeCall('sortOption.sortChange', sortChange, sortColumns)
+      safeCall('sortOption.sortChange', sortChange, sortParams)
+    },
+
+    /*
+     * sortChange 的参数仍按 field：{ [field]: 'asc' | 'desc' | '' }，顺序与列顺序一致（COL-12）
+     * - 同一个 field 有多个可排序列时，取第一个有排序方向的列（单列排序时就是当前排序的列）；
+     * - 没有 field 的列不出现在参数中（之前会以 "undefined" 为键）。
+     */
+    getSortParams() {
+      const { colgroups, sortColumns } = this
+      const result: Record<string, string> = {}
+
+      colgroups.forEach((item: any) => {
+        const colKey = String(item.key)
+        if (!(colKey in sortColumns) || isEmptyValue(item.field))
+          return
+
+        const sortBy = sortColumns[colKey]
+        if (!(item.field in result) || (!result[item.field] && sortBy))
+          result[item.field] = sortBy
+      })
+
+      return result
     },
 
     /*
@@ -149,17 +184,18 @@ export default defineComponent({
     initSortColumns() {
       const { colgroups, sortColumns: prevSortColumns } = this
       const prevConfigs = this.sortConfigsByKey
-      const nextConfigs = markRaw(new Map<string, { field: string, sortBy: string }>())
-      const sortColumns = {}
+      const nextConfigs = markRaw(new Map<string, string>())
+      const sortColumns: Record<string, string> = {}
 
       colgroups.forEach((item: any) => {
         if (typeof item.sortBy !== 'string')
           return
 
-        const prev = prevConfigs.get(item.key)
-        const isSameConfig = prev && prev.sortBy === item.sortBy && prev.field in prevSortColumns
-        sortColumns[item.field] = isSameConfig ? prevSortColumns[prev.field] : item.sortBy
-        nextConfigs.set(item.key, { field: item.field, sortBy: item.sortBy })
+        // 对象的键总是字符串，数字列 key 也转为字符串
+        const colKey = String(item.key)
+        const isSameConfig = prevConfigs.get(colKey) === item.sortBy && colKey in prevSortColumns
+        sortColumns[colKey] = isSameConfig ? prevSortColumns[colKey] : item.sortBy
+        nextConfigs.set(colKey, item.sortBy)
       })
 
       this.sortConfigsByKey = nextConfigs

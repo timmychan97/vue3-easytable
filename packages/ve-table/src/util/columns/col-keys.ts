@@ -32,10 +32,10 @@ export function isLastColumnByColKey(colKey: ColKey, colgroups: ColgroupsParam) 
 /**
  * @isOperationColumn
  * @desc is operation column
- * @param {string} colKey - column key
+ * @param {string} colKey - column key（分组表头列可以没有 key，INFRA-17：ColumnOption.key 可选）
  * @param {arrat<object>} colgroups - column key
  */
-export function isOperationColumn(colKey: ColKey, colgroups: ColgroupsParam) {
+export function isOperationColumn(colKey: ColKey | null | undefined, colgroups: ColgroupsParam) {
   if (!isEmptyValue(colKey) && !isEmptyArray(colgroups)) {
     const firstCol = colgroups[0]
     if (firstCol.key === colKey && firstCol.operationColumn)
@@ -49,7 +49,8 @@ export function isOperationColumn(colKey: ColKey, colgroups: ColgroupsParam) {
  * @desc
  * @return Array<colKeys>
  */
-export function getColKeysByHeaderColumn({ headerColumnItem }: { headerColumnItem: { _keys?: any } }): string[] {
+// headerColumnItem 可以是分组表头列或列配置（ColumnOption），只读取 _keys
+export function getColKeysByHeaderColumn({ headerColumnItem }: { headerColumnItem: { _keys?: unknown, [key: string]: unknown } }): string[] {
   let result: string[]
 
   const { _keys } = headerColumnItem

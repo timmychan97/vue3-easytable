@@ -1,4 +1,5 @@
 import type { ColumnOption } from '@/ve-table/src/ve-table-types'
+import { cancelColumnFixed, restoreColumnsState, setColumnFixed } from '@/ve-table/src/util'
 import { expectTypeOf } from 'vitest'
 import { h } from 'vue'
 
@@ -52,5 +53,31 @@ describe('column render callback types (RENDER-08)', () => {
 
     expect(column.renderFooterCell!({ row: { a: 1 }, column, rowIndex: 0 }, h)).toBeTruthy()
     expect(column.filter!.filterIcon!(h)).toBeTruthy()
+  })
+})
+
+/*
+ * COL-11：fixed 可以是 ''（右键菜单取消固定列、恢复列状态时写入），固定列工具函数使用 ColumnOption[]
+ */
+describe('column fixed type (COL-11)', () => {
+  it('allows \'\' for a column that is not fixed', () => {
+    expectTypeOf<ColumnOption['fixed']>().toEqualTypeOf<'left' | 'right' | '' | undefined>()
+
+    const column: ColumnOption = { key: 'a', fixed: '' }
+    // @ts-expect-error 只能是 'left' | 'right' | ''
+    column.fixed = 'center'
+
+    expect(column.fixed).toBe('center')
+  })
+
+  it('types the column fixed helpers with ColumnOption[]', () => {
+    expectTypeOf(setColumnFixed).returns.toEqualTypeOf<ColumnOption[]>()
+    expectTypeOf(cancelColumnFixed).returns.toEqualTypeOf<ColumnOption[]>()
+    expectTypeOf(restoreColumnsState).returns.toEqualTypeOf<ColumnOption[]>()
+    expectTypeOf(setColumnFixed).parameter(0).toHaveProperty('cloneColumns').toEqualTypeOf<ColumnOption[]>()
+
+    const columns: ColumnOption[] = [{ key: 'a', fixed: 'left' }, { key: 'b' }]
+    const result = cancelColumnFixed({ cloneColumns: columns, colgroups: [], fixedType: 'left', enableColumnResize: false })
+    expect(result.map(x => x.fixed)).toEqual(['', undefined])
   })
 })

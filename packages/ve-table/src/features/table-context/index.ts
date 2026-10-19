@@ -43,12 +43,12 @@ export interface BodyRowClickPayload {
 // 列的排序状态：'asc' | 'desc' | ''
 export type SortResult = string
 
-// 全部列的排序状态（field → 排序状态）
+// 排序参数（field → 排序状态），与 sortOption.sortChange 收到的相同（COL-12）
 export type SortColumns = Record<string, SortResult>
 
-// 点击排序图标后某一列的新排序状态（header-th → header）
+// 点击排序图标后某一列的新排序状态（header-th → header），按列 key（COL-12）
 export interface ColumnSortChangePayload {
-  currentField: string
+  currentKey: string | number
   sortResult: SortResult
 }
 

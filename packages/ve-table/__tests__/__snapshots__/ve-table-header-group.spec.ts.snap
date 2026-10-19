@@ -17,7 +17,7 @@ exports[`veTable header group > render 1`] = `
           </colgroup>
           <thead class="ve-table-fixed-header ve-table-header">
             <tr class="ve-table-header-tr">
-              <th style="text-align: center; top: 0px;" class="ve-table-header-th" rowspan="3" colspan="1">
+              <th style="text-align: center; top: 0px;" class="ve-table-header-th" rowspan="3" colspan="1" col-key="a">
                 <!---->col1
                 <!---->
                 <!---->
@@ -37,13 +37,13 @@ exports[`veTable header group > render 1`] = `
               </th>
             </tr>
             <tr class="ve-table-header-tr">
-              <th style="text-align: center; top: 0px;" class="ve-table-header-th" rowspan="2" colspan="1">
+              <th style="text-align: center; top: 0px;" class="ve-table-header-th" rowspan="2" colspan="1" col-key="b">
                 <!---->col2
                 <!---->
                 <!---->
                 <!---->
               </th>
-              <th style="text-align: center; top: 0px;" class="ve-table-header-th" rowspan="2" colspan="1">
+              <th style="text-align: center; top: 0px;" class="ve-table-header-th" rowspan="2" colspan="1" col-key="c">
                 <!---->col3
                 <!---->
                 <!---->
@@ -55,7 +55,7 @@ exports[`veTable header group > render 1`] = `
                 <!---->
                 <!---->
               </th>
-              <th style="text-align: center; top: 0px;" class="ve-table-header-th ve-table-last-column" rowspan="2" colspan="1">
+              <th style="text-align: center; top: 0px;" class="ve-table-header-th ve-table-last-column" rowspan="2" colspan="1" col-key="f">
                 <!---->col6
                 <!---->
                 <!---->
@@ -63,13 +63,13 @@ exports[`veTable header group > render 1`] = `
               </th>
             </tr>
             <tr class="ve-table-header-tr">
-              <th style="text-align: center; top: 0px;" class="ve-table-header-th" rowspan="1" colspan="1">
+              <th style="text-align: center; top: 0px;" class="ve-table-header-th" rowspan="1" colspan="1" col-key="d">
                 <!---->col4
                 <!---->
                 <!---->
                 <!---->
               </th>
-              <th style="text-align: center; top: 0px;" class="ve-table-header-th" rowspan="1" colspan="1">
+              <th style="text-align: center; top: 0px;" class="ve-table-header-th" rowspan="1" colspan="1" col-key="e">
                 <!---->col5
                 <!---->
                 <!---->

@@ -17,7 +17,7 @@ export const COLUMN_TYPES = {
 export const COLUMN_FIXED_TYPE = {
   LEFT: 'left',
   RIGHT: 'right',
-}
+} as const
 
 // expand row trigger types
 export const EXPAND_TRIGGER_TYPES = {

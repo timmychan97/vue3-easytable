@@ -369,7 +369,8 @@ export default defineComponent({
         const { bodyCellSpan } = cellSpanOption
 
         if (typeof bodyCellSpan === 'function') {
-          const result = bodyCellSpan({
+          // INFRA-16：渲染时调用，抛出异常时只记录，按不合并处理
+          const { value: result } = safeCall<[object], { rowspan?: number, colspan?: number } | null>('cellSpanOption.bodyCellSpan', bodyCellSpan, {
             row: rowData,
             column,
             rowIndex,

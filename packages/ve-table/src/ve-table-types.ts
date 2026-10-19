@@ -58,12 +58,16 @@ export interface ColumnFilterOption {
 
 // ── Column / Colgroup ──
 
+// 固定列方向；'' 表示不固定（右键菜单取消固定列、隐藏 / 显示列恢复列状态时写入）（COL-11）
+export type ColumnFixedType = 'left' | 'right' | ''
+
 export interface ColumnOption {
-  key: string
+  // 叶子列必须有 key（数字列 key，包括 0，也是有效的列 key，SEL-14）；分组表头列可以没有 key
+  key?: string | number
   field?: string
   title?: string
   width?: number | string
-  fixed?: 'left' | 'right'
+  fixed?: ColumnFixedType
   align?: 'left' | 'center' | 'right'
   edit?: boolean
   sortBy?: string

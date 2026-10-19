@@ -262,6 +262,127 @@ describe('veTable optional and throwing user callbacks', () => {
     })
   })
 
+  // INFRA-16：渲染时调用的单元格合并、是否可展开、筛选图标 / 自定义筛选内容抛出异常时只记录，表格照常渲染
+  describe('render-time callbacks go through safeCall (INFRA-16)', () => {
+    const COLUMNS = [
+      { field: 'name', key: 'a', title: 'Name' },
+      { field: 'age', key: 'b', title: 'Age' },
+    ]
+    const FOOTER_DATA = [{ rowKey: 'f1', name: 'sum', age: 63 }]
+
+    function boom(name: string) {
+      return () => {
+        throw new Error(`${name} boom`)
+      }
+    }
+
+    function logged(consoleError: any, name: string) {
+      return consoleError.mock.calls.some((call: any[]) => String(call[0]).includes(name))
+    }
+
+    it('a throwing bodyCellSpan is logged and the cells are not merged', () => {
+      const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+      const wrapper = mountTable({ columns: COLUMNS, cellSpanOption: { bodyCellSpan: boom('bodyCellSpan') } })
+
+      expect(vueErrors).toEqual([])
+      expect(wrapper.findAll('.ve-table-body-td').length).toBe(6)
+      expect(logged(consoleError, 'cellSpanOption.bodyCellSpan')).toBe(true)
+
+      wrapper.unmount()
+    })
+
+    it('a throwing footerCellSpan is logged and the cells are not merged', () => {
+      const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+      const wrapper = mountTable({
+        columns: COLUMNS,
+        footerData: FOOTER_DATA,
+        cellSpanOption: { footerCellSpan: boom('footerCellSpan') },
+      })
+
+      expect(vueErrors).toEqual([])
+      expect(wrapper.findAll('.ve-table-footer-td').length).toBe(2)
+      expect(logged(consoleError, 'cellSpanOption.footerCellSpan')).toBe(true)
+
+      wrapper.unmount()
+    })
+
+    it('a throwing expandable is logged and the row is not expandable', () => {
+      const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+      const wrapper = mountTable({
+        columns: [{ field: '', key: 'e', type: 'expand', title: '' }, ...COLUMNS],
+        expandOption: {
+          expandable: ({ rowIndex }: { rowIndex: number }) => {
+            if (rowIndex === 1)
+              throw new Error('expandable boom')
+            return true
+          },
+          render: () => 'detail',
+        },
+      })
+
+      expect(vueErrors).toEqual([])
+      expect(wrapper.findAll('.ve-table-body-tr').length).toBe(3)
+      // 抛出异常的第 2 行没有展开图标
+      expect(wrapper.findAll('.ve-table-body-tr').map(tr => tr.find('.ve-table-row-expand-icon').exists()))
+        .toEqual([true, false, true])
+      expect(logged(consoleError, 'expandOption.expandable')).toBe(true)
+
+      wrapper.unmount()
+    })
+
+    it('a throwing filterCustom.render / filterIcon is logged and the header still renders', () => {
+      const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+      const wrapper = mountTable({
+        columns: [
+          {
+            field: 'name',
+            key: 'a',
+            title: 'Name',
+            filterCustom: { render: boom('render'), filterIcon: boom('filterIcon') },
+          },
+          {
+            field: 'age',
+            key: 'b',
+            title: 'Age',
+            filter: {
+              filterList: [{ value: 0, label: '20', selected: false }],
+              filterIcon: boom('filterIcon'),
+            },
+          },
+        ],
+      })
+
+      expect(vueErrors).toEqual([])
+      expect(wrapper.findAll('.ve-table-header-th').length).toBe(2)
+      expect(wrapper.findAll('.ve-table-body-td').length).toBe(6)
+      // 图标回退为默认的筛选图标
+      expect(wrapper.findAll('.ve-table-filter-icon .iconfont-vet').length).toBe(2)
+      expect(logged(consoleError, 'filterCustom.render')).toBe(true)
+      expect(logged(consoleError, 'filterCustom.filterIcon')).toBe(true)
+      expect(logged(consoleError, 'filter.filterIcon')).toBe(true)
+
+      wrapper.unmount()
+    })
+
+    // renderBodyCell 等单元格渲染函数不经过 safeCall：与 Vue 自身的渲染函数一样，错误交给应用处理
+    it('a throwing renderBodyCell is not swallowed', () => {
+      const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+      let mountError: unknown
+      try {
+        mountTable({
+          columns: [{ field: 'name', key: 'a', title: 'Name', renderBodyCell: boom('renderBodyCell') }],
+        }).unmount()
+      }
+      catch (error) {
+        mountError = error
+      }
+
+      expect([mountError, ...vueErrors].some(x => String(x).includes('renderBodyCell boom'))).toBe(true)
+      // 没有经过 safeCall 的记录
+      expect(logged(consoleError, 'callback threw')).toBe(false)
+    })
+  })
+
   describe('throwing callbacks go through safeCall (INFRA-11)', () => {
     const EDIT_COLUMNS = [
       { field: 'name', key: 'name', title: 'Name', edit: true },

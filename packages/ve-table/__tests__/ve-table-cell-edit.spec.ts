@@ -1,3 +1,4 @@
+import type { ColumnOption } from '@/ve-table/src/ve-table-types'
 import veTable from '@/ve-table'
 import CellEditor from '@/ve-table/src/editor/index'
 import { HOOKS_NAME } from '@/ve-table/src/util/constant'
@@ -47,7 +48,7 @@ describe('veTable cell edit', () => {
     },
   ]
 
-  const COLUMNS = [
+  const COLUMNS: ColumnOption[] = [
     {
       field: 'name',
       key: 'name',

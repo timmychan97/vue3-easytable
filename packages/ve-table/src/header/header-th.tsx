@@ -1,5 +1,5 @@
 import type { ColgroupData } from '../ve-table-types'
-import { getValByUnit, isEmptyValue } from '@vue3-easytable/common/utils'
+import { getValByUnit, isEmptyArray, isEmptyValue } from '@vue3-easytable/common/utils'
 import { ICON_NAMES } from '@vue3-easytable/common/utils/constant'
 import VeIcon from '@vue3-easytable/ve-icon'
 import { h } from 'vue'
@@ -11,7 +11,7 @@ import {
   getColKeysByHeaderColumn,
   getColKeysByRangeColKeys,
 } from '../util'
-import { COLUMN_TYPES, COMPS_NAME, EMIT_EVENTS } from '../util/constant'
+import { COLUMN_TYPES, COMPS_CUSTOM_ATTRS, COMPS_NAME, EMIT_EVENTS } from '../util/constant'
 import { safeCall } from '../util/safe-call'
 import HeaderCheckboxContent from './header-checkbox-content'
 import HeaderFilterContent from './header-filter-content'
@@ -120,37 +120,18 @@ export default defineComponent({
     },
     // is last column
     isLastCloumn() {
-      let result = false
-
       const { colgroups, groupColumnItem: column } = this
 
-      const lastColumnKey = colgroups[colgroups.length - 1].key
+      // _keys 中的列 key 都是字符串，数字列 key 也按字符串比较（COL-10）
+      const lastColumnKey = String(colgroups[colgroups.length - 1].key)
+      const keys = getColKeysByHeaderColumn({ headerColumnItem: column })
 
-      const keys = column._keys.split('|')
-
-      if (keys.length) {
-        if (keys.length === 1) {
-          if (keys[0] === lastColumnKey)
-            result = true
-        }
-        else if (keys[keys.length - 2] === lastColumnKey) {
-          result = true
-        }
-      }
-
-      return result
+      return keys[keys.length - 1] === lastColumnKey
     },
-    // is sortable column
+    // is sortable column（COL-12：排序状态按列 key 保存）
     isSortableCloumn() {
-      let result = false
-
       const { sortColumns, groupColumnItem } = this
-      const currentField = groupColumnItem.field
-
-      if (Object.keys(sortColumns).includes(currentField))
-        result = true
-
-      return result
+      return Object.prototype.hasOwnProperty.call(sortColumns, String(groupColumnItem.key))
     },
   },
   methods: {
@@ -205,8 +186,9 @@ export default defineComponent({
             const colKeys = getColKeysByHeaderColumn({
               headerColumnItem: column,
             })
+            // colKeys 是字符串，数字列 key 也按字符串比较（COL-10）
             showIndicator = colKeys.every((colKey) => {
-              return indicatorColKeys.includes(colKey)
+              return indicatorColKeys.some(x => String(x) === colKey)
             })
           }
           if (showIndicator) {
@@ -292,8 +274,8 @@ export default defineComponent({
       // INFRA-08：列设置了 sortBy 但没有 sortOption 时也能排序
       const sortAlways = sortOption?.sortAlways
 
-      const currentField = groupColumnItem.field
-      const sortBy = sortColumns[currentField]
+      const currentKey = groupColumnItem.key
+      const sortBy = sortColumns[String(currentKey)]
 
       if (sortAlways) {
         sortResult = sortBy === 'asc' ? 'desc' : 'asc'
@@ -303,9 +285,9 @@ export default defineComponent({
                     = sortBy === 'asc' ? 'desc' : sortBy === 'desc' ? '' : 'asc'
       }
 
-      // 通知表头（header/index.tsx）更新排序状态
+      // 通知表头（header/index.tsx）更新排序状态（COL-12：按列 key）
       this.tableContext.emit(EMIT_EVENTS.COLUMN_SORT_CHANGE, {
-        currentField,
+        currentKey,
         sortResult,
       })
     },
@@ -314,11 +296,10 @@ export default defineComponent({
     getSortContent() {
       let result = null
 
-      const { sortColumns, groupColumnItem } = this
-      const currentField = groupColumnItem.field
+      const { sortColumns, isSortableCloumn, groupColumnItem } = this
 
-      if (Object.keys(sortColumns).includes(currentField)) {
-        const sortBy = sortColumns[currentField]
+      if (isSortableCloumn) {
+        const sortBy = sortColumns[String(groupColumnItem.key)]
 
         const props = {
           class: clsName('sort'),
@@ -447,6 +428,8 @@ export default defineComponent({
       class: getTheadThClass(),
       rowspan: groupColumnItem._rowspan,
       colspan: groupColumnItem._colspan,
+      // RENDER-09：叶子列的表头单元格与 body 单元格一样带 col-key；分组表头单元格对应多列，不加
+      [COMPS_CUSTOM_ATTRS.BODY_COLUMN_KEY]: isEmptyArray(groupColumnItem.children) ? groupColumnItem.key : undefined,
       ...events,
     }
 

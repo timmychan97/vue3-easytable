@@ -10,6 +10,7 @@ import {
   EMIT_EVENTS,
   EXPAND_TRIGGER_TYPES,
 } from '../util/constant'
+import { safeCall } from '../util/safe-call'
 
 import BodyTr from './body-tr'
 import ExpandTr from './expand-tr'
@@ -256,13 +257,15 @@ export default defineComponent({
 
       if (expandColumn && expandOption) {
         // 是否允许展开
-        let expandable = true
+        let expandable: unknown = true
         if (typeof expandOption.expandable === 'function') {
-          expandable = expandOption.expandable({
+          // INFRA-16：渲染时调用，抛出异常时只记录，按不可展开处理
+          const { value, threw } = safeCall('expandOption.expandable', expandOption.expandable, {
             row: rowData,
             column: expandColumn,
             rowIndex,
           })
+          expandable = threw ? false : value
         }
 
         if (expandable !== false)

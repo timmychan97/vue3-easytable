@@ -95,6 +95,13 @@ export function useFixedColumns(colgroups: MaybeRefOrGetter<any[]>): FixedColumn
     return map
   })
 
+  // _keys 中的列 key 都是字符串，数字列 key 要换回原始值才能在 fixedColumnsMap / colgroups 中找到（COL-10）
+  const colKeyByString = computed(() => {
+    const map = new Map<string, ColKey>()
+    ;(toValue(colgroups) || []).forEach(col => map.set(String(col.key), col.key))
+    return map
+  })
+
   function getColumnFixedInfo(colKey: ColKey) {
     return fixedColumnsMap.value.get(colKey) || NOT_FIXED_INFO
   }
@@ -112,15 +119,17 @@ export function useFixedColumns(colgroups: MaybeRefOrGetter<any[]>): FixedColumn
       return NOT_FIXED_INFO
 
     const keys = String(column._keys ?? '').split('|')
-    const firstKey = keys[0]
-    const lastKey = keys.length === 1 ? keys[0] : keys[keys.length - 2]
+    const toColKey = (key: string): ColKey => colKeyByString.value.get(key) ?? key
+    const firstKey = toColKey(keys[0])
+    const lastKey = toColKey(keys.length === 1 ? keys[0] : keys[keys.length - 2])
 
     const firstInfo = fixedColumnsMap.value.get(firstKey)
     const lastInfo = fixedColumnsMap.value.get(lastKey)
 
     const edgeKey = fixed === 'left' ? firstKey : fixed === 'right' ? lastKey : ''
     let style: FixedColumnInfo['style']
-    if (!edgeKey) {
+    // 0 也是有效的列 key
+    if (edgeKey === '') {
       style = { left: fixed === 'left' ? 0 : '', right: fixed === 'right' ? 0 : '' }
     }
     else {

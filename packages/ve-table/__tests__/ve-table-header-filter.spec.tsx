@@ -1,6 +1,8 @@
+import type { ColumnOption } from '@/ve-table/src/ve-table-types'
 import veTable from '@/ve-table'
 import { later } from '@test-utils'
 import { mount } from '@vue/test-utils'
+import { cloneDeep } from 'lodash'
 import { defineComponent } from 'vue'
 
 interface FilterItem {
@@ -57,7 +59,7 @@ describe('veTable header filter', () => {
   })
 
   // filter single
-  const TABLE_COLUMNS_FILTER_SINGLE = [
+  const TABLE_COLUMNS_FILTER_SINGLE: ColumnOption[] = [
     {
       field: 'name',
       key: 'a',
@@ -110,7 +112,7 @@ describe('veTable header filter', () => {
   ]
 
   // filter multiple
-  const TABLE_COLUMNS_FILTER_MULTIPLE = [
+  const TABLE_COLUMNS_FILTER_MULTIPLE: ColumnOption[] = [
     {
       field: 'name',
       key: 'a',
@@ -163,7 +165,7 @@ describe('veTable header filter', () => {
   ]
 
   // filter custom icon
-  const TABLE_COLUMNS_CUSTOM_ICON = [
+  const TABLE_COLUMNS_CUSTOM_ICON: ColumnOption[] = [
     {
       field: 'name',
       key: 'a',
@@ -475,6 +477,69 @@ describe('veTable header filter', () => {
       await toggleFilter(wrapper)
       expect(checkedLabels()).toEqual(['John', 'Dickerson'])
       wrapper.unmount()
+    })
+
+    // DD-09：列对象变化（例如传入新的 columns 数组）时保留已确认的筛选，除非用户的 filterList 本身变了
+    describe('the confirmed state survives column updates (DD-09)', () => {
+      async function confirmDickerson(wrapper: any) {
+        await toggleFilter(wrapper)
+        ;(popper().querySelectorAll('.ve-checkbox')[1] as HTMLElement).click()
+        await later()
+        ;(popper().querySelectorAll('.ve-dropdown-operation-item')[1] as HTMLElement).click()
+        await later()
+      }
+
+      it('keeps the confirmed selection when columns get a new array with the same filterList', async () => {
+        const wrapper = await mountTable(cloneDeep(TABLE_COLUMNS_FILTER_MULTIPLE))
+        await confirmDickerson(wrapper)
+
+        await wrapper.setProps({ columns: cloneDeep(TABLE_COLUMNS_FILTER_MULTIPLE) })
+        await later()
+        await toggleFilter(wrapper)
+
+        expect(checkedLabels()).toEqual(['John', 'Dickerson'])
+        wrapper.unmount()
+      })
+
+      it('keeps the confirmed selection when another column property changes', async () => {
+        const wrapper = await mountTable(cloneDeep(TABLE_COLUMNS_FILTER_MULTIPLE))
+        await confirmDickerson(wrapper)
+
+        const columns = cloneDeep(TABLE_COLUMNS_FILTER_MULTIPLE)
+        columns[0].title = 'Full name'
+        await wrapper.setProps({ columns })
+        await later()
+        await toggleFilter(wrapper)
+
+        expect(checkedLabels()).toEqual(['John', 'Dickerson'])
+        wrapper.unmount()
+      })
+
+      it('keeps the confirmed selection when another column is hidden', async () => {
+        const wrapper = await mountTable(cloneDeep(TABLE_COLUMNS_FILTER_MULTIPLE))
+        await confirmDickerson(wrapper)
+
+        ;(wrapper.vm as any).hideColumnsByKeys(['b'])
+        await later()
+        await toggleFilter(wrapper)
+
+        expect(checkedLabels()).toEqual(['John', 'Dickerson'])
+        wrapper.unmount()
+      })
+
+      it('uses a filterList the app changed', async () => {
+        const wrapper = await mountTable(cloneDeep(TABLE_COLUMNS_FILTER_MULTIPLE))
+        await confirmDickerson(wrapper)
+
+        const columns = cloneDeep(TABLE_COLUMNS_FILTER_MULTIPLE)
+        columns[0].filter!.filterList = columns[0].filter!.filterList.map(x => ({ ...x, selected: x.label === 'Larsen' }))
+        await wrapper.setProps({ columns })
+        await later()
+        await toggleFilter(wrapper)
+
+        expect(checkedLabels()).toEqual(['Larsen'])
+        wrapper.unmount()
+      })
     })
   })
 
