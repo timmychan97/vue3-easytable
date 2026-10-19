@@ -420,15 +420,15 @@ describe('veTable cell autofill', () => {
       const isRemoved = ([type, fn, options]: any[]) =>
         remove.mock.calls.some(([t, f, o]) => t === type && f === fn && !!(o as any)?.capture === !!options?.capture)
 
-      // 拖动结束后移除
+      // 拖动结束后移除（每次点击单元格还会加一个拖动选择的 blur 监听，松开时移除，SEL-18）
       await fill(['r1', 'name'], ['r2', 'name'])
-      expect(added().length).toBe(2)
+      expect(added().length).toBe(3)
       expect(added().every(isRemoved)).toBe(true)
 
       // 拖动中卸载也要移除
       await select('r1', 'date')
       await dragCorner(['r2', 'date'])
-      expect(added().length).toBe(4)
+      expect(added().length).toBe(6)
       wrapper.unmount()
       wrapper = null
       expect(added().every(isRemoved)).toBe(true)

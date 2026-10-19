@@ -532,18 +532,21 @@ export const cellSelectionMethods = {
    * @addSelectionDragListener
    * @desc 拖动选择（单元格区域、整行、整列）期间在 document 上监听 mouseup（捕获阶段），结束拖动（SEL-11）。
    *       在表格外松开时，浏览器在公共祖先上触发的 click 不再清除选区（clickoutside 忽略从表格内开始的拖动），
-   *       所以拖动状态不能再依赖 tableClickOutside 重置
+   *       所以拖动状态不能再依赖 tableClickOutside 重置。
+   *       同时监听 window blur：拖动中窗口失焦（如 Alt+Tab）时 mouseup 可能永远不会到达，失焦即结束拖动（SEL-18，与填充的 FILL-02 相同）
    */
   addSelectionDragListener(this: any) {
     this.removeSelectionDragListener()
 
-    const onMouseup = () => {
+    const onEnd = () => {
       this.endSelectionDrag()
     }
-    document.addEventListener('mouseup', onMouseup, true)
+    document.addEventListener('mouseup', onEnd, true)
+    window.addEventListener('blur', onEnd)
 
     this.selectionDragListenerDisposer = () => {
-      document.removeEventListener('mouseup', onMouseup, true)
+      document.removeEventListener('mouseup', onEnd, true)
+      window.removeEventListener('blur', onEnd)
     }
   },
 
@@ -561,6 +564,20 @@ export const cellSelectionMethods = {
     this.isHeaderCellMousedown = false
     this.isBodyCellMousedown = false
     this.isBodyOperationColumnMousedown = false
+  },
+
+  /*
+   * @endLostSelectionDrag
+   * @desc 拖动选择中，鼠标经过单元格 / 表头时没有按住左键：mouseup 已丢失（例如在窗口外释放且浏览器没有派发），
+   *       结束拖动，不再扩展选区（SEL-18，与填充的 FILL-02 相同）
+   */
+  endLostSelectionDrag(this: any, event: unknown) {
+    const isDragging = this.isBodyCellMousedown
+      || this.isHeaderCellMousedown
+      || this.isBodyOperationColumnMousedown
+
+    if (isDragging && event instanceof MouseEvent && (event.buttons & 1) === 0)
+      this.endSelectionDrag()
   },
 
   /*

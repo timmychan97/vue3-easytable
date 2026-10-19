@@ -1651,6 +1651,9 @@ export default defineComponent({
          * @param {object} column - column data
          */
     bodyCellMouseover({ event, rowData, column }) {
+      // 拖动选择时没有按住左键：mouseup 已丢失，先结束拖动（SEL-18）
+      this.endLostSelectionDrag(event)
+
       const {
         rowKeyFieldName,
         isBodyCellMousedown,
@@ -1875,7 +1878,10 @@ export default defineComponent({
     },
 
     // header cell mouseover
-    headerCellMouseover({ event: _event, column }) {
+    headerCellMouseover({ event, column }) {
+      // 拖动选择时没有按住左键：mouseup 已丢失，先结束拖动（SEL-18）
+      this.endLostSelectionDrag(event)
+
       const {
         colgroups,
         isGroupHeader,
