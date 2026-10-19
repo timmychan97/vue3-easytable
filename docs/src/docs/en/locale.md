@@ -28,6 +28,25 @@ const lang = {
 VeLocale.update(lang)
 ```
 
+:::anchor Language per App
+
+`VeLocale.use` and `VeLocale.update` are global: they change the language of every app on the page. To give one app its own language, pass it to `useVeTable` when you install the plugin. Each app keeps its own language, so a second app never switches the first one:
+
+```javascript
+import { useVeTable } from '@vue3-easytable/vue'
+import enUS from '@vue3-easytable/vue/libs/locale/lang/en-US.js'
+import zhCN from '@vue3-easytable/vue/libs/locale/lang/zh-CN.js'
+
+createApp(AppA).use(useVeTable({ locale: enUS })).mount('#app-a')
+// Does not change the language of app A
+createApp(AppB).use(useVeTable({ locale: zhCN })).mount('#app-b')
+```
+
+- `useVeTable({ locale })` sets the language of that app only. It does not change the global language, so `VeLocale.getMessage()` still returns the global one.
+- `this.$veLocale.use(...)` and `this.$veLocale.update(...)` inside a component change only the language of the component's app.
+- `VeLocale.use(...)` and `VeLocale.update(...)` still apply to every app, on top of each app's own language.
+- Inside an app, a `VeConfigProvider` sets the language of its children, on top of the app's language.
+
 :::anchor Message Keys
 
 Language packs are grouped by component. The keys are the same in every language pack (see `zh-CN` for the full list):

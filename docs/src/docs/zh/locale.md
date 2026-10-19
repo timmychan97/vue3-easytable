@@ -28,6 +28,25 @@ const lang = {
 VeLocale.update(lang)
 ```
 
+:::anchor 每个 app 单独设置语言
+
+`VeLocale.use` 和 `VeLocale.update` 是全局的：会修改页面上所有 app 的语言。如果要让某个 app 使用自己的语言，请在安装插件时传给 `useVeTable`。每个 app 各自保存语言，第二个 app 不会切换第一个 app 的语言：
+
+```javascript
+import { useVeTable } from '@vue3-easytable/vue'
+import enUS from '@vue3-easytable/vue/libs/locale/lang/en-US.js'
+import zhCN from '@vue3-easytable/vue/libs/locale/lang/zh-CN.js'
+
+createApp(AppA).use(useVeTable({ locale: enUS })).mount('#app-a')
+// 不会改变 app A 的语言
+createApp(AppB).use(useVeTable({ locale: zhCN })).mount('#app-b')
+```
+
+- `useVeTable({ locale })` 只设置该 app 的语言，不修改全局语言，`VeLocale.getMessage()` 返回的仍是全局语言。
+- 组件中的 `this.$veLocale.use(...)` 和 `this.$veLocale.update(...)` 只修改该组件所在 app 的语言。
+- `VeLocale.use(...)` 和 `VeLocale.update(...)` 仍然作用于所有 app（合并在各 app 自己的语言之上）。
+- 在 app 内部，`VeConfigProvider` 为其子组件设置语言（合并在 app 的语言之上）。
+
 :::anchor 文案键名
 
 语言包按组件分组，所有语言包的键名相同（完整列表见 `zh-CN`）：

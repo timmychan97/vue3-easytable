@@ -12,7 +12,7 @@ createApp(App).use(useVeTable({
 ```
 
 :::anchor 全局使用
-使用 useVeTable 会自动将 veLocale 组件挂载到 Vue 的 prototype 原型上，便于全局调用
+使用 useVeTable 后，app 中的每个组件都可以通过 `$veLocale` 修改语言，只影响该 app；导入的 `VeLocale` 会修改所有 app（见 国际化 → 每个 app 单独设置语言）
 
 ```javascript
 import enUS from 'vue-easytable/libs/locale/lang/en-US'

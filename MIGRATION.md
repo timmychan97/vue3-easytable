@@ -1,6 +1,6 @@
 # Migration Guide
 
-- **Library users:** [Locale message keys renamed](#locale-message-keys-renamed-breaking-change-deprecated-aliases)
+- **Library users:** [Locale message keys renamed](#locale-message-keys-renamed-breaking-change-deprecated-aliases), [Language per app](#language-per-app-usevetable-locale-no-longer-changes-the-global-language)
 - **Contributors:** [Development setup improvements](#migration-guide-development-setup-improvements)
 
 ## Locale message keys renamed (breaking change, deprecated aliases)
@@ -22,6 +22,14 @@ VeLocale.update({ 分页: { 前往: 'Go to' } })
 ```
 
 **Types:** `LocaleMessage` now describes the exact shape (`分页` and `表格` with their keys), and every built-in language pack is checked against it with `satisfies`. A missing or unknown key is a type error. User input is typed as `LocaleMessageInput`: any subset of the new keys, plus the deprecated English keys, which are marked `@deprecated`.
+
+## Language per app: `useVeTable({ locale })` no longer changes the global language
+
+**What changed:** each app now has its own language. `useVeTable({ locale })` sets the language of that app only, and `this.$veLocale` in a component changes only the language of the component's app. Before, both changed one global language shared by every app, so a second app's `useVeTable({ locale })` switched the language of the first app.
+
+**Unchanged:** the imported `VeLocale.use(...)` / `VeLocale.update(...)` are still global and apply to every app, on top of each app's own language. With a single app, everything renders as before. `VeConfigProvider` still sets the language of its children, on top of the app's language. `use` / `update` no longer modify the object returned by an earlier `getMessage()` call: each call produces a new object.
+
+**What to do:** only if you read the language with the imported `VeLocale.getMessage()` after installing with `useVeTable({ locale })`: it now returns the global language, not the app's. Use `this.$veLocale.getMessage()` in a component of that app instead, or call `VeLocale.use(locale)` if you really want a global language.
 
 ---
 
