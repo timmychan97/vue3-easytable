@@ -1,6 +1,8 @@
 /**
  * 单元格选区范围（MOD-03）：选区内的行 / 列 key、下标与数据
  */
+import type { CellKey, CellSelectionData, CellSelectionRangeData } from '../../ve-table-types'
+import type { ColgroupsParam, RowKey, RowKeysParam } from '../core'
 import { MOUSE_EVENT_CLICK_TYPE } from '@vue3-easytable/common/utils/constant'
 import { getColKeysByRangeColKeys } from '../columns/col-keys'
 
@@ -13,8 +15,12 @@ export function getRowKeysByRangeRowKeys({
   topRowKey,
   bottomRowKey,
   allRowKeys,
-}) {
-  let result = null
+}: {
+  topRowKey: RowKey | null | undefined
+  bottomRowKey: RowKey | null | undefined
+  allRowKeys: RowKeysParam
+}): RowKey[] | null {
+  let result: RowKey[] | null = null
 
   const beginIndex = allRowKeys.findIndex(x => x === topRowKey)
   const endIndex = allRowKeys.findIndex(x => x === bottomRowKey)
@@ -35,6 +41,11 @@ export function isCellInSelectionRange({
   cellSelectionRangeData,
   colgroups,
   allRowKeys,
+}: {
+  cellData: CellKey
+  cellSelectionRangeData: CellSelectionRangeData
+  colgroups: ColgroupsParam
+  allRowKeys: RowKeysParam
 }) {
   const { leftColKey, rightColKey, topRowKey, bottomRowKey }
         = cellSelectionRangeData
@@ -76,6 +87,13 @@ export function isClearSelectionByBodyCellRightClick({
   cellSelectionRangeData,
   colgroups,
   allRowKeys,
+}: {
+  mouseEventClickType: unknown
+  cellData: CellKey
+  cellSelectionData: CellSelectionData
+  cellSelectionRangeData: CellSelectionRangeData
+  colgroups: ColgroupsParam
+  allRowKeys: RowKeysParam
 }) {
   let result = true
   if (mouseEventClickType === MOUSE_EVENT_CLICK_TYPE.RIGHT_MOUSE) {
@@ -97,7 +115,9 @@ export function isClearSelectionByBodyCellRightClick({
  * @desc get selection range keys
  * @return Array<colKeys>
  */
-export function getSelectionRangeKeys({ cellSelectionRangeData }) {
+export function getSelectionRangeKeys({ cellSelectionRangeData }: {
+  cellSelectionRangeData: CellSelectionRangeData
+}) {
   const { leftColKey, rightColKey, topRowKey, bottomRowKey }
         = cellSelectionRangeData
   return {
@@ -117,6 +137,10 @@ export function getSelectionRangeIndexes({
   cellSelectionRangeData,
   colgroups,
   allRowKeys,
+}: {
+  cellSelectionRangeData: CellSelectionRangeData
+  colgroups: ColgroupsParam
+  allRowKeys: RowKeysParam
 }) {
   const { leftColKey, rightColKey, topRowKey, bottomRowKey }
         = cellSelectionRangeData
@@ -139,8 +163,14 @@ export function getSelectionRangeData({
   tableData,
   colgroups,
   allRowKeys,
-}) {
-  let result = null
+}: {
+  cellSelectionRangeData: CellSelectionRangeData
+  resultType?: 'normal' | 'flat'
+  tableData: Record<string, any>[]
+  colgroups: ColgroupsParam
+  allRowKeys: RowKeysParam
+}): Record<string, any>[] | any[][] {
+  let result: Record<string, any>[] | any[][]
 
   const { leftColKey, rightColKey, topRowKey, bottomRowKey }
         = cellSelectionRangeData
@@ -158,7 +188,7 @@ export function getSelectionRangeData({
     result = tableData
       .slice(startRowIndex, endRowIndex + 1)
       .map((rowData) => {
-        const newRow = {}
+        const newRow: Record<string, any> = {}
 
         fieldNames.forEach((fieldName) => {
           newRow[fieldName] = rowData[fieldName] ?? ''
@@ -171,7 +201,7 @@ export function getSelectionRangeData({
     result = tableData
       .slice(startRowIndex, endRowIndex + 1)
       .map((rowData) => {
-        const newRow = []
+        const newRow: any[] = []
 
         fieldNames.forEach((fieldName) => {
           newRow.push(rowData[fieldName] ?? '')

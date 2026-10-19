@@ -1,6 +1,8 @@
 /**
  * 单元格自动填充（MOD-03）
  */
+import type { CellKey, CellSelectionRangeData } from '../../ve-table-types'
+import type { ColgroupsParam, RowKeysParam } from '../core'
 import { AUTOFILLING_DIRECTION } from '../constant'
 
 /***
@@ -26,8 +28,18 @@ export function cellAutofill({
   cellSelectionRangeData,
   nextCurrentCell,
   nextNormalEndCell,
+}: {
+  isReplaceData: boolean
+  tableData: any[]
+  allRowKeys: RowKeysParam
+  colgroups: ColgroupsParam
+  direction: string
+  rowKeyFieldName: string
+  cellSelectionRangeData: CellSelectionRangeData
+  nextCurrentCell: CellKey
+  nextNormalEndCell: CellKey
 }) {
-  let cellSelectionTableData = []
+  let cellSelectionTableData: any[] = []
 
   const { leftColKey, rightColKey, topRowKey, bottomRowKey }
         = cellSelectionRangeData
@@ -250,8 +262,8 @@ export function cellAutofill({
     direction,
     sourceSelectionRangeIndexes,
     targetSelectionRangeIndexes,
-    sourceSelectionData: [],
-    targetSelectionData: [],
+    sourceSelectionData: [] as Record<string, any>[],
+    targetSelectionData: [] as Record<string, any>[],
   }
 
   const sourceFieldNames = colgroups
@@ -266,11 +278,11 @@ export function cellAutofill({
       sourceSelectionRangeIndexes.endRowIndex + 1,
     )
     .map((rowData) => {
-      const newData = {
+      const newData: Record<string, any> = {
         [rowKeyFieldName]: rowData[rowKeyFieldName],
       }
       sourceFieldNames.forEach((fieldName) => {
-        newData[fieldName] = rowData[fieldName]
+        newData[fieldName as string] = rowData[fieldName as string]
       })
       return newData
     })
@@ -287,11 +299,11 @@ export function cellAutofill({
       targetSelectionRangeIndexes.endRowIndex + 1,
     )
     .map((rowData) => {
-      const newData = {
+      const newData: Record<string, any> = {
         [rowKeyFieldName]: rowData[rowKeyFieldName],
       }
       targetFieldNames.forEach((fieldName) => {
-        newData[fieldName] = rowData[fieldName]
+        newData[fieldName as string] = rowData[fieldName as string]
       })
       return newData
     })

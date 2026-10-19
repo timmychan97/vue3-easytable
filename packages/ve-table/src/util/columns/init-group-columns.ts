@@ -1,6 +1,8 @@
 /**
  * 列配置树（MOD-03）：生成分组表头与 colgroups，按 key 递归移除列
  */
+import type { ColgroupData, ColumnOption } from '../../ve-table-types'
+import type { ColKey } from '../core'
 import { isEmptyArray, isEmptyValue } from '@vue3-easytable/common/utils'
 
 /**
@@ -9,10 +11,10 @@ import { isEmptyArray, isEmptyValue } from '@vue3-easytable/common/utils'
  * @param {object} columns - deep clone column
  * @param {any} key - column key
  */
-export function recursiveRemoveColumnByKey(columns, key: string) {
+export function recursiveRemoveColumnByKey(columns: ColumnOption[], key: ColKey): ColumnOption[] {
   return columns.filter((item) => {
     if ('children' in item)
-      item.children = recursiveRemoveColumnByKey(item.children, key)
+      item.children = recursiveRemoveColumnByKey(item.children as ColumnOption[], key)
 
     return item.key !== key
   })
@@ -28,13 +30,17 @@ export function recursiveRemoveColumnByKey(columns, key: string) {
    groupColumns
 }
  */
-export function initGroupColumns(cloneColumns) {
-  const colgroups = []
-  const groupColumns = []
+export function initGroupColumns(cloneColumns: ColumnOption[]): {
+  isGroupHeader: boolean
+  colgroups: ColgroupData[]
+  groupColumns: ColgroupData[][]
+} {
+  const colgroups: ColgroupData[] = []
+  const groupColumns: ColgroupData[][] = []
 
   // set column level
   let maxLevel = 1
-  const setColumnLevel = (column, parent) => {
+  const setColumnLevel = (column: ColumnOption, parent?: ColumnOption) => {
     if (parent) {
       column._level = parent._level + 1
       if (maxLevel < column._level)
@@ -53,7 +59,7 @@ export function initGroupColumns(cloneColumns) {
   })
 
   // set colspan and rowspan and keys
-  const setColspanAndRowspanAndKeys = (column) => {
+  const setColspanAndRowspanAndKeys = (column: ColumnOption) => {
     if (column.children) {
       let keys = ''
       let colspan = 0
@@ -85,7 +91,7 @@ export function initGroupColumns(cloneColumns) {
     groupColumns.push([])
 
   // set colgroups and groupColumns
-  const setColgroupsAndGroupColumns = (column) => {
+  const setColgroupsAndGroupColumns = (column: ColumnOption) => {
     // column has children || column key is not empty
     if (!isEmptyArray(column.children) || !isEmptyValue(column.key)) {
       // set groupColumns

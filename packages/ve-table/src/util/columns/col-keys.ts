@@ -1,6 +1,7 @@
 /**
  * 列 key 相关的查询（MOD-03）：按 key 查列、范围内的列 key、按固定类型筛选、最左 / 最右、前后列
  */
+import type { ColgroupsParam, ColKey } from '../core'
 import { isEmptyArray, isEmptyValue } from '@vue3-easytable/common/utils'
 
 /**
@@ -8,7 +9,7 @@ import { isEmptyArray, isEmptyValue } from '@vue3-easytable/common/utils'
  * @desc  get column by col key
  * @param {string} colKey - column key
  */
-export function getColumnByColkey(colKey: string, colgroups) {
+export function getColumnByColkey(colKey: ColKey, colgroups: ColgroupsParam) {
   if (colKey)
     return colgroups.find(x => x.key === colKey)
 
@@ -20,7 +21,7 @@ export function getColumnByColkey(colKey: string, colgroups) {
  * @desc is last column by column key
  * @param {string} colKey - column key
  */
-export function isLastColumnByColKey(colKey: string, colgroups) {
+export function isLastColumnByColKey(colKey: ColKey, colgroups: ColgroupsParam) {
   if (!isEmptyValue(colKey) && !isEmptyArray(colgroups))
     return colgroups[colgroups.length - 1].key === colKey
 
@@ -33,7 +34,7 @@ export function isLastColumnByColKey(colKey: string, colgroups) {
  * @param {string} colKey - column key
  * @param {arrat<object>} colgroups - column key
  */
-export function isOperationColumn(colKey: string, colgroups) {
+export function isOperationColumn(colKey: ColKey, colgroups: ColgroupsParam) {
   if (!isEmptyValue(colKey) && !isEmptyArray(colgroups)) {
     const firstCol = colgroups[0]
     if (firstCol.key === colKey && firstCol.operationColumn)
@@ -47,12 +48,12 @@ export function isOperationColumn(colKey: string, colgroups) {
  * @desc
  * @return Array<colKeys>
  */
-export function getColKeysByHeaderColumn({ headerColumnItem }) {
-  let result = null
+export function getColKeysByHeaderColumn({ headerColumnItem }: { headerColumnItem: { _keys?: any } }): string[] {
+  let result: string[]
 
   const { _keys } = headerColumnItem
 
-  result = _keys.split('|')
+  result = (_keys as string).split('|')
   if (result.length > 1)
     result = result.slice(0, result.length - 1)
 
@@ -64,8 +65,12 @@ export function getColKeysByHeaderColumn({ headerColumnItem }) {
  * @desc  get col keys by range col keys
  * @return Array<colKeys>
  */
-export function getColKeysByRangeColKeys({ colKey1, colKey2, colgroups }) {
-  let result = null
+export function getColKeysByRangeColKeys({ colKey1, colKey2, colgroups }: {
+  colKey1: ColKey
+  colKey2: ColKey
+  colgroups: ColgroupsParam
+}): ColKey[] | null {
+  let result: ColKey[] | null = null
 
   const index1 = colgroups.findIndex(x => x.key === colKey1)
   const index2 = colgroups.findIndex(x => x.key === colKey2)
@@ -88,8 +93,12 @@ export function getColKeysByFixedTypeWithinColKeys({
   colKeys,
   fixedType,
   colgroups,
-}) {
-  let result = null
+}: {
+  colKeys: ColKey[] | null | undefined
+  fixedType: string
+  colgroups: ColgroupsParam
+}): ColKey[] | null {
+  let result: ColKey[] | null = null
 
   if (Array.isArray(colKeys)) {
     result = colgroups
@@ -109,10 +118,12 @@ export function getColKeysByFixedType({
   fixedType,
   colgroups,
   isExcludeOperationColumn,
-}) {
-  let result = null
-
-  result = colgroups
+}: {
+  fixedType: string
+  colgroups: ColgroupsParam
+  isExcludeOperationColumn?: boolean
+}): ColKey[] {
+  const result: ColKey[] = colgroups
     .filter((x) => {
       const condition = x.fixed === fixedType
 
@@ -131,7 +142,11 @@ export function getColKeysByFixedType({
  * @desc is exist given fixed col key
  * @return bool
  */
-export function isExistGivenFixedColKey({ fixedType, colKeys, colgroups }) {
+export function isExistGivenFixedColKey({ fixedType, colKeys, colgroups }: {
+  fixedType: string
+  colKeys: ColKey[] | null | undefined
+  colgroups: ColgroupsParam
+}) {
   let result = false
   if (Array.isArray(colKeys)) {
     result = colgroups.some((x) => {
@@ -146,12 +161,15 @@ export function isExistGivenFixedColKey({ fixedType, colKeys, colgroups }) {
  * @desc is exist not fixed col key
  * @return bool
  */
-export function isExistNotFixedColKey({ colKeys, colgroups }) {
+export function isExistNotFixedColKey({ colKeys, colgroups }: {
+  colKeys: ColKey[] | null | undefined
+  colgroups: ColgroupsParam
+}) {
   let result = false
   if (Array.isArray(colKeys)) {
     result = colgroups.filter(
       x => !x.fixed && colKeys.includes(x.key),
-    ).length
+    ).length > 0
   }
   return result
 }
@@ -161,13 +179,18 @@ export function isExistNotFixedColKey({ colKeys, colgroups }) {
  * @desc get leftmost or rightmost column key
  * @return colKey
  */
-function getLeftmostOrRightmostColKey({ type, colgroups, colKeys }) {
-  let result = null
+function getLeftmostOrRightmostColKey({ type, colgroups, colKeys }: {
+  type: 'leftmost' | 'rightmost'
+  colgroups: ColgroupsParam
+  colKeys: ColKey[] | null | undefined
+}): ColKey | null {
+  let result: ColKey | null = null
 
   if (Array.isArray(colKeys) && colKeys.length) {
-    let mostObj = {
+    // colIndex 只在 colKey 有值之后才会被比较
+    let mostObj: { colKey: ColKey | null, colIndex: number } = {
       colKey: null,
-      colIndex: null,
+      colIndex: -1,
     }
     colKeys.forEach((colKey) => {
       const colIndex = colgroups.findIndex(x => x.key === colKey)
@@ -216,7 +239,10 @@ function getLeftmostOrRightmostColKey({ type, colgroups, colKeys }) {
  * @desc get leftmost column key
  * @return colKey
  */
-export function getLeftmostColKey({ colgroups, colKeys }) {
+export function getLeftmostColKey({ colgroups, colKeys }: {
+  colgroups: ColgroupsParam
+  colKeys: ColKey[] | null | undefined
+}) {
   return getLeftmostOrRightmostColKey({
     type: 'leftmost',
     colgroups,
@@ -229,7 +255,10 @@ export function getLeftmostColKey({ colgroups, colKeys }) {
  * @desc get rightmost column key
  * @return colKey
  */
-export function getRightmostColKey({ colgroups, colKeys }) {
+export function getRightmostColKey({ colgroups, colKeys }: {
+  colgroups: ColgroupsParam
+  colKeys: ColKey[] | null | undefined
+}) {
   return getLeftmostOrRightmostColKey({
     type: 'rightmost',
     colgroups,
@@ -242,8 +271,11 @@ export function getRightmostColKey({ colgroups, colKeys }) {
  * @desc get preview column key
  * @return colKey
  */
-export function getPreviewColKey({ colgroups, currentColKey }) {
-  let result = null
+export function getPreviewColKey({ colgroups, currentColKey }: {
+  colgroups: ColgroupsParam
+  currentColKey: ColKey | null | undefined
+}): ColKey | null {
+  let result: ColKey | null = null
 
   if (!isEmptyValue(currentColKey)) {
     const index = colgroups.findIndex(x => x.key === currentColKey)
@@ -261,8 +293,11 @@ export function getPreviewColKey({ colgroups, currentColKey }) {
  * @desc get next column key
  * @return colKey
  */
-export function getNextColKey({ colgroups, currentColKey }) {
-  let result = null
+export function getNextColKey({ colgroups, currentColKey }: {
+  colgroups: ColgroupsParam
+  currentColKey: ColKey | null | undefined
+}): ColKey | null {
+  let result: ColKey | null = null
 
   if (!isEmptyValue(currentColKey)) {
     const index = colgroups.findIndex(x => x.key === currentColKey)

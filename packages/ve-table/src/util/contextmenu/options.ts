@@ -1,14 +1,36 @@
 /**
  * 右键菜单（MOD-03）：表头 / 表体菜单项的生成，插入行的空数据，菜单面板点击判断
  */
+import type {
+  BodyIndicatorRowKeys,
+  CellSelectionRangeData,
+  HeaderIndicatorColKeys,
+} from '../../ve-table-types'
+import type { ColgroupsParam, RowKeysParam } from '../core'
 import { isEmptyValue, isFunction } from '@vue3-easytable/common/utils'
 import { getRandomId } from '@vue3-easytable/common/utils/random'
 import { getColKeysByFixedType, isOperationColumn } from '../columns/col-keys'
 import { COLUMN_FIXED_TYPE, CONTEXTMENU_NODE_TYPES } from '../constant'
 import { getSelectionRangeIndexes, getSelectionRangeKeys } from '../selection-range/range'
 
+// 菜单节点：内置节点由下面的 collection 生成，其余为用户传入的节点（原样保留）
+interface ContextmenuNode {
+  type?: string
+  label?: any
+  disabled?: boolean
+  [key: string]: any
+}
+
+// contextmenuHeaderOption / contextmenuBodyOption
+interface ContextmenuOptionConfig {
+  contextmenus: ContextmenuNode[]
+  beforeShow?: (params: Record<string, any>) => void
+}
+
+type Translate = (key: string) => any
+
 // get header contextmenu option collection
-export function getHeaderContextmenuOptionCollection(t) {
+export function getHeaderContextmenuOptionCollection(t: Translate): ContextmenuNode[] {
   return [
     {
       type: CONTEXTMENU_NODE_TYPES.SEPARATOR,
@@ -51,7 +73,7 @@ export function getHeaderContextmenuOptionCollection(t) {
 }
 
 // get body contextmenu option collection
-export function getBodyContextmenuOptionCollection(t) {
+export function getBodyContextmenuOptionCollection(t: Translate): ContextmenuNode[] {
   return [
     {
       type: CONTEXTMENU_NODE_TYPES.SEPARATOR,
@@ -113,8 +135,17 @@ export function setHeaderContextmenuOptions({
   headerIndicatorColKeys,
   enableHeaderContextmenu,
   t,
-}) {
-  const result = []
+}: {
+  column: Record<string, any>
+  contextmenuHeaderOption: ContextmenuOptionConfig
+  cellSelectionRangeData: CellSelectionRangeData
+  colgroups: ColgroupsParam
+  allRowKeys: RowKeysParam
+  headerIndicatorColKeys: HeaderIndicatorColKeys
+  enableHeaderContextmenu: boolean
+  t: Translate
+}): ContextmenuNode[] {
+  const result: ContextmenuNode[] = []
 
   if (enableHeaderContextmenu) {
     const selectionRangeKeys = getSelectionRangeKeys({
@@ -267,8 +298,16 @@ export function setBodyContextmenuOptions({
   allRowKeys,
   bodyIndicatorRowKeys,
   t,
-}) {
-  const result = []
+}: {
+  enableBodyContextmenu: boolean
+  contextmenuBodyOption: ContextmenuOptionConfig
+  cellSelectionRangeData: CellSelectionRangeData
+  colgroups: ColgroupsParam
+  allRowKeys: RowKeysParam
+  bodyIndicatorRowKeys: BodyIndicatorRowKeys
+  t: Translate
+}): ContextmenuNode[] {
+  const result: ContextmenuNode[] = []
   if (enableBodyContextmenu) {
     const selectionRangeKeys = getSelectionRangeKeys({
       cellSelectionRangeData,
@@ -353,8 +392,11 @@ export function setBodyContextmenuOptions({
 }
 
 // create empty row data
-export function createEmptyRowData({ colgroups, rowKeyFieldName }) {
-  const rowData = {
+export function createEmptyRowData({ colgroups, rowKeyFieldName }: {
+  colgroups: ColgroupsParam
+  rowKeyFieldName: string
+}) {
+  const rowData: Record<string, any> = {
     [rowKeyFieldName]: getRandomId(),
   }
 
@@ -378,13 +420,13 @@ export function createEmptyRowData({ colgroups, rowKeyFieldName }) {
 // }
 
 // is contextmenu panel clicked
-export function isContextmenuPanelClicked(event) {
+export function isContextmenuPanelClicked(event: Event) {
   let result = false
   const contextmenuPanelEls = document.querySelectorAll(
     '.ve-contextmenu-popper',
   );
-  [].forEach.call(contextmenuPanelEls, (el) => {
-    if (el.contains(event.target))
+  [].forEach.call(contextmenuPanelEls, (el: Element) => {
+    if (el.contains(event.target as Node | null))
       result = true
   })
 

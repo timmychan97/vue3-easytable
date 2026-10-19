@@ -4,6 +4,15 @@
 import { isEmptyArray, isEmptyValue } from '@vue3-easytable/common/utils'
 import { PREFIX_CLS } from './constant'
 
+// 列 key / 行 key：来自用户配置与数据，可能是字符串或数字（包括 0）
+export type ColKey = string | number
+export type RowKey = string | number
+
+// colgroups / allRowKeys 参数：多数调用方传入的是未声明类型的 props（unknown[]），
+// 这里暂用宽松的数组类型；这些 props 声明为 PropType<ColgroupData[]> 等之后再收紧
+export type ColgroupsParam = any[]
+export type RowKeysParam = any[]
+
 /**
  * @clsName
  * @desc  get class name
@@ -31,7 +40,7 @@ export function getRowKey(rowData: any, rowKeyFieldName: string): string | numbe
  * @desc is last row by row key
  * @param {string} rowKey - row key
  */
-export function isLastRowByRowKey(rowKey: string, allRowKeys: string[]) {
+export function isLastRowByRowKey(rowKey: RowKey | null | undefined, allRowKeys: RowKeysParam) {
   if (!isEmptyValue(rowKey) && !isEmptyArray(allRowKeys))
     return allRowKeys[allRowKeys.length - 1] === rowKey
 
@@ -45,8 +54,8 @@ export function isLastRowByRowKey(rowKey: string, allRowKeys: string[]) {
  * @param {number} columnsOptionResetTime - columns option change time
  */
 export function getDomResizeObserverCompKey(
-  originalKey,
-  columnsOptionResetTime,
+  originalKey: any,
+  columnsOptionResetTime: number,
 ) {
   let result = originalKey
 
@@ -62,5 +71,5 @@ export function getDomResizeObserverCompKey(
  * @returns 转换后 Vue3 jsx 的事件名 `onOnAaaBbb`
  */
 export function getEmitEventName(event: string) {
-  return `on${event.replace(/-?\b(\w)/g, (_, $1) => $1.toUpperCase())}`
+  return `on${event.replace(/-?\b(\w)/g, (_, $1: string) => $1.toUpperCase())}`
 }
