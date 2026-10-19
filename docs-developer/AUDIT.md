@@ -231,6 +231,12 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
   - **Done:** both entries `export type { ColumnFilterItem, ColumnFilterOption, ColumnFixedType, ColumnOption, RenderBodyCellParams, RenderFooterCellParams, RenderH, RenderHeaderCellParams }` (type-only, no runtime change). `columns` is `Array as PropType<ColumnOption[]>`. Two type corrections were needed so real column arrays type-check: `ColumnOption.key` is now `string | number` (numeric keys are supported since SEL-14) and optional (group header columns usually have no key, as in the docs); `isOperationColumn` accepts an empty key accordingly. The typed prop made 138 existing test call sites fail to type-check, almost all because an untyped literal widens `align` / `fixed` to `string`; the column constants in 23 spec files are now annotated `ColumnOption[]`, and two specs destructured params that don't exist (`_row`, `_column`, `_rowIndex`). Users can hit the same widening, so `MIGRATION.md` has a new "Typed `columns` prop (TypeScript only)" section.
   - **Verified:** new `packages/vue/__tests__/types.spec.ts` (`expectTypeOf` plus one `@ts-expect-error`, checked by `vue-tsc`): before the change `vue-tsc` reported 10 errors in it (8 types not exported, `columns` prop not `ColumnOption[]`, unused `@ts-expect-error` for `columns: [1, 2]`); now 0. `vue-tsc` total 252 (baseline 253), full suite green.
 
+- [x] ✅ 2026-10-19 · fix/audit-footer-header-tr · **INFRA-19** 🟢 `HOOKS_NAME.TABLE_CONTAINER_MOUSEUP` is dead (found in wave 3)
+  - **Where:** `util/constant.ts` `HOOKS_NAME.TABLE_CONTAINER_MOUSEUP` (`'table-container-mouseup'`), and the `TableEventMap` comment in `features/table-context/index.ts` that explains why it is left out of the map.
+  - **Effect:** the hook is never triggered and never subscribed. It is the only `HOOKS_NAME` entry missing from `TableEventMap`, so it can't even be emitted through the typed table context; it only suggests an event that doesn't exist.
+  - **Done:** the constant and its comment line are removed, and the `TableEventMap` comment no longer mentions it. No runtime change.
+  - **Verified:** a repo-wide search for `TABLE_CONTAINER_MOUSEUP` / `table-container-mouseup` outside `node_modules` finds only this entry. `ve-table-table-context.spec.ts` and `ve-table-lifecycle.spec.ts` pass; vue-tsc has no new errors.
+
 ---
 
 ## COL — columns (fixed, hide/show, resize)

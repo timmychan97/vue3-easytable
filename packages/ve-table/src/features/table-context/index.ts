@@ -65,7 +65,7 @@ export interface CellMousemovePayload {
 
 /**
  * 事件名 → 参数类型
- * void 表示该事件没有参数。HOOKS_NAME.TABLE_CONTAINER_MOUSEUP 从未触发，不列入。
+ * void 表示该事件没有参数。
  */
 export interface TableEventMap {
   // ── 子组件 → 表格（原 emitter mixin 的 dispatch / on） ──

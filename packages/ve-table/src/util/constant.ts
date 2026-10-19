@@ -145,8 +145,6 @@ export const EMIT_EVENTS = {
 export const HOOKS_NAME = {
   // table container scroll
   TABLE_CONTAINER_SCROLL: 'table-container-scroll',
-  // table-container-mouseup
-  TABLE_CONTAINER_MOUSEUP: 'table-container-mouseup',
   // table-container-mousemove
   // TABLE_CONTAINER_MOUSEMOVE: "table-container-mousemove",
   // table size change
