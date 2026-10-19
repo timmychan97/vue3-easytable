@@ -1,10 +1,12 @@
+import type { PopperPosition } from '@vue3-easytable/common/popper'
 import eventsOutside from '@vue3-easytable/common/directives/events-outside'
+import { clampToViewport, getViewportRect, usePopper } from '@vue3-easytable/common/popper'
 import { ICON_NAMES } from '@vue3-easytable/common/utils/constant'
 import { getMousePosition, getViewportOffset } from '@vue3-easytable/common/utils/dom'
 import { getRandomId } from '@vue3-easytable/common/utils/random'
 import VeIcon from '@vue3-easytable/ve-icon'
 import { cloneDeep, debounce } from 'lodash'
-import { defineComponent, markRaw } from 'vue'
+import { defineComponent, markRaw, ref } from 'vue'
 import {
   COMPS_NAME,
   CONTEXTMENU_NODE_TYPES,
@@ -35,6 +37,22 @@ interface PanelOption {
   menus: InternalOption[]
 }
 
+// 等待渲染完成后再定位的菜单：根菜单按鼠标位置，子菜单按父菜单位置
+interface PositionRequest {
+  isRoot: boolean
+  contextmenuId?: InternalOption['id']
+  event: MouseEvent
+}
+
+// 不需要响应式的内部状态
+interface PopperState {
+  requests: PositionRequest[]
+  // 最近一次打开根菜单的右键事件（options 在显示期间变化时用它重新定位）
+  rootEvent: MouseEvent | null
+  // 关闭菜单的定时器（重新打开或卸载时清除）
+  hideTimers: Set<ReturnType<typeof setTimeout>>
+}
+
 export default defineComponent({
   name: COMPS_NAME.VE_CONTEXTMENU,
   directives: {
@@ -55,6 +73,22 @@ export default defineComponent({
       required: true,
     },
   },
+  setup() {
+    /*
+      is panels remove
+      true 表示菜单已关闭（防止hover后菜单被移除，仍然显示子集菜单的问题）
+      */
+    const isPanelsEmptyed = ref(true)
+
+    // 菜单由 <Teleport> 渲染到 body，不再手动创建容器或移动 DOM（MOD-09）；位置由本组件计算
+    const popper = usePopper(null, {
+      visible: () => !isPanelsEmptyed.value,
+      placement: 'manual',
+      name: COMPS_NAME.VE_CONTEXTMENU,
+    })
+
+    return { isPanelsEmptyed, popper }
+  },
   data() {
     return {
       internalOptions: [] as InternalOption[],
@@ -73,16 +107,15 @@ export default defineComponent({
             决定了子 panel 默认展示方向
             */
       isPanelRightDirection: true,
-      /*
-            is panels remove
-            防止hover后菜单被移除，仍然显示子集菜单的问题
-            */
-      isPanelsEmptyed: true,
-      /*
-            本组件在 body 上创建的所有菜单容器元素
-            options 变化后 id 会重新生成，只靠 panelOptions 无法找回旧容器，所以单独记录
-            */
-      panelContainerEls: markRaw(new Set<HTMLElement>()),
+      // 每个菜单的位置（按 parentId），渲染到菜单的 style 上
+      panelPositions: {} as Record<string, PopperPosition>,
+      // 递增后在渲染完成（post）时处理 popperState.requests
+      positionVersion: 0,
+      popperState: markRaw({
+        requests: [],
+        rootEvent: null,
+        hideTimers: new Set(),
+      } as PopperState),
     }
   },
 
@@ -96,18 +129,21 @@ export default defineComponent({
   },
 
   watch: {
+    /*
+      只计算菜单数据，不访问 DOM（SSR 中也会执行，MENU-08）
+      菜单显示期间 options 变化（例如 ve-table 在右键事件冒泡到 eventTarget 之前替换 options，MENU-06）
+      时就地重建并重新定位，菜单保持打开
+      */
     options: {
       handler(val) {
         if (Array.isArray(val) && val.length > 0) {
-          /*
-                    如果配置项修改,则重新销毁并创建
-                    */
-          this.removeAllPanelContainers()
           this.rootContextmenuId = this.getRandomIdWithPrefix()
           this.createInternalOptions()
-          this.createPanelOptions({ options: this.internalOptions })
           this.resetContextmenu()
-          this.addRootContextmenuPanelToBody()
+          if (!this.isPanelsEmptyed && this.popperState.rootEvent) {
+            this.panelPositions = {}
+            this.requestPanelPosition({ isRoot: true, event: this.popperState.rootEvent })
+          }
         }
       },
       immediate: true,
@@ -118,6 +154,13 @@ export default defineComponent({
           */
     eventTarget() {
       this.registerContextmenuEvent()
+    },
+    // 渲染完成后（菜单已在 body 中，可以测量）计算位置；在同一次刷新中重新渲染，绘制前就位
+    positionVersion: {
+      handler() {
+        this.flushPanelPositions()
+      },
+      flush: 'post',
     },
   },
 
@@ -131,18 +174,17 @@ export default defineComponent({
 
   mounted() {
     this.registerContextmenuEvent()
-    this.addRootContextmenuPanelToBody()
   },
 
   beforeUnmount() {
-    // 取消未执行的悬浮防抖，避免卸载后再创建子菜单容器
-    ;(this.debounceCreatePanelByHover as unknown as ReturnType<typeof debounce>).cancel()
+    // 取消未执行的悬浮防抖与关闭定时器，避免卸载后再修改菜单
+    this.cancelHoverDebounce()
+    this.clearHideTimers()
     this.isPanelsEmptyed = true
   },
 
   unmounted() {
     this.removeContextmenuEvent()
-    this.removeAllPanelContainers()
   },
 
   methods: {
@@ -170,8 +212,13 @@ export default defineComponent({
       }
     },
 
-    getParentContextmenuPanelEl(contextmenuPanelId: PanelOption['parentId']) {
-      let result
+    // 菜单的外层元素（<Teleport> 渲染到 body 中的 .ve-contextmenu-popper）
+    getPopperEl(contextmenuId: PanelOption['parentId']): HTMLElement | undefined {
+      return this.$refs[`popper-${contextmenuId}`] as HTMLElement | undefined
+    },
+
+    getParentContextmenuPanelEl(contextmenuPanelId: PanelOption['parentId']): HTMLElement | undefined {
+      let result: HTMLElement | undefined
 
       const { panelOptions } = this
 
@@ -181,9 +228,13 @@ export default defineComponent({
       if (panelIndex > 0) {
         // preview panel's panelId
         const parentPanelId = panelOptions[panelIndex - 1].parentId
-        result = document.querySelector<HTMLElement>(`#${parentPanelId}`)
+        result = this.getPopperEl(parentPanelId)
       }
       return result
+    },
+
+    cancelHoverDebounce() {
+      ;(this.debounceCreatePanelByHover as unknown as ReturnType<typeof debounce>).cancel()
     },
 
     createPanelByHover({ event, menu }: { event: MouseEvent, menu: InternalOption }) {
@@ -227,19 +278,11 @@ export default defineComponent({
           currentMenu: menu,
         })
 
-        this.$nextTick(() => {
-          // 组件可能已在等待期间卸载
-          if (this.$.isUnmounted)
-            return
-
-          this.addContextmenuPanelToBody({
-            contextmenuId: menu.id,
-          })
-
-          this.showContextmenuPanel({
-            event,
-            contextmenuId: menu.id,
-          })
+        // 子菜单渲染完成后再按父菜单的位置定位
+        this.requestPanelPosition({
+          isRoot: false,
+          contextmenuId: menu.id,
+          event,
         })
       }
     },
@@ -286,240 +329,220 @@ export default defineComponent({
       })
     },
 
+    /*
+          打开根菜单
+          只修改状态，菜单在下一次渲染时出现，并在渲染完成后按鼠标位置定位（MENU-06）：
+          ve-table 在单元格的 contextmenu 处理函数中同步替换 options，事件随后才冒泡到 eventTarget。
+          options 的 watcher 在渲染之前执行，所以菜单总是用新的 options 显示。
+          */
     showRootContextmenuPanel(event: MouseEvent) {
       event.preventDefault()
 
-      /*
-            等待挂起的更新完成后再显示（MENU-06）
-            ve-table 在单元格的 contextmenu 处理函数中同步替换 options，事件随后才冒泡到 eventTarget。
-            若立即显示，会用旧的根菜单容器显示，随后 options 的 watcher 会移除该容器并重建，菜单随即消失。
-            真实的用户右键在两个监听器之间有微任务检查点，所以只在脚本派发的事件（测试工具、dispatchEvent）中出现。
-            $nextTick 会等待当前的刷新（watcher + 重新渲染）完成；没有挂起的更新时只延后一个微任务，仍在绘制前完成。
-            */
-      this.$nextTick(() => {
-        // 组件可能已在等待期间卸载
-        if (this.$.isUnmounted)
-          return
+      // 重新打开时取消尚未执行的关闭与悬浮，避免刚打开的菜单被旧的定时器关闭
+      this.clearHideTimers()
+      this.cancelHoverDebounce()
+      this.isChildrenPanelsClicked = false
 
-        const { rootContextmenuId } = this
+      // refresh contextmenu
+      this.resetContextmenu()
+      this.panelPositions = {}
+      this.popperState.rootEvent = event
+      this.isPanelsEmptyed = false
+      this.requestPanelPosition({ isRoot: true, event })
+    },
 
-        if (rootContextmenuId) {
-          // refresh contextmenu
-          this.resetContextmenu()
-          this.showContextmenuPanel({
-            event,
-            contextmenuId: rootContextmenuId,
-            isRootContextmenu: true,
-          })
-          this.isPanelsEmptyed = false
+    requestPanelPosition(request: PositionRequest) {
+      const { requests } = this.popperState
+      const index = requests.findIndex(x =>
+        x.isRoot === request.isRoot && x.contextmenuId === request.contextmenuId,
+      )
+      if (index > -1)
+        requests.splice(index, 1)
+      requests.push(request)
+      this.positionVersion++
+    },
+
+    // 处理等待定位的菜单（渲染完成后调用）
+    flushPanelPositions() {
+      const requests = this.popperState.requests.splice(0)
+
+      if (this.isPanelsEmptyed)
+        return
+
+      requests.forEach((request) => {
+        if (request.isRoot) {
+          const panelEl = this.rootContextmenuId ? this.getPopperEl(this.rootContextmenuId) : undefined
+          // 没有可显示的菜单（例如 options 为空）
+          if (!panelEl) {
+            this.hidePanels()
+            return
+          }
+          this.setRootPanelPosition(panelEl, request.event)
+        }
+        else {
+          const panelEl = this.getPopperEl(request.contextmenuId)
+          if (panelEl)
+            this.setChildPanelPosition(panelEl, request.contextmenuId!, request.event)
         }
       })
     },
 
-    showContextmenuPanel({ event, contextmenuId, isRootContextmenu }: { event: MouseEvent, contextmenuId: string | number, isRootContextmenu?: boolean }) {
-      const { getParentContextmenuPanelEl } = this
+    // 根菜单：显示在鼠标位置，右侧 / 下方空间不够时显示在左侧 / 上方
+    setRootPanelPosition(panelEl: HTMLElement, event: MouseEvent) {
+      const { width: currentPanelWidth, height: currentPanelHeight }
+                  = panelEl.getBoundingClientRect()
 
-      const contextmenuPanelEl = document.querySelector<HTMLElement>(
-        `#${contextmenuId}`,
-      )
+      const {
+        left: clickLeft,
+        top: clickTop,
+        right: clickRight,
+        bottom: clickBottom,
+      } = getMousePosition(event)
 
-      if (contextmenuPanelEl) {
-        // remove first
-        contextmenuPanelEl.innerHTML = ''
+      let panelX = 0
+      let panelY = 0
 
-        contextmenuPanelEl.appendChild(this.$refs[contextmenuId] as HTMLElement)
-
-        contextmenuPanelEl.style.position = 'absolute'
-        contextmenuPanelEl.classList.add(clsName('popper'))
-
-        const { width: currentPanelWidth, height: currentPanelHeight }
-                    = contextmenuPanelEl.getBoundingClientRect()
-        if (isRootContextmenu) {
-          const {
-            left: clickLeft,
-            top: clickTop,
-            right: clickRight,
-            bottom: clickBottom,
-          } = getMousePosition(event)
-
-          let panelX = 0
-          let panelY = 0
-
-          // 右方宽度够显示
-          if (clickRight >= currentPanelWidth) {
-            panelX = clickLeft
-            this.isPanelRightDirection = true
-          }
-          // 右方宽度不够显示在鼠标点击左方
-          else {
-            panelX = clickLeft - currentPanelWidth
-            this.isPanelRightDirection = false
-          }
-
-          // 下方高度够显示
-          if (clickBottom >= currentPanelHeight)
-            panelY = clickTop
-
-          // 下方高度不够显示在鼠标点击上方
-          else
-            panelY = clickTop - currentPanelHeight
-
-          this.setPanelPosition(contextmenuPanelEl, {
-            x: panelX,
-            y: panelY,
-            width: currentPanelWidth,
-            height: currentPanelHeight,
-          })
-        }
-        else {
-          const parentContextmenuPanelEl
-                        = getParentContextmenuPanelEl(contextmenuId)
-
-          if (parentContextmenuPanelEl) {
-            /*
-                  菜单容器是 body 上的绝对定位元素，位置使用文档坐标（含滚动距离）
-                  left / right 是视口内左右两侧的剩余空间，只用于判断方向（MENU-05）
-                  */
-            const {
-              offsetLeft: parentPanelOffsetLeft,
-              left: parentPanelLeft,
-              right: parentPanelRight,
-            } = getViewportOffset(parentContextmenuPanelEl)
-
-            const { top: clickTop, bottom: clickBottom }
-                            = getMousePosition(event)
-
-            const { width: parentPanelWidth }
-                            = parentContextmenuPanelEl.getBoundingClientRect()
-
-            // 紧贴父菜单右侧 / 左侧（向左展开时使用当前菜单自身的宽度）
-            const rightSideX = parentPanelOffsetLeft + parentPanelWidth
-            const leftSideX = parentPanelOffsetLeft - currentPanelWidth
-
-            let panelX = 0
-            let panelY = 0
-
-            // 如果默认展示在右方向
-            if (this.isPanelRightDirection) {
-              // 右方宽度够显示，否则显示在父菜单左方
-              panelX = parentPanelRight >= currentPanelWidth ? rightSideX : leftSideX
-            }
-            // 如果默认展示在左方向
-            else {
-              // 左方宽度够显示，否则显示在父菜单右方
-              panelX = parentPanelLeft >= currentPanelWidth ? leftSideX : rightSideX
-            }
-
-            // 下方高度够显示
-            if (clickBottom >= currentPanelHeight)
-              panelY = clickTop
-
-            // 下方高度不够显示在鼠标点击上方
-            else
-              panelY = clickTop - currentPanelHeight
-
-            this.setPanelPosition(contextmenuPanelEl, {
-              x: panelX,
-              y: panelY,
-              width: currentPanelWidth,
-              height: currentPanelHeight,
-            })
-          }
-        }
+      // 右方宽度够显示
+      if (clickRight >= currentPanelWidth) {
+        panelX = clickLeft
+        this.isPanelRightDirection = true
       }
+      // 右方宽度不够显示在鼠标点击左方
+      else {
+        panelX = clickLeft - currentPanelWidth
+        this.isPanelRightDirection = false
+      }
+
+      // 下方高度够显示
+      if (clickBottom >= currentPanelHeight)
+        panelY = clickTop
+
+      // 下方高度不够显示在鼠标点击上方
+      else
+        panelY = clickTop - currentPanelHeight
+
+      this.setPanelPosition(this.rootContextmenuId, {
+        x: panelX,
+        y: panelY,
+        width: currentPanelWidth,
+        height: currentPanelHeight,
+      })
+    },
+
+    // 子菜单：紧贴父菜单右侧 / 左侧
+    setChildPanelPosition(panelEl: HTMLElement, contextmenuId: InternalOption['id'], event: MouseEvent) {
+      const parentContextmenuPanelEl
+                  = this.getParentContextmenuPanelEl(contextmenuId)
+      if (!parentContextmenuPanelEl)
+        return
+
+      const { width: currentPanelWidth, height: currentPanelHeight }
+                  = panelEl.getBoundingClientRect()
+
+      /*
+            菜单是 body 上的绝对定位元素，位置使用文档坐标（含滚动距离）
+            left / right 是视口内左右两侧的剩余空间，只用于判断方向（MENU-05）
+            */
+      const {
+        offsetLeft: parentPanelOffsetLeft,
+        left: parentPanelLeft,
+        right: parentPanelRight,
+      } = getViewportOffset(parentContextmenuPanelEl)
+
+      const { top: clickTop, bottom: clickBottom }
+                      = getMousePosition(event)
+
+      const { width: parentPanelWidth }
+                      = parentContextmenuPanelEl.getBoundingClientRect()
+
+      // 紧贴父菜单右侧 / 左侧（向左展开时使用当前菜单自身的宽度）
+      const rightSideX = parentPanelOffsetLeft + parentPanelWidth
+      const leftSideX = parentPanelOffsetLeft - currentPanelWidth
+
+      let panelX = 0
+      let panelY = 0
+
+      // 如果默认展示在右方向
+      if (this.isPanelRightDirection) {
+        // 右方宽度够显示，否则显示在父菜单左方
+        panelX = parentPanelRight >= currentPanelWidth ? rightSideX : leftSideX
+      }
+      // 如果默认展示在左方向
+      else {
+        // 左方宽度够显示，否则显示在父菜单右方
+        panelX = parentPanelLeft >= currentPanelWidth ? leftSideX : rightSideX
+      }
+
+      // 下方高度够显示
+      if (clickBottom >= currentPanelHeight)
+        panelY = clickTop
+
+      // 下方高度不够显示在鼠标点击上方
+      else
+        panelY = clickTop - currentPanelHeight
+
+      this.setPanelPosition(contextmenuId, {
+        x: panelX,
+        y: panelY,
+        width: currentPanelWidth,
+        height: currentPanelHeight,
+      })
     },
 
     /*
           设置菜单位置（文档坐标），并限制在当前可视区域内（MENU-05）
-          两侧都放不下时平移到视口内；比视口还大时贴住视口左 / 上边缘，保证菜单开头可见
-          没有布局信息（视口尺寸为 0）时不做限制
+          比视口还高的菜单限制为视口高度，可以滚动（MENU-07）
           */
-    setPanelPosition(panelEl: HTMLElement, { x, y, width, height }: { x: number, y: number, width: number, height: number }) {
-      const doc = document.documentElement
-      const scrollX = window.pageXOffset || doc.scrollLeft || 0
-      const scrollY = window.pageYOffset || doc.scrollTop || 0
-      const viewportWidth = doc.clientWidth
-      const viewportHeight = doc.clientHeight
+    setPanelPosition(contextmenuId: InternalOption['id'], box: { x: number, y: number, width: number, height: number }) {
+      this.panelPositions[contextmenuId] = clampToViewport(box, getViewportRect())
+    },
 
-      const clamp = (value: number, scroll: number, viewportSize: number, size: number) => {
-        if (!viewportSize)
-          return value
-        return Math.max(scroll, Math.min(value, scroll + viewportSize - size))
-      }
+    // 关闭菜单的定时器统一记录，重新打开或卸载时清除
+    addHideTimer(callback: () => void, delay?: number) {
+      const { hideTimers } = this.popperState
+      const timer = setTimeout(() => {
+        hideTimers.delete(timer)
+        callback()
+      }, delay)
+      hideTimers.add(timer)
+    },
 
-      panelEl.style.left = `${clamp(x, scrollX, viewportWidth, width)}px`
-      panelEl.style.top = `${clamp(y, scrollY, viewportHeight, height)}px`
+    clearHideTimers() {
+      const { hideTimers } = this.popperState
+      hideTimers.forEach(timer => clearTimeout(timer))
+      hideTimers.clear()
     },
 
     emptyContextmenuPanels() {
+      // 已关闭的菜单不需要处理（根菜单的 events-outside 在关闭状态下也会收到页面上的每一次点击）
+      if (this.isPanelsEmptyed)
+        return
+
       /*
             wait for children panel clicked by setTimeout
             如果点击的是非 root panel 不关闭
             */
-      setTimeout(() => {
-        if (this.isChildrenPanelsClicked) {
+      this.addHideTimer(() => {
+        if (this.isChildrenPanelsClicked)
           this.isChildrenPanelsClicked = false
-        }
-        else {
-          this.removeOrEmptyPanels()
-          this.isPanelsEmptyed = true
-        }
+
+        else if (!this.isPanelsEmptyed)
+          this.hidePanels()
       })
     },
 
-    // remove or empty panels
-    removeOrEmptyPanels(isRemove?: boolean) {
-      const { panelOptions } = this
-
-      panelOptions.forEach((panelOption) => {
-        const contextmenuPanelEl = document.querySelector(
-          `#${panelOption.parentId}`,
-        )
-        if (contextmenuPanelEl) {
-          if (isRemove)
-            contextmenuPanelEl.remove()
-
-          else
-            contextmenuPanelEl.innerHTML = ''
-        }
-      })
+    // 关闭所有菜单：<Teleport> 被禁用，菜单回到组件内部并隐藏
+    hidePanels() {
+      this.cancelHoverDebounce()
+      this.isPanelsEmptyed = true
+      this.popperState.rootEvent = null
+      this.resetContextmenu()
+      this.panelPositions = {}
     },
 
     resetContextmenu() {
       this.panelOptions = []
       this.createPanelOptions({ options: this.internalOptions })
-    },
-
-    addContextmenuPanelToBody({ contextmenuId }: { contextmenuId: string | number }) {
-      const contextmenuPanelEl = document.querySelector(
-        `#${contextmenuId}`,
-      )
-
-      if (contextmenuPanelEl) {
-        return false
-      }
-      else {
-        const containerEl = document.createElement('div')
-
-        containerEl.setAttribute('id', `${contextmenuId}`)
-
-        document.body.appendChild(containerEl)
-        this.panelContainerEls.add(containerEl)
-      }
-    },
-
-    // 移除本组件创建的所有菜单容器（包括 id 已失效的旧容器）
-    removeAllPanelContainers() {
-      this.panelContainerEls.forEach(el => el.remove())
-      this.panelContainerEls.clear()
-    },
-
-    addRootContextmenuPanelToBody() {
-      if (this.rootContextmenuId) {
-        this.addContextmenuPanelToBody({
-          contextmenuId: this.rootContextmenuId,
-        })
-      }
     },
 
     // 注册前先移除旧元素上的监听，保证同一时间只监听一个元素
@@ -565,8 +588,11 @@ export default defineComponent({
       activeMenuIds,
       hasChildren,
       emptyContextmenuPanels,
+      isPanelsEmptyed,
+      panelPositions,
     } = this
     const debounceCreatePanelByHover = this.debounceCreatePanelByHover as typeof this.createPanelByHover
+    const { isTeleported, renderTeleport } = this.popper
 
     const contextmenuProps = {
       class: ['ve-contextmenu'],
@@ -575,127 +601,150 @@ export default defineComponent({
       },
     }
 
+    const panels = panelOptions.map((panelOption, panelIndex) => {
+      const contextmenuPanelProps = {
+        class: {
+          [clsName('panel')]: true,
+        },
+        onClick: () => {
+          if (panelIndex !== 0)
+            this.isChildrenPanelsClicked = true
+        },
+        onContextmenu: (e: Event) => {
+          e.preventDefault()
+        },
+      }
+      const panelNode = (
+        <div
+          {...contextmenuPanelProps}
+          v-events-outside={{
+            events: ['click'],
+            callback: () => {
+              // only for root panel
+              if (panelIndex === 0)
+                emptyContextmenuPanels()
+            },
+          }}
+        >
+          <ul class={clsName('list')}>
+            {panelOption.menus.map((menu) => {
+              let contextmenuNodeProps
+
+              if (
+                menu.type
+                !== CONTEXTMENU_NODE_TYPES.SEPARATOR
+              ) {
+                contextmenuNodeProps = {
+                  class: {
+                    [clsName('node')]: true,
+                    [clsName('node-active')]:
+                                                activeMenuIds.includes(
+                                                  menu.id,
+                                                ),
+                    [clsName('node-disabled')]:
+                                                menu.disabled,
+                  },
+                  onMouseover: (event: MouseEvent) => {
+                    // disable
+                    if (!menu.disabled) {
+                      debounceCreatePanelByHover(
+                        {
+                          event,
+                          menu,
+                        },
+                      )
+                    }
+                  },
+                  onClick: () => {
+                    if (
+                      !menu.disabled
+                      && !hasChildren(menu)
+                    ) {
+                      this.$emit(
+                        EMIT_EVENTS.ON_NODE_CLICK,
+                        menu.type,
+                      )
+                      this.addHideTimer(() => {
+                        emptyContextmenuPanels()
+                      }, 50)
+                    }
+                  },
+                }
+              }
+              // separator
+              else {
+                //
+                contextmenuNodeProps = {
+                  class: {
+                    [clsName(
+                      'node-separator',
+                    )]: true,
+                  },
+                }
+              }
+
+              if (
+                menu.type
+                !== CONTEXTMENU_NODE_TYPES.SEPARATOR
+              ) {
+                return (
+                  <li {...contextmenuNodeProps}>
+                    <span
+                      class={clsName(
+                        'node-label',
+                      )}
+                    >
+                      {menu.label}
+                    </span>
+                    {menu.hasChildren && (
+                      <VeIcon
+                        class={clsName(
+                          'node-icon-postfix',
+                        )}
+                        name={
+                          ICON_NAMES.RIGHT_ARROW
+                        }
+                      />
+                    )}
+                  </li>
+                )
+              }
+              else {
+                return (
+                  <li {...contextmenuNodeProps}></li>
+                )
+              }
+            })}
+          </ul>
+        </div>
+      )
+
+      // 第一次显示之前（包括 SSR）菜单隐藏在组件内部，不需要外层定位元素
+      if (!isTeleported.value)
+        return panelNode
+
+      const position = panelPositions[panelOption.parentId!]
+      const popperProps = {
+        key: panelOption.parentId,
+        ref: `popper-${panelOption.parentId}`,
+        id: String(panelOption.parentId),
+        class: { [clsName('popper')]: !isPanelsEmptyed },
+        style: {
+          position: 'absolute' as const,
+          left: position ? `${position.left}px` : undefined,
+          top: position ? `${position.top}px` : undefined,
+          maxHeight: position?.maxHeight ? `${position.maxHeight}px` : undefined,
+        },
+      }
+      return <div {...popperProps}>{panelNode}</div>
+    })
+
+    /*
+      第一次显示之后由 <Teleport> 渲染：显示时在 body 中，关闭后回到组件内部并隐藏
+      */
     return (
       <div {...contextmenuProps}>
-        {panelOptions.map((panelOption, panelIndex) => {
-          const contextmenuPanelProps = {
-            ref: `${panelOption.parentId}`,
-            class: {
-              [clsName('panel')]: true,
-            },
-            onClick: () => {
-              if (panelIndex !== 0)
-                this.isChildrenPanelsClicked = true
-            },
-            onContextmenu: (e: Event) => {
-              e.preventDefault()
-            },
-          }
-          return (
-            <div
-              {...contextmenuPanelProps}
-              v-events-outside={{
-                events: ['click'],
-                callback: () => {
-                  // only for root panel
-                  if (panelIndex === 0)
-                    emptyContextmenuPanels()
-                },
-              }}
-            >
-              <ul class={clsName('list')}>
-                {panelOption.menus.map((menu) => {
-                  let contextmenuNodeProps
-
-                  if (
-                    menu.type
-                    !== CONTEXTMENU_NODE_TYPES.SEPARATOR
-                  ) {
-                    contextmenuNodeProps = {
-                      class: {
-                        [clsName('node')]: true,
-                        [clsName('node-active')]:
-                                                    activeMenuIds.includes(
-                                                      menu.id,
-                                                    ),
-                        [clsName('node-disabled')]:
-                                                    menu.disabled,
-                      },
-                      onMouseover: (event: MouseEvent) => {
-                        // disable
-                        if (!menu.disabled) {
-                          debounceCreatePanelByHover(
-                            {
-                              event,
-                              menu,
-                            },
-                          )
-                        }
-                      },
-                      onClick: () => {
-                        if (
-                          !menu.disabled
-                          && !hasChildren(menu)
-                        ) {
-                          this.$emit(
-                            EMIT_EVENTS.ON_NODE_CLICK,
-                            menu.type,
-                          )
-                          setTimeout(() => {
-                            emptyContextmenuPanels()
-                          }, 50)
-                        }
-                      },
-                    }
-                  }
-                  // separator
-                  else {
-                    //
-                    contextmenuNodeProps = {
-                      class: {
-                        [clsName(
-                          'node-separator',
-                        )]: true,
-                      },
-                    }
-                  }
-
-                  if (
-                    menu.type
-                    !== CONTEXTMENU_NODE_TYPES.SEPARATOR
-                  ) {
-                    return (
-                      <li {...contextmenuNodeProps}>
-                        <span
-                          class={clsName(
-                            'node-label',
-                          )}
-                        >
-                          {menu.label}
-                        </span>
-                        {menu.hasChildren && (
-                          <VeIcon
-                            class={clsName(
-                              'node-icon-postfix',
-                            )}
-                            name={
-                              ICON_NAMES.RIGHT_ARROW
-                            }
-                          />
-                        )}
-                      </li>
-                    )
-                  }
-                  else {
-                    return (
-                      <li {...contextmenuNodeProps}></li>
-                    )
-                  }
-                })}
-              </ul>
-            </div>
-          )
-        })}
+        {isTeleported.value ? renderTeleport(panels) : panels}
       </div>
     )
   },

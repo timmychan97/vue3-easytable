@@ -1,7 +1,12 @@
 // popper
 .ve-contextmenu-popper {
     z-index: 9999;
-    overflow: hidden;
+    // 比视口还高的菜单限制为视口高度并可以滚动（MENU-07）。
+    // 组件定位时还会写入精确的 max-height（不含滚动条的视口高度），这里是兜底
+    box-sizing: border-box;
+    max-height: 100vh;
+    overflow-x: hidden;
+    overflow-y: auto;
     border-radius: @ve-contextmenu-border-radius;
     border: 1px solid @ve-contextmenu-border-color;
     background-color: @ve-contextmenu-background-color;

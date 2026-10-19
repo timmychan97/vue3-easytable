@@ -349,10 +349,11 @@ describe('veContextmenu', () => {
 
     await later(500)
 
+    // 点击没有子菜单的菜单项后整个菜单关闭：菜单回到组件内部，body 中不再有 popper
     const contextmenuPoppers2 = document.querySelectorAll(
       '.ve-contextmenu-popper',
     )
-    expect(contextmenuPoppers2[1].innerHTML).toBe('')
+    expect(contextmenuPoppers2).toHaveLength(0)
 
     wrapper.unmount()
   })
@@ -1039,6 +1040,19 @@ describe('veContextmenu', () => {
       const { rootEl: rootEl3 } = await openMenu(700, 100)
       expect(rootEl3.style.left).toBe(`${700 + SCROLL_X - 400}px`)
     })
+
+    // MENU-07：比视口还高的菜单限制为视口高度（样式中 overflow-y: auto），超出的菜单项可以滚动到
+    it('a panel taller than the viewport is limited to the viewport height (MENU-07)', async () => {
+      panelSizes.menu1 = { width: 180, height: 1000 }
+      const { rootEl } = await openMenu(100, 300)
+      expect(rootEl.style.top).toBe(`${SCROLL_Y}px`)
+      expect(rootEl.style.maxHeight).toBe('700px')
+
+      // 放得下的菜单不限制高度
+      panelSizes.menu1 = { width: 180, height: 200 }
+      const { rootEl: rootEl2 } = await openMenu(100, 100)
+      expect(rootEl2.style.maxHeight).toBe('')
+    })
   })
 
   describe('lifecycle and timers', () => {
@@ -1098,9 +1112,9 @@ describe('veContextmenu', () => {
       }
 
       await openSubmenuThenRightClickAgain()
-      // 根菜单 + 子菜单
+      // 只剩根菜单：第二次右键关闭了子菜单，子菜单的元素由 Vue 移除
       const afterFirstOpen = document.body.children.length
-      expect(afterFirstOpen).toBe(before + 2)
+      expect(afterFirstOpen).toBe(before + 1)
 
       // ve-table 每次右键都会替换 options（id 会重新生成）
       for (let i = 0; i < 5; i++) {
@@ -1112,6 +1126,88 @@ describe('veContextmenu', () => {
 
       wrapper.unmount()
       expect(document.body.children.length).toBe(before)
+    })
+  })
+
+  // MOD-09：菜单由 <Teleport> 渲染，显示 / 关闭只修改状态；关闭的定时器可以被打断
+  describe('teleported menu (MOD-09)', () => {
+    afterEach(() => {
+      vi.useRealTimers()
+    })
+
+    function mountMenu() {
+      return mountDetached(veContextmenu, {
+        props: {
+          options: cloneDeep(OPTIONS) as any,
+          eventTarget: document.querySelector('#contextmenu-target') as HTMLElement,
+        },
+      })
+    }
+
+    const rightClick = () => document.querySelector('#contextmenu-target')!.dispatchEvent(
+      new MouseEvent('contextmenu', { bubbles: true, cancelable: true }),
+    )
+    const openPoppers = () => [...document.querySelectorAll<HTMLElement>('.ve-contextmenu-popper')]
+
+    it('renders the menu inside the component until it is first opened', async () => {
+      const wrapper = mountMenu()
+      await nextTick()
+
+      // 隐藏在组件内部，body 中没有菜单
+      expect(wrapper.find('.ve-contextmenu .ve-contextmenu-panel').exists()).toBe(true)
+      expect(openPoppers()).toHaveLength(0)
+
+      rightClick()
+      await nextTick()
+      expect(openPoppers()).toHaveLength(1)
+      expect(openPoppers()[0].parentElement).toBe(document.body)
+      wrapper.unmount()
+    })
+
+    it('a document click does nothing for a closed menu', async () => {
+      const wrapper = mountMenu()
+      await nextTick()
+
+      vi.useFakeTimers()
+      document.body.click()
+      expect(vi.getTimerCount()).toBe(0)
+      expect((wrapper.vm as any).isPanelsEmptyed).toBe(true)
+      wrapper.unmount()
+    })
+
+    it('opening again cancels the pending hide of a clicked item', async () => {
+      vi.useFakeTimers()
+      const wrapper = mountMenu()
+      await nextTick()
+
+      rightClick()
+      await nextTick()
+      // 点击菜单项：50ms 后关闭
+      openPoppers()[0].querySelectorAll<HTMLElement>('.ve-contextmenu-node')[0].click()
+      vi.advanceTimersByTime(20)
+      // 关闭之前再次右键
+      rightClick()
+      await nextTick()
+      vi.advanceTimersByTime(500)
+      await nextTick()
+
+      expect((wrapper.vm as any).isPanelsEmptyed).toBe(false)
+      expect(openPoppers()).toHaveLength(1)
+      wrapper.unmount()
+    })
+
+    it('unmount clears the pending hide timers', async () => {
+      vi.useFakeTimers()
+      const wrapper = mountMenu()
+      await nextTick()
+
+      rightClick()
+      await nextTick()
+      openPoppers()[0].querySelectorAll<HTMLElement>('.ve-contextmenu-node')[0].click()
+      wrapper.unmount()
+
+      expect(vi.getTimerCount()).toBe(0)
+      expect(openPoppers()).toHaveLength(0)
     })
   })
 })

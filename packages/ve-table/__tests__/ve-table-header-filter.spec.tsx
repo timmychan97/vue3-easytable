@@ -375,19 +375,106 @@ describe('veTable header filter', () => {
       nextVisible: true,
     })
 
+    // 打开后下拉框由 <Teleport> 渲染到 body，不在组件自身的 DOM 中
     // 改变选项
-    wrapper.findAll('.ve-dropdown-items-li')[0].trigger('click')
+    ;(document.querySelectorAll('.ve-dropdown-popper .ve-dropdown-items-li')[0] as HTMLElement).click()
 
     await later()
 
     // confirm btn click
-    wrapper.findAll('.ve-dropdown-operation-item')[1].trigger('click')
+    ;(document.querySelectorAll('.ve-dropdown-popper .ve-dropdown-operation-item')[1] as HTMLElement).click()
 
     await later()
 
     expect(mockBeforeVisibleChangeFn).toBeCalled()
     expect(mockBeforeVisibleChangeFn).toHaveBeenCalledWith({
       nextVisible: false,
+    })
+  })
+
+  // DD-07：未确认的勾选在关闭后不能保留到下次打开
+  describe('unconfirmed changes are dropped on close (DD-07)', () => {
+    async function mountTable(columns: any[]) {
+      const wrapper = mount(veTable, {
+        props: { columns, tableData: TABLE_DATA, rowKeyFieldName: 'rowkey' },
+        attachTo: document.body,
+      })
+      await later()
+      return wrapper
+    }
+
+    // 打开的下拉框（已移到 body 中）
+    const popper = () => document.querySelector('.ve-dropdown-popper')!
+
+    async function toggleFilter(wrapper: any) {
+      wrapper.find('.ve-table-filter-icon').trigger('click')
+      await later()
+    }
+
+    async function clickOutside() {
+      document.body.click()
+      await later()
+    }
+
+    const checkedLabels = () => [...popper().querySelectorAll('.ve-checkbox')]
+      .filter(el => el.querySelector('.ve-checkbox-checked'))
+      .map(el => el.textContent)
+    const activeLabels = () => [...popper().querySelectorAll('.ve-dropdown-items-li.active')]
+      .map(el => el.textContent)
+
+    it('a ticked checkbox is not shown again after closing without confirming', async () => {
+      const wrapper = await mountTable(TABLE_COLUMNS_FILTER_MULTIPLE)
+
+      await toggleFilter(wrapper)
+      expect(checkedLabels()).toEqual(['John'])
+      ;(popper().querySelectorAll('.ve-checkbox')[1] as HTMLElement).click()
+      await later()
+      expect(checkedLabels()).toEqual(['John', 'Dickerson'])
+
+      await clickOutside()
+      await toggleFilter(wrapper)
+
+      expect(checkedLabels()).toEqual(['John'])
+      expect(mockFilterFn).not.toHaveBeenCalled()
+      wrapper.unmount()
+    })
+
+    it('a clicked single-select item is not shown again after closing without confirming', async () => {
+      const wrapper = await mountTable(TABLE_COLUMNS_FILTER_SINGLE)
+
+      await toggleFilter(wrapper)
+      ;(popper().querySelectorAll('.ve-dropdown-items-li')[2] as HTMLElement).click()
+      await later()
+      expect(activeLabels()).toEqual(['2000-07-20'])
+
+      await clickOutside()
+      await toggleFilter(wrapper)
+
+      expect(activeLabels()).toEqual([])
+      expect(mockFilterFn).not.toHaveBeenCalled()
+      wrapper.unmount()
+    })
+
+    it('a confirmed selection is still shown after reopening', async () => {
+      const wrapper = await mountTable(TABLE_COLUMNS_FILTER_MULTIPLE)
+
+      await toggleFilter(wrapper)
+      ;(popper().querySelectorAll('.ve-checkbox')[1] as HTMLElement).click()
+      await later()
+      ;(popper().querySelectorAll('.ve-dropdown-operation-item')[1] as HTMLElement).click()
+      await later()
+      expect(mockFilterFn).toHaveBeenCalledTimes(1)
+
+      await toggleFilter(wrapper)
+      expect(checkedLabels()).toEqual(['John', 'Dickerson'])
+
+      // 再改动但不确认：回到上次确认的状态
+      ;(popper().querySelectorAll('.ve-checkbox')[0] as HTMLElement).click()
+      await later()
+      await clickOutside()
+      await toggleFilter(wrapper)
+      expect(checkedLabels()).toEqual(['John', 'Dickerson'])
+      wrapper.unmount()
     })
   })
 })
