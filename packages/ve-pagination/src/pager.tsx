@@ -28,7 +28,10 @@ export default defineComponent({
     // 解析语言包（最近的 ConfigProvider，否则为 app / 全局语言包）
     const t = useI18N(LOCALE_COMP_NAME)
 
-    const numOffset = computed(() => Math.floor((props.pagingCount + 2) / 2) - 1)
+    // 中间区间（两侧跳转按钮都显示时）相对当前页的偏移，区间内恰好 pagingCount 个数字按钮。
+    // 奇数时左右对称；偶数时多出的一个放在当前页之后
+    const numOffsetBefore = computed(() => Math.floor((props.pagingCount - 1) / 2))
+    const numOffsetAfter = computed(() => Math.ceil((props.pagingCount - 1) / 2))
 
     const showJumpPrev = computed(() => {
       return props.pageCount > props.pagingCount + 2 && props.pageIndex > props.pagingCount
@@ -52,7 +55,7 @@ export default defineComponent({
           result.push(i)
       }
       else if (showJumpPrev.value && showJumpNext.value) {
-        for (let i = pageIndex - numOffset.value; i <= pageIndex + numOffset.value; i++)
+        for (let i = pageIndex - numOffsetBefore.value; i <= pageIndex + numOffsetAfter.value; i++)
           result.push(i)
       }
       else {

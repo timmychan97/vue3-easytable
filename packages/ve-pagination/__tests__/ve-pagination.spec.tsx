@@ -608,6 +608,51 @@ describe('vePagination', () => {
     })
   })
 
+  describe('the pager always shows pagingCount number buttons (PAG-06)', () => {
+    // 除首页、尾页和两个跳转按钮外的数字按钮
+    function render(pageIndex: number, pageCount: number, pagingCount: number) {
+      const wrapper = mount(Pager, { props: { pageIndex, pageCount, pagingCount } })
+      const numbers = wrapper
+        .findAll('.ve-pagination-li:not(.ve-pagination-jump-prev):not(.ve-pagination-jump-next)')
+        .map(li => Number(li.text()))
+      const hasJump = wrapper.find('.ve-pagination-jump-prev').exists()
+        || wrapper.find('.ve-pagination-jump-next').exists()
+      wrapper.unmount()
+      expect(numbers[0]).toBe(1)
+      expect(numbers[numbers.length - 1]).toBe(pageCount)
+      return { middle: numbers.slice(1, -1), hasJump }
+    }
+
+    function middleNumbers(pageIndex: number, pageCount: number, pagingCount: number) {
+      return render(pageIndex, pageCount, pagingCount).middle
+    }
+
+    it.each([1, 2, 3, 4, 5, 6])('pagingCount = %s on every page index', (pagingCount) => {
+      for (const pageCount of [pagingCount + 2, pagingCount + 3, 2 * pagingCount + 3, 30]) {
+        for (let pageIndex = 1; pageIndex <= pageCount; pageIndex++) {
+          const { middle, hasJump } = render(pageIndex, pageCount, pagingCount)
+          const context = `pageIndex ${pageIndex} / pageCount ${pageCount}`
+
+          // 有跳转按钮（即有页码被隐藏）时，数字按钮数量固定为 pagingCount，翻页时不会变化；
+          // 没有跳转按钮时显示全部页码
+          expect(middle, context).toHaveLength(hasJump ? pagingCount : pageCount - 2)
+          // 连续的页码，并且当前页（首页、尾页除外）总在其中
+          middle.forEach((n, i) => expect(n, context).toBe(middle[0] + i))
+          if (pageIndex > 1 && pageIndex < pageCount)
+            expect(middle, context).toContain(pageIndex)
+        }
+      }
+    })
+
+    it('an even pagingCount puts the extra button after the current page', () => {
+      expect(middleNumbers(10, 20, 4)).toEqual([9, 10, 11, 12])
+      expect(middleNumbers(10, 20, 2)).toEqual([10, 11])
+      expect(middleNumbers(10, 20, 6)).toEqual([8, 9, 10, 11, 12, 13])
+      // 奇数保持对称，与修复前一致
+      expect(middleNumbers(10, 20, 5)).toEqual([8, 9, 10, 11, 12])
+    })
+  })
+
   it('two paginations get distinct element ids (PAG-02)', () => {
     const wrapper = mount({
       render() {
