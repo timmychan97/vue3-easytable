@@ -1,19 +1,14 @@
 import { mount } from '@vue/test-utils'
 import { nextTick } from 'vue'
-import { useVeTable } from '../../packages/vue/src/index'
 
 /**
- * 挂载组件并全局注册所有 ve 组件
+ * 挂载组件并挂到 body 上（所有 ve 组件已在 setup.ts 中通过 config.global.plugins 全局注册）。
+ * 用例结束后自动卸载并移除容器（见 auto-unmount.ts），不需要手动 unmount。
  */
 export function wrapMount(component: any, config?: any) {
-  const { global: configGlobal, ...restConfig } = config ?? {}
   return mount(component, {
-    global: {
-      plugins: [useVeTable()],
-      ...configGlobal,
-    },
     attachTo: 'body',
-    ...restConfig,
+    ...config,
   })
 }
 
