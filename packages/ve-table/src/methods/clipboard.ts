@@ -25,13 +25,18 @@
  *   → after*（最后）
  * before* 收到的 data 已去掉不可编辑的列（粘贴）；剪切仍把整个选区写入剪贴板。
  * 未设置 editOption 时保持原行为：写入所有数据列，不调用编辑回调。
+ * 粘贴区域内没有任何可写入的列时（CLIP-11）不执行粘贴：不调用 beforePaste / afterPaste、
+ * 不改选区，但仍调用 preventDefault，避免文本落进隐藏的编辑 textarea（CLIP-09）。
+ * 可写入列的判断、逐单元格写入与编辑回调在 features/cell-value-change 中，与自动填充共用。
  *
  * 右键菜单的复制、剪切（contextmenuCopyOrCut，CLIP-06）没有 copy 事件，
  * 通过 writeClipboardText 主动写入，开关、校验和回调与键盘操作相同，见该方法的说明。
  */
-import type { AppliedCellChange, CanChangeCell } from '../util/clipboard/index.js'
 import { isBoolean } from '@vue3-easytable/common/utils'
-import { cloneDeep } from 'lodash'
+import {
+  getCellValueCallbacks,
+  isCancelledByCallback,
+} from '../features/cell-value-change/index.js'
 import {
   clearRangeValues,
   encodeToSpreadsheetStr,
@@ -56,55 +61,6 @@ const COPY_KINDS = {
   copy: { before: 'beforeCopy', after: 'afterCopy', onBefore: onBeforeCopy },
   cut: { before: 'beforeCut', after: 'afterCut', onBefore: onBeforeCut },
 } as const
-
-/**
- * 调用 before* 回调：返回 false 或抛出异常时视为取消
- */
-function isCancelledByCallback(name: string, callback: any, response: any): boolean {
-  const { value, threw } = safeCall(name, callback, response)
-  return threw || (isBoolean(value) && !value)
-}
-
-/**
- * 设置了 editOption 时的逐单元格编辑回调（CLIP-10）
- * - editableOnly：只写入 edit: true 的列；
- * - canChange：调用 beforeCellValueChange，返回 false 或抛出异常时跳过该单元格（INFRA-07）；
- * - fireAfter：内部状态更新完成后，对实际写入的单元格调用 cellValueChange、afterCellValueChange。
- * 未设置 editOption 时不过滤列，也不调用任何编辑回调。
- */
-function getCellValueCallbacks(vm: any): {
-  editableOnly: boolean
-  canChange?: CanChangeCell
-  fireAfter: (applied: AppliedCellChange[]) => void
-} {
-  const { editOption } = vm
-
-  if (!editOption)
-    return { editableOnly: false, fireAfter: () => {} }
-
-  const { beforeCellValueChange, cellValueChange, afterCellValueChange } = editOption
-
-  // 没有 beforeCellValueChange 时不必为每个单元格复制整行
-  const canChange: CanChangeCell | undefined = typeof beforeCellValueChange === 'function'
-    ? (change, row) => !isCancelledByCallback('beforeCellValueChange', beforeCellValueChange, {
-        row: cloneDeep(row),
-        column: change.column,
-        changeValue: change.value,
-      })
-    : undefined
-
-  return {
-    editableOnly: true,
-    canChange,
-    fireAfter(applied) {
-      applied.forEach(({ row, column, value }) => {
-        // 同 afterCellValueChange，未来被移除（与单元格编辑一致）
-        safeCall('cellValueChange', cellValueChange, { row, column, changeValue: value })
-        safeCall('afterCellValueChange', afterCellValueChange, { row, column, changeValue: value })
-      })
-    },
-  }
-}
 
 /**
  * 复制、剪切共用的前置检查：功能开关、编辑状态与选区（CLIP-01）
@@ -211,7 +167,7 @@ export const clipboardMethods = {
     if (isBoolean(paste) && !paste)
       return false
 
-    const cellValueCallbacks = getCellValueCallbacks(this)
+    const cellValueCallbacks = getCellValueCallbacks(this.editOption)
 
     const response = onBeforePaste({
       event,
@@ -222,8 +178,13 @@ export const clipboardMethods = {
       editableOnly: cellValueCallbacks.editableOnly,
     })
 
-    if (!response || !response.data.length) {
-      // 选区失效或没有选区（CLIP-01）：不改任何数据。此时并未在编辑，
+    // 粘贴区域只覆盖不可写入的列（操作列、没有 field 的列，设置了 editOption 时还有
+    // 不可编辑的列）时，data 的每一行都是空对象：没有可写入的内容，不执行粘贴（CLIP-11）
+    const hasWritableCell = !!response && response.data.some(row => Object.keys(row).length > 0)
+
+    if (!response || !hasWritableCell) {
+      // 选区失效或没有选区（CLIP-01），或没有可写入的列（CLIP-11）：不改任何数据，
+      // 不调用 beforePaste / afterPaste，也不改选区。此时并未在编辑，
       // 原生粘贴只会把文本写进隐藏的编辑 textarea，因此阻止（CLIP-09）。
       // 剪贴板中没有文本（CLIP-02，如图片）时原生粘贴不会写入 textarea，保持不拦截。
       if (getClipboardText(event))
@@ -280,7 +241,7 @@ export const clipboardMethods = {
     if (isCancelledByCallback('beforeCut', option.beforeCut, response))
       return false
 
-    const { editableOnly, canChange, fireAfter } = getCellValueCallbacks(this)
+    const { editableOnly, canChange, fireAfter } = getCellValueCallbacks(this.editOption)
 
     const applied = onAfterCut({
       event,
@@ -337,7 +298,7 @@ export const clipboardMethods = {
           })
 
           if (current) {
-            const { editableOnly, canChange, fireAfter } = getCellValueCallbacks(this)
+            const { editableOnly, canChange, fireAfter } = getCellValueCallbacks(this.editOption)
             const applied = clearRangeValues({
               tableData: this.tableData,
               colgroups: this.colgroups,
@@ -411,7 +372,7 @@ export const clipboardMethods = {
     if (isCancelledByCallback('beforeDelete', beforeDeleteCallback, response))
       return false
 
-    const { editableOnly, canChange, fireAfter } = getCellValueCallbacks(this)
+    const { editableOnly, canChange, fireAfter } = getCellValueCallbacks(this.editOption)
 
     const applied = onAfterDelete({
       tableData,

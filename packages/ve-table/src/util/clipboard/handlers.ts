@@ -1,37 +1,18 @@
+import type {
+  AppliedCellChange,
+  CanChangeCell,
+  CellChange,
+  CellValueColumn,
+} from '../../features/cell-value-change/index.js'
 import type { CellSelectionRangeData } from '../../ve-table-types.js'
+import { applyCellChanges, isWritableColumn } from '../../features/cell-value-change/index.js'
 import { getSelectionRangeIndexes, getSelectionRangeKeys } from '../selection-range/range.js'
 import { decodeSpreadsheetStr, encodeToSpreadsheetStr } from './tsv-codec.js'
 
 type RowKey = string | number
 
-interface ClipboardColumn {
-  key: RowKey
-  field?: string
-  operationColumn?: boolean
-  edit?: boolean
-  [key: string]: any
-}
-
-/**
- * 粘贴、剪切、删除要写入的一个单元格（CLIP-10）
- */
-export interface ClipboardCellChange {
-  rowIndex: number
-  column: ClipboardColumn
-  value: any
-}
-
-/**
- * 已写入的单元格，row 为写入时的行对象（after 回调使用）
- */
-export interface AppliedCellChange extends ClipboardCellChange {
-  row: Record<string, any>
-}
-
-/**
- * 写入前的逐单元格检查，返回 false 时跳过该单元格（CLIP-10：beforeCellValueChange）
- */
-export type CanChangeCell = (change: ClipboardCellChange, row: Record<string, any>) => boolean
+// 可写入列的判断与逐单元格写入在 features/cell-value-change 中，与自动填充共用（FILL-03）
+type ClipboardColumn = CellValueColumn
 
 export interface SelectionRangeIndexes {
   startColIndex: number
@@ -85,62 +66,6 @@ function setClipboardText(event: any, text: string) {
   // IE browser
   else if ((window as any).clipboardData)
     (window as any).clipboardData.setData('Text', text)
-}
-
-/**
- * 列是否对应行数据中的一个字段，可以被粘贴、剪切、删除写入（CLIP-07）
- * 操作列（即使配置了 field）和没有 field 的列只用于展示，写入会在用户的行数据里
- * 生成 "undefined"、"index" 之类的多余属性，因此跳过。
- * 复制时这些列仍按位置输出空字符串（或其值），保证粘贴回来时列对齐。
- * @param editableOnly 设置了 editOption 时为 true：只有 edit: true 的列可写入（CLIP-10）
- */
-export function isClipboardWritableColumn(
-  column: ClipboardColumn | undefined,
-  editableOnly = false,
-): boolean {
-  if (!column || column.operationColumn)
-    return false
-
-  if (editableOnly && !column.edit)
-    return false
-
-  const { field } = column
-  return field !== undefined && field !== null && field !== ''
-}
-
-/**
- * 依次写入单元格（粘贴、剪切、删除共用，CLIP-10）
- * - 值没有变化（===）的单元格不写入，也不调用 canChange；
- * - canChange 返回 false 时只跳过该单元格，其余单元格照常写入；
- * - 按顺序逐个检查并写入，后面单元格的 canChange 能看到同一次操作中前面已写入的值。
- * @return 实际写入的单元格
- */
-export function applyCellChanges({
-  tableData,
-  changes,
-  canChange,
-}: {
-  tableData: Record<string, any>[]
-  changes: ClipboardCellChange[]
-  canChange?: CanChangeCell
-}): AppliedCellChange[] {
-  const applied: AppliedCellChange[] = []
-
-  changes.forEach((change) => {
-    const row = tableData[change.rowIndex]
-    const field = change.column.field as string
-
-    if (!row || row[field] === change.value)
-      return
-
-    if (canChange && !canChange(change, row))
-      return
-
-    row[field] = change.value
-    applied.push({ ...change, row })
-  })
-
-  return applied
 }
 
 /**
@@ -198,10 +123,10 @@ export function clearRangeValues({
   // 同一字段只写一次（多个列可能指向同一个 field）
   const columns = colgroups
     .slice(startColIndex, endColIndex + 1)
-    .filter(x => isClipboardWritableColumn(x, editableOnly))
+    .filter(x => isWritableColumn(x, editableOnly))
     .filter((x, index, list) => list.findIndex(y => y.field === x.field) === index)
 
-  const changes: ClipboardCellChange[] = []
+  const changes: CellChange[] = []
   for (let rowIndex = startRowIndex; rowIndex <= endRowIndex; rowIndex++)
     columns.forEach(column => changes.push({ rowIndex, column, value: '' }))
 
@@ -295,7 +220,7 @@ export function onBeforePaste({
   // 粘贴时跳过该位置的值，其余列保持原位
   const sourceFieldNames = colgroups
     .slice(startColIndex, endColIndex + 1)
-    .map(x => (isClipboardWritableColumn(x, editableOnly) ? (x.field as string) : null))
+    .map(x => (isWritableColumn(x, editableOnly) ? (x.field as string) : null))
 
   const data = decodePasteData
     .slice(0, endRowIndex - startRowIndex + 1)
@@ -349,7 +274,7 @@ export function onAfterPaste({
   const { startColIndex, endColIndex, startRowIndex } = selectionRangeIndexes
 
   const rangeColumns = colgroups.slice(startColIndex, endColIndex + 1)
-  const changes: ClipboardCellChange[] = []
+  const changes: CellChange[] = []
 
   pasteData.forEach((rowData, index) => {
     Object.keys(rowData).forEach((field) => {

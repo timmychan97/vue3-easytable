@@ -1,6 +1,6 @@
 # Migration Guide
 
-- **Library users:** [Locale message keys renamed](#locale-message-keys-renamed-breaking-change-deprecated-aliases), [Language per app](#language-per-app-usevetable-locale--no-longer-changes-the-global-language), [Norwegian language pack renamed](#norwegian-language-pack-renamed-no-nb--nb-no), [Clipboard respects `editOption`](#clipboard-respects-editoption-paste-cut-and-delete-skip-non-editable-columns)
+- **Library users:** [Locale message keys renamed](#locale-message-keys-renamed-breaking-change-deprecated-aliases), [Language per app](#language-per-app-usevetable-locale--no-longer-changes-the-global-language), [Norwegian language pack renamed](#norwegian-language-pack-renamed-no-nb--nb-no), [Clipboard and autofill respect `editOption`](#clipboard-respects-editoption-paste-cut-and-delete-skip-non-editable-columns)
 - **Contributors:** [Development setup improvements](#migration-guide-development-setup-improvements)
 
 ## Locale message keys renamed (breaking change, deprecated aliases)
@@ -47,17 +47,25 @@ import nbNO from '@vue3-easytable/vue/libs/locale/lang/nb-NO'
 
 ## Clipboard respects `editOption`: paste, cut and delete skip non-editable columns
 
+This also applies to autofill (dragging the fill handle), see [Autofill](#autofill) below.
+
 **What changed:** when the table has an `editOption`, paste, cut and delete (including the context menu "Cut" and the "empty" actions) only write to columns with `edit: true`. A column without `edit: true` can't be edited by typing, and now can't be changed through the clipboard either. For every cell whose value changes, `editOption.beforeCellValueChange`, `cellValueChange` and `afterCellValueChange` are called with the same `{ row, column, changeValue }` as cell editing. A `beforeCellValueChange` that returns `false` (or throws) skips that cell only. Cells whose value doesn't change (`===`) don't trigger the callbacks.
 
-**Order:** `beforePaste` / `beforeCut` / `beforeDelete` → per cell: `beforeCellValueChange`, then the write → per written cell: `cellValueChange`, `afterCellValueChange` → `afterPaste` / `afterCut` / `afterDelete`. With `editOption`, the `data` passed to `beforePaste` / `afterPaste` no longer contains the non-editable columns. Cut still copies the whole selection, including non-editable cells.
+**Order:** `beforePaste` / `beforeCut` / `beforeDelete` → per cell: `beforeCellValueChange`, then the write → per written cell: `cellValueChange`, `afterCellValueChange` → `afterPaste` / `afterCut` / `afterDelete`. With `editOption`, the `data` passed to `beforePaste` / `afterPaste` no longer contains the non-editable columns. Cut still copies the whole selection, including non-editable cells. A paste that only covers columns it can't write to (non-editable columns, operation columns, columns without `field`) now does nothing: `beforePaste` / `afterPaste` are not called and the selection doesn't grow to the pasted block.
 
 **Unchanged:** without `editOption`, every data column is written as before and the cell value callbacks are not called. Copy is not affected.
 
+### Autofill
+
+**What changed:** autofill follows the same rules. With `editOption`, it only fills columns with `edit: true` and calls `beforeCellValueChange` / `cellValueChange` / `afterCellValueChange` for every cell whose value changes; a `beforeCellValueChange` that returns `false` (or throws) skips that cell only. Order: `beforeAutofill` → per cell: `beforeCellValueChange`, then the write → selection update → per written cell: `cellValueChange`, `afterCellValueChange` → `afterAutofill`. With or without `editOption`, autofill no longer writes to operation columns or columns without `field` (it used to write an `"undefined"` or operation-field key into the row objects), and in a horizontal fill a source column without data leaves its target cells unchanged. `sourceSelectionData` / `targetSelectionData` of `beforeAutofill` / `afterAutofill` no longer contain those columns; they still contain non-editable columns, and `afterAutofill` sees the values after the fill, so a skipped cell shows its old value.
+
+**Unchanged:** without `editOption`, every data column is filled as before and the cell value callbacks are not called.
+
 **What to do:**
 
-- If users should paste into a column, mark it `edit: true` (this also allows editing it by typing).
-- If your `beforeCellValueChange` / `afterCellValueChange` assume they only run for typed edits (for example, they focus the edited cell or show a toast), check how they behave for a paste into many cells. Each changed cell gets its own call.
-- If you validated or saved clipboard changes in `afterPaste` / `afterCut` / `afterDelete`, you can now do it in `afterCellValueChange` instead. Keep only one of the two, or each change is handled twice.
+- If users should paste or autofill into a column, mark it `edit: true` (this also allows editing it by typing).
+- If your `beforeCellValueChange` / `afterCellValueChange` assume they only run for typed edits (for example, they focus the edited cell or show a toast), check how they behave for a paste or an autofill into many cells. Each changed cell gets its own call.
+- If you validated or saved clipboard or autofill changes in `afterPaste` / `afterCut` / `afterDelete` / `afterAutofill`, you can now do it in `afterCellValueChange` instead. Keep only one of the two, or each change is handled twice.
 
 ---
 
