@@ -517,7 +517,7 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
 
 ## RENDER — body, header and footer rendering
 
-- [ ] **RENDER-01** 🟠 🔍 The `h` passed to user render callbacks is the component proxy, not `h`
+- [x] ✅ 2026-10-19 · fix/audit-batch7-render-rows · **RENDER-01** 🟠 🔍 The `h` passed to user render callbacks is the component proxy, not `h`
   - **Where:**
     - `body/body-td.tsx:557` → `renderBodyCell(params, h)` (~327)
     - `header/header-th.tsx:558` → `renderHeaderCell`
@@ -527,6 +527,8 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
   - **Cause:** Vue 3 calls `render(proxy, cache, …)`, so the `render(h)` parameter shadows the imported `h`.
   - **Trigger:** user code calling `h('span')` throws "h is not a function". (`expand-tr.tsx:109` is correct.)
   - **Fix:** remove the `h` parameter and pass the imported `h`.
+  - **Done:** the `render(h)` / `getRenderContent(h)` / `getIcon(h)` / `getCustomContent(h)` parameters are gone in `body-td.tsx`, `footer-td.tsx`, `header-th.tsx`, `header-filter-content.tsx` and `header-filter-custom-content.tsx`; each file imports `h` from `vue` and passes it as the same 2nd argument (`filterIcon(h)` for the icons), so existing `(params, h) => …` callbacks keep working and now get a real `h`. The custom filter's `render` was called as a slot function, so its `h` was the slot props (`undefined`); it now gets `h` too.
+  - **Verified:** `ve-table-render-cells.spec.tsx` › "render callbacks receive the real h (RENDER-01)": "renderBodyCell, renderHeaderCell and renderFooterCell can call h" and "filter and custom filter callbacks can call h" (both threw `hArg is not a function` before; they assert the argument is `vue`'s `h`).
 
 - [x] ✅ 2026-10-16 · fix/audit-batch6-vs-render-perf · **RENDER-02** 🟠 Unkeyed fragments around each body row cause mass remounts *(non-virtual path only since `442962c`)*
   - **Where:** `body/index.tsx:899-911`. Each row returns `[<BodyTr key=…/>, expandRow]`, so Vue builds unkeyed Fragments and matches rows by position. *The virtual path (848-897) now wraps each row in a keyed `<tbody>`, and the placeholder branch that dropped expand rows is gone.*
@@ -541,14 +543,18 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
   - **Done:** as proposed. The `rawCellValue` data field and the deep `rowData` watcher are removed.
   - **Verified:** `ve-table-render.spec.tsx` › `body cells read only their own field (RENDER-03)`: `does not traverse the whole row object` (each row has a nested object with a counting getter that no column uses; editing one cell read it 7 times before, 0 now) and `follows a change of column.field` (same column key, new field; the cell kept showing the old field's value before). `updates the cell when its field changes in place` guards the normal edit path.
 
-- [ ] **RENDER-04** 🟢 A cell span with only one dimension makes the cell disappear
+- [x] ✅ 2026-10-19 · fix/audit-batch7-render-rows · **RENDER-04** 🟢 A cell span with only one dimension makes the cell disappear
   - **Where:** `body-td.tsx:413-416, 581`; `footer-td.tsx:271-274, 321`. `bodyCellSpan` returning `{ colspan: 2 }` leaves `rowspan` undefined.
   - **Fix:** `rowspan ?? 1` and `colspan ?? 1`.
+  - **Done:** `getCellSpan()` in `body-td.tsx` and `footer-td.tsx` uses `?? 1` for each dimension, so only an explicit `0` hides a cell. A callback returning `null` (`typeof null === 'object'`) used to crash the render with `Cannot read properties of null (reading 'rowspan')`; it now means "no span".
+  - **Verified:** `ve-table-render-cells.spec.tsx` › "cell span with only one dimension (RENDER-04)": "body cell with only colspan keeps rowspan 1", "footer cell with only colspan keeps rowspan 1" (both: the cell was missing before) and "a span callback returning null keeps the cell" (threw before).
 
-- [ ] **RENDER-05** 🟠 🔍 `getTextContentOfVNode` always returns `''` for a VNode
+- [x] ✅ 2026-10-19 · fix/audit-batch7-render-rows · **RENDER-05** 🟠 🔍 `getTextContentOfVNode` always returns `''` for a VNode
   - **Where:** [common/utils/index.ts:87-88](../packages/common/utils/index.ts#L87-L88). It returns early whenever the VNode has children, so the recursion below is unreachable.
   - **Effect:** `column.ellipsis.showTitle` gives an empty `title` for any `renderBodyCell` that returns a VNode (`body-td.tsx:351`).
   - **Fix:** remove the early return, and handle string children, arrays and the `default` slot function.
+  - **Done:** the early return is removed and the recursion handles string / number children, child arrays and a component VNode's `default` slot function. Comment VNodes and `true` / `false` / `null` children (left by conditional rendering) add no text; a top-level boolean still becomes `'true'` / `'false'` as before.
+  - **Verified:** `ve-table-render-cells.spec.tsx` › "getTextContentOfVNode (RENDER-05)": "reads the text of element VNodes, nested children and arrays", "reads the default slot of component VNodes", "keeps the plain value behaviour and skips empty children" and "the ellipsis title shows the text of a renderBodyCell VNode" (all returned `''` before; the ellipsis `title` was empty).
 
 - [x] ✅ 2026-10-16 · fix/audit-batch6-vs-render-perf · **RENDER-06** 🟠 🔍 A scrollbar width of `0` is never cached, so it is re-measured on every render
   - **Where:** [ve-table.tsx:1168-1182](../packages/ve-table/src/ve-table.tsx#L1168-L1182) (`if (scrollBarWidth)`). Callers ~479 and ~2354.
@@ -557,9 +563,11 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
   - **Done:** `scrollBarWidth` starts as `null`, and `getScrollBarWidth` returns the cached value whenever it is not `null`, including `0`.
   - **Verified:** `ve-table-render.spec.tsx` › `scrollbar width (RENDER-06)` › `measures a 0px scrollbar width only once`. It counts the `.ve-scrollbar-wrap` probes appended to `body` across several re-renders (jsdom always measures 0, like an overlay scrollbar). It counted 6 before and counts 1 now.
 
-- [ ] **RENDER-07** 🟢 Checkbox and radio cells render a stray `column="[object Object]"` attribute (found in batch 4)
+- [x] ✅ 2026-10-19 · fix/audit-batch7-render-rows · **RENDER-07** 🟢 Checkbox and radio cells render a stray `column="[object Object]"` attribute (found in batch 4)
   - **Where:** the body checkbox / radio content components receive `column` from `body-td.tsx` but don't declare it, so it falls through onto the `<label>`. It is visible in the snapshots.
   - **Fix:** stop passing `column`, or declare it (or set `inheritAttrs: false`), then refresh the affected snapshots.
+  - **Done:** `body-td.tsx` no longer passes `column` to `BodyCheckboxContent` / `BodyRadioContent`, and `header-th.tsx` no longer passes it to `HeaderCheckboxContent` (the header select-all checkbox had the same stray attribute). None of them used it. The `ve-table-row-checkbox` and `ve-table-row-radio` `render` snapshots were updated; the only change is the removed `column="[object Object]"` (5 body cells each, plus the header checkbox).
+  - **Verified:** `ve-table-render-cells.spec.tsx` › "checkbox and radio cells have no stray column attribute (RENDER-07)" › "checkbox cells" / "radio cells" (both found `column=` before).
 
 ---
 

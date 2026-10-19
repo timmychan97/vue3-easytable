@@ -2,6 +2,7 @@ import emitter from '@vue3-easytable/common/mixins/emitter'
 import { getValByUnit, isEmptyValue } from '@vue3-easytable/common/utils'
 import { ICON_NAMES } from '@vue3-easytable/common/utils/constant'
 import VeIcon from '@vue3-easytable/ve-icon'
+import { h } from 'vue'
 import {
   clsName,
   getColKeysByHeaderColumn,
@@ -342,12 +343,8 @@ export default defineComponent({
 
       if (this.groupColumnItem.type === COLUMN_TYPES.CHECKBOX) {
         if (!checkboxOption.hideSelectAll) {
-          // checkbox content props
-          const checkboxProps = {
-            column: this.groupColumnItem,
-          }
-
-          result = <HeaderCheckboxContent {...checkboxProps} />
+          // RENDER-07：不传 column（组件未声明该 prop，会透传成 column="[object Object]"）
+          result = <HeaderCheckboxContent />
         }
       }
       return result
@@ -554,7 +551,7 @@ export default defineComponent({
       fn && fn(e)
     },
   },
-  render(h) {
+  render() {
     const {
       groupColumnItem,
       getTheadThClass,
@@ -565,6 +562,7 @@ export default defineComponent({
 
     let content
 
+    // RENDER-01：第二个参数传入真正的 h
     if (typeof groupColumnItem.renderHeaderCell === 'function') {
       const { ...column } = groupColumnItem
 
