@@ -334,6 +334,8 @@ export default defineComponent({
       colgroups: [] as ColgroupData[],
       groupColumns: [] as ColumnOption[][],
       hiddenColumns: [] as string[],
+      // defaultHiddenColumnKeys 是否已应用（只应用一次，COL-09）
+      isDefaultHiddenColumnsApplied: false,
 
       // Virtual scroll
       defaultVirtualScrollMinRowHeight: 40,
@@ -1244,12 +1246,16 @@ export default defineComponent({
     // init columns
     initColumns() {
       const { columnHiddenOption } = this
-      if (columnHiddenOption) {
+      // 默认隐藏列只应用一次（首次有 columnHiddenOption 时）；
+      // 之后 columns 变化时保留运行时隐藏 / 显示的列（COL-09）
+      if (columnHiddenOption && !this.isDefaultHiddenColumnsApplied) {
         const { defaultHiddenColumnKeys } = columnHiddenOption
 
         // 复制一份，避免之后显示列时修改用户传入的数组（COL-03）
         if (!isEmptyArray(defaultHiddenColumnKeys))
           this.hiddenColumns = [...defaultHiddenColumnKeys]
+
+        this.isDefaultHiddenColumnsApplied = true
       }
 
       this.showOrHideColumns()

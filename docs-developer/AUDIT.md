@@ -259,10 +259,13 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
   - **Trigger:** sort a column by clicking its header, then do anything that rebuilds the columns: hide or show a column, fix or unfix one from the contextmenu, or change `columns`. The header icon falls back to the configured `sortBy`, while the data stays sorted the way the user chose.
   - **Fix:** when the columns are rebuilt, carry the current `sortBy` over by column key (and use the configured value only for new columns).
 
-- [ ] **COL-09** 🟢 A `columns` prop change drops runtime-hidden columns, but only when `defaultHiddenColumnKeys` is set (found in batch 7)
+- [x] ✅ 2026-10-19 · refactor/audit-wave2-util · **COL-09** 🟢 A `columns` prop change drops runtime-hidden columns, but only when `defaultHiddenColumnKeys` is set (found in batch 7)
   - **Where:** `ve-table.tsx` `initColumns()`: `this.hiddenColumns = [...defaultHiddenColumnKeys]` runs on every `columns` change, not only on the first init.
   - **Trigger:** with `columnHiddenOption.defaultHiddenColumnKeys` set, call `hideColumnsByKeys` (or `showColumnsByKeys`), then change `columns`. The hidden set is reset to the defaults, so the hidden column comes back (and a shown default column is hidden again). Without `defaultHiddenColumnKeys`, the runtime state is kept, so the two configurations behave differently.
   - **Fix:** apply `defaultHiddenColumnKeys` only on the first init.
+  - **Done:** a new data flag `isDefaultHiddenColumnsApplied`; `initColumns()` copies `defaultHiddenColumnKeys` into `hiddenColumns` only while the flag is false, and sets it the first time `columnHiddenOption` is present. Later `columns` changes keep the runtime hidden set, as they already did without `defaultHiddenColumnKeys`.
+  - **Proposed decision:** the defaults are applied once, the first time `columnHiddenOption` is set (normally on mount). If an app passes `columnHiddenOption` only later (for example together with columns loaded asynchronously), the defaults are still applied once at that point. Changing `defaultHiddenColumnKeys` afterwards does nothing; use `hideColumnsByKeys` / `showColumnsByKeys` (there was never a watcher on `columnHiddenOption`, so this only removes the side effect of a later `columns` change).
+  - **Verified:** `ve-table-column-state.spec.ts` › "columns prop change keeps runtime hidden columns (COL-09)": "keeps a column hidden at runtime" (failed before: `['a', 'c', 'd', 'e']`, the hidden `d` came back) and "keeps a default hidden column that was shown at runtime" (failed: `b` hidden again); "still applies defaultHiddenColumnKeys on mount" and "behaves the same without defaultHiddenColumnKeys" guard the rest. The COL-03 / COL-04 tests and `ve-table-column-hidden.spec.ts` still pass.
 
 ---
 
@@ -370,10 +373,12 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
   - **Effect:** none at runtime, but the code suggests that the corner depends on the caller.
   - **Fix:** drop the argument during MOD-05.
 
-- [ ] **SEL-14** 🟢 `getColumnByColkey` treats colKey `0` as "no column" (found in batch 7)
+- [x] ✅ 2026-10-19 · refactor/audit-wave2-util · **SEL-14** 🟢 `getColumnByColkey` treats colKey `0` as "no column" (found in batch 7)
   - **Where:** `util/index.ts` `getColumnByColkey`: `if (colKey)`.
   - **Trigger:** a column with `key: 0`. Every caller gets `null` for that column. SEL-06 avoided the helper for this reason (`colgroups.find`).
   - **Fix:** check with `isEmptyValue(colKey)` instead.
+  - **Done:** `getColumnByColkey` (`util/columns/col-keys.ts`) checks `isEmptyValue(colKey)`. Worse than described: a table with **any numeric column key** (including `0`) did not render at all. `initGroupColumns` stored a leaf's `_keys` as the raw key, and the header's `isLastCloumn` (`header-th.tsx`) calls `_keys.split('|')`, which throws for a number. `initGroupColumns` now stores `_keys` as a string (keyless columns unchanged), and `getColKeysByHeaderColumn` uses `String(_keys)`, so `setColumnFixed` no longer throws when a column with a numeric key comes before the target. The `colgroups.find` workaround from SEL-06 in `setCellSelection` (`ve-table.tsx`) is left as is (outside this branch's scope); it can use the helper again.
+  - **Verified:** `ve-table-instance-methods.spec.ts` › "scrollToColKey method accepts colKey 0 (SEL-14)" (failed before with `column._keys.split is not a function` while rendering the header; with only the `_keys` fix it still failed because `getColumnByColkey` returned `null`: `scrollLeft` stayed 300). `ve-table-util.spec.ts` › "colKey 0 (SEL-14)": "getColumnByColkey finds the column with key 0" (failed: `null`), "getColKeysByHeaderColumn accepts a numeric key" and "setColumnFixed works when a column before the target has key 0" (both failed: `_keys.split is not a function`); "getColumnByColkey still returns null for an empty key" and "setColumnFixed left-fixes up to the column with key 0" guard the rest.
 
 - [ ] **SEL-15** 🟢 Right-clicking inside a row or column indicator selection that was dragged up or left resets it (found in batch 7)
   - **Where:** `ve-table.tsx` `bodyCellMousedown` / `headerCellMousedown`, the right-click "inside the selection" checks on the indexes from `getIndicatorIndexes()`.
@@ -664,14 +669,18 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
   - **Done:** `handleMouseMove` only stores the latest position and schedules one frame (`raf` / `caf` from `common/utils/animation-frame`); the layout work runs at most once per frame with the last position. The pending frame is cancelled on unmount, on `mouseleave` and on table scroll (the indicator hides while scrolling, so a move from before the scroll must not bring it back). Rows are binary-searched by their top, so a move reads O(log n) row rects (each read once per move) instead of every row's rect.
   - **Verified:** `ve-table-row-insert.spec.ts` › `mousemove cost (INS-02)`: `reads O(log n) row rects per mousemove` (at most 22 reads for 400 rows; 401 before), `handles several mousemoves in one frame once, with the last position` (no layout read until the frame; 802 synchronous reads before), `cancels the pending frame on unmount` (401 reads before, 0 now).
 
-- [ ] **INS-03** 🟢 `afterInsertRow` reads `insertRowIndex` in `nextTick`, after the emit (found in batch 7)
+- [x] ✅ 2026-10-19 · refactor/audit-wave2-util · **INS-03** 🟢 `afterInsertRow` reads `insertRowIndex` in `nextTick`, after the emit (found in batch 7)
   - **Where:** `row-insert-indicator/index.tsx` `handleAddRowClick`: `nextTick(() => afterInsertRow({ insertRowIndex: insertRowIndex.value }))`.
   - **Effect:** `afterInsertRow` gets the value `insertRowIndex` has one tick later, not the index that was inserted. Anything that updates it in between (the parent re-renders with the new row during that tick) makes `afterInsertRow` disagree with `beforeInsertRow` and `on-row-insert`. Fragile rather than an observed bug.
   - **Fix:** read the index into a `const` at the start of the handler and pass that to all three.
+  - **Done:** `handleAddRowClick` reads `insertRowIndex.value` into a `const` once and passes it to `beforeInsertRow`, the `on-row-insert` emit and the `afterInsertRow` call in `nextTick`.
+  - **Verified:** `ve-table-row-insert.spec.ts` › "insert callbacks (INS-03)" › "afterInsertRow gets the inserted index even if the hover state changes in the same tick" (the `on-row-insert` handler sets the indicator's `insertRowIndex` to 7, standing in for any update during that tick; failed before: `afterInsertRow` got 7 while `beforeInsertRow` and `on-row-insert` got 3). The other row insert tests still pass.
 
-- [ ] **INS-04** 🟢 `_realTimeWidth` TS2339 errors in the row-insert indicator's `operationColumn` (found in batch 7)
+- [x] ✅ 2026-10-19 · refactor/audit-wave2-util · **INS-04** 🟢 `_realTimeWidth` TS2339 errors in the row-insert indicator's `operationColumn` (found in batch 7)
   - **Where:** `row-insert-indicator/index.tsx` `operationColumn` computed (`operationColumn.value._realTimeWidth`). The `colgroups` prop is untyped, so `vue-tsc` reports TS2339.
   - **Fix:** type `colgroups` as `PropType<ColgroupData[]>` (`ve-table-types.ts`).
+  - **Done:** the indicator's `colgroups` prop is `Array as PropType<ColgroupData[]>`, and the `find` callback drops its `any`. ve-table already passes its `ColgroupData[]` `colgroups`.
+  - **Verified:** `vue-tsc --noEmit`: both TS2339 errors in `row-insert-indicator/index.tsx` are gone (401 → 399), no new errors. `ve-table-row-insert.spec.ts` still passes.
 
 ---
 
@@ -1022,13 +1031,24 @@ These are structural changes. Several of them remove whole bug classes above (no
   | columns (hide/show, group, resize, fixed) | ve-table.tsx 1040-1165, 1933-1963; watch 756-782 | COL-* |
   | scroll shadow / scrollbar status | `methods/scrolling.ts` | Container ref only |
   | event wiring | ve-table.tsx 879-987 | 21 near-identical `this.on(...)` calls → an `[event, method]` table |
-- [ ] **MOD-03** Split `util/index.ts` (1.5k lines) into:
+- [x] ✅ 2026-10-19 · refactor/audit-wave2-util · **MOD-03** Split `util/index.ts` (1.5k lines) into:
   - `columns/`: init-group-columns, column-fixed, col-keys
   - `selection-range/range.ts`: this also removes the four copies of the index/keys logic in the clipboard `onBefore*` functions
     - *Progress (`fix/audit-batch5-clipboard-codec`):* the three identical copies in `onBeforeCopy` / `onBeforeCut` / `onBeforeDelete` are now one `getRangeResponse` in `util/clipboard/handlers.ts`, built on `getSelectionRangeIndexes` / `getSelectionRangeKeys`. `onBeforePaste` keeps its own anchor-based logic.
   - `autofill/cell-autofill.ts`
   - `contextmenu/options.ts`
   - `core.ts`: `clsName`, `getRowKey`, `getEmitEventName` …
+  - **Done:** `util/index.ts` is now a barrel that re-exports every function under the same name, so no import site outside `util/` changed. The modules, all under `util/`:
+    - `core.ts`: `clsName`, `getRowKey`, `isLastRowByRowKey`, `getDomResizeObserverCompKey`, `getEmitEventName`.
+    - `columns/col-keys.ts`: column lookups by key (`getColumnByColkey`, `isLastColumnByColKey`, `isOperationColumn`, `getColKeysBy*`, `isExist*ColKey`, `getLeftmostColKey` / `getRightmostColKey`, `getPreviewColKey` / `getNextColKey`).
+    - `columns/init-group-columns.ts`: `initGroupColumns`, `recursiveRemoveColumnByKey`.
+    - `columns/column-fixed.ts`: fixed-column widths (`getFixedTotalWidthByColumnKey`, `getNotFixedTotalWidthByColumnKey`, `getTotalWidthByColKeys`), `setColumnFixed`, `cancelColumnFixed`, `restoreColumnsState`. `columns/index.ts` re-exports the three.
+    - `selection-range/range.ts`: `getRowKeysByRangeRowKeys`, `isCellInSelectionRange`, `isClearSelectionByBodyCellRightClick`, `getSelectionRangeKeys` / `Indexes` / `Data`.
+    - `autofill/cell-autofill.ts`: `cellAutofill`.
+    - `contextmenu/options.ts`: the header / body option collections, `setHeaderContextmenuOptions`, `setBodyContextmenuOptions`, `createEmptyRowData`, `isContextmenuPanelClicked`.
+    - Inside `util/`, `cell-dom.ts` imports `clsName` from `core.ts` and `clipboard/handlers.ts` imports from `selection-range/range.ts` instead of going through the barrel. The move was its own commit (every line of the old file landed in exactly one module, checked by script).
+    - A second commit typed the modules: parameter objects and return types, `ColKey` / `RowKey` (`string | number`) in `core.ts`, typed contextmenu nodes, `initGroupColumns` returns `ColgroupData[]`. `colgroups` and `allRowKeys` parameters use the loose aliases `ColgroupsParam` / `RowKeysParam` (`any[]`) for now, because most callers pass untyped `Array` props (`unknown[]`); tighten them once those props get a `PropType`. The only runtime-visible change: `isExistNotFixedColKey` returns a boolean instead of the count (its one caller only tests truthiness).
+  - **Verified:** after the move commit the suite passed unchanged (66 files, 704 tests, 1 todo, including `ve-table-util.spec.ts`, which imports through the barrel), eslint clean, tsc 426 (unchanged). After the typing commit: the same suite result, tsc 426 → 401 (all 24 errors in the old `util/index.ts` gone, no new errors elsewhere).
 - [x] ✅ 2026-10-16 · fix/audit-batch5-clipboard-codec · **MOD-04** Split `clipboard.ts` into `tsv-codec.ts` (pure encode/decode with round-trip unit tests) and `handlers.ts` (`onBefore*`/`onAfter*`). [CLIP-02 … CLIP-05]
   - **Done:** `util/clipboard/` now holds `tsv-codec.ts` (pure `decodeSpreadsheetStr` / `encodeToSpreadsheetStr`), `handlers.ts` (`onBefore*` / `onAfter*`, plus the private `getRangeResponse`, `clearRangeValues` and clipboard read/write helpers) and `index.ts` (re-exports both). The move was its own commit with no behaviour change; `methods/clipboard.ts` imports from `../util/clipboard/index.js`.
   - **Verified:** the full suite passed unchanged after the move commit; the codec is covered by `ve-table-tsv-codec.spec.ts` (CLIP-03, CLIP-04).

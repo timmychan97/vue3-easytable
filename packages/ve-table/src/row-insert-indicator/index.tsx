@@ -1,3 +1,4 @@
+import type { ColgroupData } from '../ve-table-types'
 import emitter from '@vue3-easytable/common/mixins/emitter'
 import { caf, raf } from '@vue3-easytable/common/utils/animation-frame'
 import { computed, defineComponent, nextTick, onUnmounted, ref, watch } from 'vue'
@@ -35,7 +36,8 @@ export default defineComponent({
     },
     // Column groups (for detecting operation column width)
     colgroups: {
-      type: Array,
+      // 声明元素类型，operationColumn._realTimeWidth 才能通过类型检查（INS-04）
+      type: Array as PropType<ColgroupData[]>,
       required: true,
     },
     // Row insert option
@@ -68,7 +70,7 @@ export default defineComponent({
 
     // Get the operation column (index column) if exists
     const operationColumn = computed(() => {
-      return props.colgroups.find((col: any) => col.operationColumn)
+      return props.colgroups.find(col => col.operationColumn)
     })
 
     // Get the actual column width (not including extra padding for detection)
@@ -351,7 +353,10 @@ export default defineComponent({
       event.stopPropagation()
       event.preventDefault()
 
-      if (insertRowIndex.value < 0)
+      // 点击时的插入下标：beforeInsertRow、on-row-insert 与 afterInsertRow 都使用它（INS-03），
+      // afterInsertRow 在下一个 tick 才调用，期间 insertRowIndex 可能已被更新
+      const index = insertRowIndex.value
+      if (index < 0)
         return
 
       const { beforeInsertRow, afterInsertRow } = props.rowInsertOption || {}
@@ -359,7 +364,7 @@ export default defineComponent({
       // Call before insert hook if defined
       if (typeof beforeInsertRow === 'function') {
         const shouldContinue = beforeInsertRow({
-          insertRowIndex: insertRowIndex.value,
+          insertRowIndex: index,
         })
         if (shouldContinue === false)
           return
@@ -367,14 +372,14 @@ export default defineComponent({
 
       // Emit the insert event
       emit(EMIT_EVENTS.ROW_INSERT, {
-        insertRowIndex: insertRowIndex.value,
+        insertRowIndex: index,
       })
 
       // Call after insert hook if defined
       if (typeof afterInsertRow === 'function') {
         nextTick(() => {
           afterInsertRow({
-            insertRowIndex: insertRowIndex.value,
+            insertRowIndex: index,
           })
         })
       }

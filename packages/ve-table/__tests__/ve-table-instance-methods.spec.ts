@@ -108,4 +108,36 @@ describe('veTable instance methods', () => {
 
     warnSpy.mockRestore()
   })
+
+  // SEL-14：列 key 为 0 时也能滚动到该列
+  it('scrollToColKey method accepts colKey 0 (SEL-14)', async () => {
+    const wrapper = mount(veTable, {
+      propsData: {
+        columns: [
+          { field: 'name', key: 'a', title: 'Name', width: 100 },
+          { field: 'date', key: 0, title: 'Date', width: 100 },
+          { field: 'hobby', key: 'c', title: 'Hobby', width: 100 },
+          { field: 'address', key: 'd', title: 'Address', width: 100 },
+        ],
+        tableData: TABLE_DATA,
+        rowKeyFieldName: 'rowkey',
+      },
+    })
+
+    await later()
+
+    const vm = wrapper.vm as any
+    // jsdom 没有布局：模拟出现横向滚动条，且已滚动到最右侧
+    vm.hasXScrollBar = true
+    const containerEl = wrapper.find('.ve-table-container').element as HTMLElement
+    Object.defineProperty(containerEl, 'scrollWidth', { configurable: true, value: 400 })
+    Object.defineProperty(containerEl, 'clientWidth', { configurable: true, value: 100 })
+    containerEl.scrollLeft = 300
+
+    vm.scrollToColKey({ colKey: 0 })
+
+    // key 为 0 的列在左侧，需要向左滚动
+    expect(containerEl.scrollLeft).toBeLessThan(300)
+    wrapper.unmount()
+  })
 })

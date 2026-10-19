@@ -3,7 +3,9 @@
 */
 
 import {
+  getColKeysByHeaderColumn,
   getColKeysByRangeColKeys,
+  getColumnByColkey,
   getNextColKey,
   setBodyContextmenuOptions,
   setColumnFixed,
@@ -114,6 +116,57 @@ describe('veTable util', () => {
       })
 
       expect(result.map(x => x.fixed || '')).toEqual(['', 'right', 'right'])
+    })
+  })
+
+  // SEL-14：列 key 为 0 时也是有效的 key
+  describe('colKey 0 (SEL-14)', () => {
+    const zeroColgroups: any[] = [
+      { key: 'a', field: 'a', _level: 1, _keys: 'a' },
+      { key: 0, field: 'zero', _level: 1, _keys: 0 },
+      { key: 'c', field: 'c', _level: 1, _keys: 'c' },
+    ]
+
+    it('getColumnByColkey finds the column with key 0', () => {
+      expect(getColumnByColkey(0, zeroColgroups)).toBe(zeroColgroups[1])
+    })
+
+    it('getColumnByColkey still returns null for an empty key', () => {
+      expect(getColumnByColkey('', zeroColgroups)).toBeNull()
+      expect(getColumnByColkey(null as any, zeroColgroups)).toBeNull()
+      expect(getColumnByColkey(undefined as any, zeroColgroups)).toBeNull()
+    })
+
+    it('getColKeysByHeaderColumn accepts a numeric key', () => {
+      expect(getColKeysByHeaderColumn({ headerColumnItem: { _keys: 0 } })).toEqual(['0'])
+    })
+
+    it('setColumnFixed works when a column before the target has key 0', () => {
+      const cloneColumns = zeroColgroups.map(x => ({ ...x }))
+
+      const result = setColumnFixed({
+        cloneColumns,
+        cellSelectionRangeData: { leftColKey: 'c', rightColKey: 'c' },
+        fixedType: COLUMN_FIXED_TYPE.RIGHT,
+        colgroups: cloneColumns,
+        enableColumnResize: false,
+      })
+
+      expect(result.map(x => x.fixed || '')).toEqual(['', '', 'right'])
+    })
+
+    it('setColumnFixed left-fixes up to the column with key 0', () => {
+      const cloneColumns = zeroColgroups.map(x => ({ ...x }))
+
+      const result = setColumnFixed({
+        cloneColumns,
+        cellSelectionRangeData: { leftColKey: 0, rightColKey: 0 },
+        fixedType: COLUMN_FIXED_TYPE.LEFT,
+        colgroups: cloneColumns,
+        enableColumnResize: false,
+      })
+
+      expect(result.map(x => x.fixed || '')).toEqual(['left', 'left', ''])
     })
   })
 

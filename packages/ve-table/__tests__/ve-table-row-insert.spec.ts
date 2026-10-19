@@ -373,6 +373,37 @@ describe('veTable row insert indicator', () => {
     })
   })
 
+  // INS-03：beforeInsertRow、on-row-insert 与 afterInsertRow 收到同一个插入下标
+  describe('insert callbacks (INS-03)', () => {
+    it('afterInsertRow gets the inserted index even if the hover state changes in the same tick', async () => {
+      const beforeInsertRow = vi.fn()
+      const afterInsertRow = vi.fn()
+      let indicatorVm: any = null
+      const onRowInsert = vi.fn(() => {
+        // 模拟在插入的同一 tick 内指示器的悬停状态被更新（例如处理了一次鼠标移动）
+        indicatorVm.insertRowIndex = 7
+      })
+
+      const wrapper = mountTable({
+        rowInsertOption: { enable: true, beforeInsertRow, afterInsertRow },
+        onOnRowInsert: onRowInsert,
+      })
+      await settle()
+      indicatorVm = wrapper.findComponent({ name: 'VeTableRowInsertIndicator' }).vm
+
+      await hover(wrapper, rowTop(3, 0) + 2)
+      expect(await clickAdd(wrapper)).toBe(3)
+      await nextTick()
+
+      expect(beforeInsertRow).toHaveBeenCalledWith({ insertRowIndex: 3 })
+      expect(onRowInsert).toHaveBeenCalledWith({ insertRowIndex: 3 })
+      expect(afterInsertRow).toHaveBeenCalledTimes(1)
+      expect(afterInsertRow).toHaveBeenCalledWith({ insertRowIndex: 3 })
+
+      wrapper.unmount()
+    })
+  })
+
   describe('props (VS-06)', () => {
     it('the indicator no longer takes virtualScrollPositions or visible indexes', async () => {
       const wrapper = mountTable({ virtualScrollOption: { enable: true } })

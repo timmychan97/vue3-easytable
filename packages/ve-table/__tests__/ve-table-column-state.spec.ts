@@ -204,4 +204,74 @@ describe('veTable column state', () => {
       wrapper.unmount()
     })
   })
+
+  // COL-09：defaultHiddenColumnKeys 只在首次初始化时生效，columns 变化时保留运行时隐藏 / 显示的列
+  describe('columns prop change keeps runtime hidden columns (COL-09)', () => {
+    const keysOf = (vm: any) => vm.colgroups.map((x: any) => x.key)
+
+    it('keeps a column hidden at runtime', async () => {
+      const wrapper = mountTable({
+        columnHiddenOption: { defaultHiddenColumnKeys: ['b'] },
+      })
+      await later()
+      const vm = wrapper.vm as any
+
+      vm.hideColumnsByKeys(['d'])
+      await later()
+      expect(keysOf(vm)).toEqual(['a', 'c', 'e'])
+
+      await wrapper.setProps({ columns: createColumns() })
+      await later()
+
+      expect(keysOf(vm)).toEqual(['a', 'c', 'e'])
+
+      wrapper.unmount()
+    })
+
+    it('keeps a default hidden column that was shown at runtime', async () => {
+      const wrapper = mountTable({
+        columnHiddenOption: { defaultHiddenColumnKeys: ['b'] },
+      })
+      await later()
+      const vm = wrapper.vm as any
+
+      vm.showColumnsByKeys(['b'])
+      await later()
+      expect(keysOf(vm)).toEqual(['a', 'b', 'c', 'd', 'e'])
+
+      await wrapper.setProps({ columns: createColumns() })
+      await later()
+
+      expect(keysOf(vm)).toEqual(['a', 'b', 'c', 'd', 'e'])
+
+      wrapper.unmount()
+    })
+
+    it('still applies defaultHiddenColumnKeys on mount', () => {
+      const wrapper = mountTable({
+        columnHiddenOption: { defaultHiddenColumnKeys: ['b', 'd'] },
+      })
+      const vm = wrapper.vm as any
+
+      expect(keysOf(vm)).toEqual(['a', 'c', 'e'])
+
+      wrapper.unmount()
+    })
+
+    it('behaves the same without defaultHiddenColumnKeys', async () => {
+      const wrapper = mountTable()
+      await later()
+      const vm = wrapper.vm as any
+
+      vm.hideColumnsByKeys(['d'])
+      await later()
+
+      await wrapper.setProps({ columns: createColumns() })
+      await later()
+
+      expect(keysOf(vm)).toEqual(['a', 'b', 'c', 'e'])
+
+      wrapper.unmount()
+    })
+  })
 })
