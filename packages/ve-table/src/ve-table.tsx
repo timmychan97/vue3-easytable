@@ -12,7 +12,6 @@ import type {
   HeaderIndicatorColKeys,
   SelectionInstance,
 } from './ve-table-types'
-import type { VirtualItem, VirtualScrollInstance } from './virtual-scroll'
 import VueDomResizeObserver from '@vue3-easytable/common/comps/resize-observer'
 import clickoutside from '@vue3-easytable/common/directives/clickoutside'
 import { globalLocale, LocaleInjectionKey } from '@vue3-easytable/common/locale'
@@ -22,7 +21,6 @@ import {
   isDefined,
   isEmptyValue,
   isFunction,
-  isNumber,
   scrollTo,
 } from '@vue3-easytable/common/utils'
 import { MOUSE_EVENT_CLICK_TYPE } from '@vue3-easytable/common/utils/constant'
@@ -42,6 +40,7 @@ import { FIXED_COLUMNS_KEY, useFixedColumns } from './features/fixed-columns/use
 import { useTableLayout } from './features/layout/useTableLayout'
 import { createRowState, ROW_STATE_KEY } from './features/row-state'
 import { createTableContext, provideTableContext, useTableContext } from './features/table-context'
+import { useVirtualScroll } from './features/virtual-scroll/useVirtualScroll'
 import Footer from './footer'
 import Header from './header'
 import { cellSelectionMethods } from './methods/cell-selection'
@@ -79,7 +78,6 @@ import {
 } from './util/index.js'
 import { safeCall } from './util/safe-call.js'
 import { veTableProps } from './ve-table-props'
-import { createVirtualScroll } from './virtual-scroll'
 
 export default defineComponent({
   name: COMPS_NAME.VE_TABLE,
@@ -123,6 +121,18 @@ export default defineComponent({
       rowKeyFieldName: () => props.rowKeyFieldName,
       allRowKeys,
     }))
+    // 模板 ref（render 中以同名字符串引用）
+    const tableRootRef = shallowRef<HTMLElement | null>(null)
+    const tableContainerWrapperRef = shallowRef<ComponentPublicInstance | null>(null)
+    const tableContainerRef = shallowRef<HTMLElement | null>(null)
+    const tableRef = shallowRef<HTMLTableElement | null>(null)
+    const tableBodyRef = shallowRef<ComponentPublicInstance | null>(null)
+    const tableContentWrapperRef = shallowRef<ComponentPublicInstance | null>(null)
+    const virtualPhantomRef = shallowRef<HTMLElement | null>(null)
+    const editInputRef = shallowRef<EditorInstance | null>(null)
+    const cellSelectionRef = shallowRef<SelectionInstance | null>(null)
+    const contextmenuRef = shallowRef<ComponentPublicInstance | null>(null)
+
     // 列：cloneColumns、分组表头、colgroups，隐藏 / 显示列，拖动列宽
     const columns = useColumns({
       props,
@@ -147,17 +157,14 @@ export default defineComponent({
     // 表头 / 表尾行高、表格高度
     const layout = useTableLayout({ props, groupColumns: columns.groupColumns })
 
-    // 模板 ref（render 中以同名字符串引用）
-    const tableRootRef = shallowRef<HTMLElement | null>(null)
-    const tableContainerWrapperRef = shallowRef<ComponentPublicInstance | null>(null)
-    const tableContainerRef = shallowRef<HTMLElement | null>(null)
-    const tableRef = shallowRef<HTMLTableElement | null>(null)
-    const tableBodyRef = shallowRef<ComponentPublicInstance | null>(null)
-    const tableContentWrapperRef = shallowRef<ComponentPublicInstance | null>(null)
-    const virtualPhantomRef = shallowRef<HTMLElement | null>(null)
-    const editInputRef = shallowRef<EditorInstance | null>(null)
-    const cellSelectionRef = shallowRef<SelectionInstance | null>(null)
-    const contextmenuRef = shallowRef<ComponentPublicInstance | null>(null)
+    // 虚拟滚动（TanStack Virtual）
+    const virtualScroll = useVirtualScroll({
+      props,
+      allRowKeys,
+      headerTotalHeight: layout.headerTotalHeight,
+      footerTotalHeight: layout.footerTotalHeight,
+      scrollElement: tableContainerRef,
+    })
 
     return {
       tableContext,
@@ -167,6 +174,7 @@ export default defineComponent({
       ...columns,
       ...columnMeasure,
       ...layout,
+      ...virtualScroll,
       tableRootRef,
       tableContainerWrapperRef,
       tableContainerRef,
@@ -182,11 +190,6 @@ export default defineComponent({
   data() {
     return {
       parentRendered: false,
-
-      // Virtual scroll
-      defaultVirtualScrollMinRowHeight: 40,
-      defaultVirtualScrollBufferScale: 1,
-      virtualScrollVersion: 0,
 
       // Scrolling state
       isLeftScrolling: false,
@@ -245,10 +248,6 @@ export default defineComponent({
       // Context menu
       contextmenuEventTarget: '' as string | EventTarget,
       contextmenuOptions: [] as ContextmenuOption[],
-
-      // 非响应式对象：TanStack 虚拟滚动实例（赋值时用 markRaw 包裹）。
-      // 只有引用本身是响应式的（替换实例时触发依赖），对象内部不会被 Vue 深度代理
-      virtualScroll: null as VirtualScrollInstance | null,
     }
   },
   computed: {
@@ -300,126 +299,9 @@ export default defineComponent({
         directionY,
       })
     },
-    // actual render table data
-    actualRenderTableData() {
-      if (this.isVirtualScroll)
-        return this.virtualItems.map((item: VirtualItem) => this.tableData[item.index])
-      return this.tableData
-    },
-    // TanStack virtual items (reactive via virtualScrollVersion)
-    virtualItems(): VirtualItem[] {
-      if (!this.isVirtualScroll)
-        return []
-      void this.virtualScrollVersion // establish reactive dependency
-      const vs = this.virtualScroll as VirtualScrollInstance | null
-      return vs ? vs.getVirtualItems() : this.initialVirtualItems
-    },
-    /*
-        VS-06：虚拟滚动实例要等滚动容器挂载后（mounted 之后的 nextTick）才能创建。
-        在此之前按预估行高先排出首屏行，避免首次渲染没有任何行；实例创建后这些行按 key 复用并被测量。
-        只有 maxHeight 是像素值时才能预估首屏行数，其他单位（%、vh 等）仍等待实例创建。
-        */
-    initialVirtualItems(): VirtualItem[] {
-      const { maxHeight, tableData, virtualScrollEstimateSize: estimateSize } = this
-      const viewportHeight = isNumber(maxHeight)
-        ? maxHeight
-        : /^\d+(?:\.\d+)?(?:px)?$/.test(String(maxHeight ?? '').trim())
-          ? Number.parseFloat(String(maxHeight))
-          : 0
-      if (!viewportHeight || !estimateSize || !Array.isArray(tableData))
-        return []
-
-      const count = Math.min(
-        tableData.length,
-        Math.ceil(viewportHeight / estimateSize) + this.virtualScrollOverscan,
-      )
-      const result: VirtualItem[] = []
-      for (let index = 0; index < count; index++) {
-        result.push({
-          index,
-          key: this.getVirtualRowKey(index),
-          start: index * estimateSize,
-          size: estimateSize,
-          end: (index + 1) * estimateSize,
-          lane: 0,
-        })
-      }
-      return result
-    },
-    // Total scrollable height from TanStack (reactive via virtualScrollVersion)
-    virtualTotalSize(): number {
-      if (!this.isVirtualScroll)
-        return 0
-      void this.virtualScrollVersion // establish reactive dependency
-      const vs = this.virtualScroll as VirtualScrollInstance | null
-      return vs ? vs.getTotalSize() : (this.tableData?.length ?? 0) * this.virtualScrollEstimateSize
-    },
-    // Top spacer height for virtual scroll
-    virtualPaddingTop(): number {
-      if (!this.isVirtualScroll)
-        return 0
-      void this.virtualScrollVersion // establish reactive dependency
-      const vs = this.virtualScroll as VirtualScrollInstance | null
-      return vs ? vs.getPaddingTop() : 0
-    },
-    // Bottom spacer height for virtual scroll
-    virtualPaddingBottom(): number {
-      if (!this.isVirtualScroll)
-        return 0
-      void this.virtualScrollVersion // establish reactive dependency
-      const vs = this.virtualScroll as VirtualScrollInstance | null
-      if (vs)
-        return vs.getPaddingBottom()
-      // 实例创建前：未渲染的行按预估行高占位
-      const rendered = this.initialVirtualItems.length
-      return Math.max((this.tableData?.length ?? 0) - rendered, 0) * this.virtualScrollEstimateSize
-    },
-    /*
-        VS-03：虚拟滚动关心的行身份（行数 + 行 key）。
-        只在增删、重排、替换行时变化；编辑单元格只修改行对象的字段，不会触发。
-        */
-    virtualRowIdentity(): { count: number, keys: Array<string | number> } {
-      return {
-        count: this.tableData?.length ?? 0,
-        keys: this.allRowKeys,
-      }
-    },
-    /*
-        VS-06：表头 / 表尾对虚拟滚动可视区的影响
-        - 固定表头 / 表尾（sticky）遮住滚动容器的顶部 / 底部：从容器高度中减去（stickyStart / stickyEnd）
-        - 非固定表头随内容滚走：第 0 行从表头高度处开始（scrollMargin）
-        */
-    virtualScrollViewportOffsets(): { scrollMargin: number, stickyStart: number, stickyEnd: number } {
-      const { headerTotalHeight, footerTotalHeight, fixedHeader, fixedFooter } = this
-      return {
-        scrollMargin: fixedHeader ? 0 : headerTotalHeight,
-        stickyStart: fixedHeader ? headerTotalHeight : 0,
-        stickyEnd: fixedFooter ? footerTotalHeight : 0,
-      }
-    },
     // 选区 / 编辑状态依赖的行列 key（SEL-01，供同步 watcher 使用）
     cellStateKeys(): [ColgroupData[], Array<string | number>] {
       return [this.colgroups, this.allRowKeys]
-    },
-    // Overscan count for TanStack virtual (extra rows above/below visible area)
-    virtualScrollOverscan() {
-      const { virtualScrollOption, defaultVirtualScrollBufferScale } = this
-      if (!virtualScrollOption)
-        return 5
-
-      const bufferScale = isNumber(virtualScrollOption.bufferScale) && virtualScrollOption.bufferScale > 0
-        ? virtualScrollOption.bufferScale
-        : defaultVirtualScrollBufferScale
-
-      // Map legacy bufferScale to a reasonable overscan count
-      return Math.max(Math.ceil(bufferScale * 5), 3)
-    },
-    // Estimated row height for TanStack virtual
-    virtualScrollEstimateSize() {
-      const { virtualScrollOption, defaultVirtualScrollMinRowHeight } = this
-      return isNumber(virtualScrollOption?.minRowHeight)
-        ? virtualScrollOption.minRowHeight
-        : defaultVirtualScrollMinRowHeight
     },
     // table container wrapper style
     tableContainerWrapperStyle() {
@@ -517,11 +399,6 @@ export default defineComponent({
 
       return result
     },
-    // is virtual scroll
-    isVirtualScroll() {
-      const { virtualScrollOption } = this
-      return virtualScrollOption && virtualScrollOption.enable
-    },
     // is editing cell
     isCellEditing() {
       const { editingCell } = this
@@ -616,81 +493,12 @@ export default defineComponent({
   },
   watch: {
     /*
-        VS-03：行数或行 key 变化时才更新虚拟滚动（不再 deep 监听 tableData）。
-        编辑单元格后的行高变化由 TanStack 对每行 <tbody> 的 ResizeObserver（measureElement）测量；
-        已测量的行高按 key 缓存，重排后仍然有效，因此不再调用 measure() 清空全部缓存。
-        */
-    'virtualRowIdentity': {
-      handler(newVal, oldVal) {
-        if (!this.isVirtualScroll)
-          return
-        if (
-          oldVal
-          && newVal.count === oldVal.count
-          && newVal.keys.length === oldVal.keys.length
-          && newVal.keys.every((key, index) => key === oldVal.keys[index])
-        ) {
-          return
-        }
-
-        if (this.virtualScroll) {
-          // 传入新的 getItemKey，TanStack 会按新的 key 顺序重新排布（行高缓存保留）
-          this.virtualScroll.setOptions({
-            count: newVal.count,
-            getItemKey: (index: number) => this.getVirtualRowKey(index),
-          })
-        }
-        else {
-          // 实例尚未创建（例如之前没有滚动容器），数据变化时再尝试创建
-          this.$nextTick(() => this.initTanStackVirtualScroll())
-        }
-      },
-    },
-    // VS-06：virtualScrollOption 的后续变化同步给 TanStack
-    'virtualScrollOverscan': {
-      handler(overscan) {
-        this.virtualScroll?.setOptions({ overscan })
-      },
-    },
-    'virtualScrollEstimateSize': {
-      handler(estimateSize) {
-        this.virtualScroll?.setOptions({ estimateSize })
-      },
-    },
-    'virtualScrollOption.scrolling': {
-      handler(scrolling) {
-        this.virtualScroll?.setOptions({ onScrolling: isFunction(scrolling) ? scrolling : null })
-      },
-    },
-    'virtualScrollViewportOffsets': {
-      handler(offsets) {
-        this.virtualScroll?.setOptions(offsets)
-      },
-    },
-    /*
         行或列变化后同步选区与编辑状态（SEL-01）
         包括原来 allRowKeys watcher 对 currentCell 的处理（行被移除时清空、行位置变化时更新 rowIndex）
         */
     'cellStateKeys': {
       handler() {
         this.reconcileCellState()
-      },
-      immediate: false,
-    },
-    /*
-        watch virtualScrollOption enable
-        允许按需开启虚拟滚动
-        */
-    'virtualScrollOption.enable': {
-      handler(newVal) {
-        if (newVal) {
-          // Enable virtual scroll — create TanStack instance
-          this.$nextTick(() => this.initTanStackVirtualScroll())
-        }
-        else {
-          // Disable virtual scroll — destroy TanStack instance
-          this.destroyTanStackVirtualScroll()
-        }
       },
       immediate: false,
     },
@@ -788,17 +596,10 @@ export default defineComponent({
 
     // init scrolling
     this.initScrolling()
-
-    // Initialize TanStack virtual scroll if enabled
-    if (this.isVirtualScroll) {
-      this.$nextTick(() => this.initTanStackVirtualScroll())
-    }
   },
   unmounted() {
     // remove key down event listener
     document.removeEventListener('keydown', this.dealKeydownEvent)
-    // Clean up TanStack virtual scroll instance
-    this.destroyTanStackVirtualScroll()
     // 拖动填充中卸载：移除 window 上的监听（FILL-02）
     this.removeAutofillWindowListeners()
     // 拖动选择中卸载：移除 document 上的监听（SEL-11）
@@ -830,69 +631,6 @@ export default defineComponent({
       const result = getScrollbarWidth()
       this.scrollBarWidth = result
       return result
-    },
-
-    // ── TanStack Virtual scroll management ──
-
-    /**
-     * Create the TanStack Virtual instance.
-     * Must be called after the scroll container is in the DOM (mounted / nextTick).
-     */
-    initTanStackVirtualScroll() {
-      // Guard: don't double-create
-      if (this.virtualScroll)
-        return
-      if (!this.isVirtualScroll)
-        return
-
-      const scrollEl = this.tableContainerRef as HTMLElement | null
-      if (!scrollEl)
-        return
-
-      const { virtualScrollOption, tableData } = this
-      const scrollingCb = isFunction(virtualScrollOption?.scrolling) ? virtualScrollOption.scrolling : undefined
-
-      // markRaw：实例内部状态由 TanStack 自己管理，通过 virtualScrollVersion 通知 Vue 重新渲染
-      this.virtualScroll = markRaw(createVirtualScroll({
-        count: tableData?.length ?? 0,
-        getScrollElement: () => this.tableContainerRef as HTMLElement | null,
-        estimateSize: this.virtualScrollEstimateSize,
-        overscan: this.virtualScrollOverscan,
-        // 每次读取当前的 tableData，整体替换数组（同样的 key）时无需更新
-        getItemKey: (index: number) => this.getVirtualRowKey(index),
-        onChange: () => {
-          // Increment reactive counter → triggers re-render of computed properties
-          this.virtualScrollVersion++
-        },
-        onScrolling: scrollingCb,
-        ...this.virtualScrollViewportOffsets,
-      }))
-
-      // Force initial render
-      this.virtualScrollVersion++
-    },
-
-    // 虚拟滚动行的 key：有 rowKeyFieldName 时用行 key（行高缓存随行移动），否则退回下标
-    getVirtualRowKey(index: number): string | number {
-      const row = this.tableData?.[index]
-      const key = row && this.rowKeyFieldName ? row[this.rowKeyFieldName] : undefined
-      return isDefined(key) ? key : index
-    },
-
-    // 每行 <tbody> 的 ref 回调：交给 TanStack 测量。方法引用稳定，Vue 不会在每次渲染时重新绑定 ref
-    measureVirtualRow(el: HTMLElement | null) {
-      this.virtualScroll?.measureElement(el)
-    },
-
-    /**
-     * Destroy the TanStack Virtual instance and clean up listeners.
-     */
-    destroyTanStackVirtualScroll() {
-      if (this.virtualScroll) {
-        this.virtualScroll.destroy()
-        this.virtualScroll = null
-        this.virtualScrollVersion++
-      }
     },
 
     // get virtual phantom (kept for expand row + fixed column sticky workaround)

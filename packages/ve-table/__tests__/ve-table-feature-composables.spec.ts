@@ -2,8 +2,10 @@ import type { ColumnOption } from '@/ve-table/src/ve-table-types'
 import { useColumns } from '@/ve-table/src/features/columns/useColumns'
 import { useTableLayout } from '@/ve-table/src/features/layout/useTableLayout'
 import { createTableContext } from '@/ve-table/src/features/table-context'
+import { useVirtualScroll } from '@/ve-table/src/features/virtual-scroll/useVirtualScroll'
 import { HOOKS_NAME } from '@/ve-table/src/util/constant'
-import { effectScope, nextTick, reactive, ref } from 'vue'
+import { mount } from '@vue/test-utils'
+import { computed, defineComponent, effectScope, nextTick, reactive, ref, shallowRef } from 'vue'
 
 /*
  * MOD-02：ve-table 拆出的功能组合式函数，脱离组件单独测试（只依赖显式传入的参数）
@@ -14,6 +16,18 @@ function runInScope<T>(fn: () => T) {
   const scope = effectScope()
   const result = scope.run(fn)!
   return { result, stop: () => scope.stop() }
+}
+
+// 使用了生命周期钩子的组合式函数：在一个空组件的 setup() 中运行
+function withSetup<T>(fn: () => T) {
+  let result!: T
+  const wrapper = mount(defineComponent({
+    setup() {
+      result = fn()
+      return () => null
+    },
+  }))
+  return { result, wrapper }
 }
 
 describe('useColumns', () => {
@@ -126,5 +140,78 @@ describe('useTableLayout', () => {
     await nextTick()
     expect(layout.headerRows.value).toEqual([{ rowHeight: 0 }])
     stop()
+  })
+})
+
+describe('useVirtualScroll', () => {
+  function setup(extraProps: Record<string, any> = {}) {
+    const tableData = Array.from({ length: 50 }, (_, i) => ({ id: `k${i}` }))
+    const props = reactive({
+      virtualScrollOption: { enable: true, minRowHeight: 30, bufferScale: 2 },
+      tableData,
+      rowKeyFieldName: 'id',
+      maxHeight: 300,
+      fixedHeader: true,
+      fixedFooter: true,
+      ...extraProps,
+    }) as any
+    const headerHeight = ref(40)
+    const footerHeight = ref(20)
+    // 没有滚动容器：实例不会创建，只测试创建之前的预估
+    const { result, wrapper } = withSetup(() => useVirtualScroll({
+      props,
+      allRowKeys: computed(() => props.tableData.map((x: any) => x.id)),
+      headerTotalHeight: computed(() => headerHeight.value),
+      footerTotalHeight: computed(() => footerHeight.value),
+      scrollElement: shallowRef(null),
+    }))
+    return { props, vs: result, wrapper, headerHeight }
+  }
+
+  it('maps the legacy options to TanStack options', () => {
+    const { vs, props } = setup()
+    expect(vs.isVirtualScroll.value).toBe(true)
+    expect(vs.virtualScrollEstimateSize.value).toBe(30)
+    expect(vs.virtualScrollOverscan.value).toBe(10)
+
+    props.virtualScrollOption = { enable: true, bufferScale: 0.1 }
+    expect(vs.virtualScrollEstimateSize.value).toBe(40)
+    expect(vs.virtualScrollOverscan.value).toBe(3)
+    props.virtualScrollOption = null
+    expect(vs.isVirtualScroll.value).toBe(false)
+    expect(vs.virtualItems.value).toEqual([])
+  })
+
+  it('lays out the first rows by the estimated height before the virtualizer exists (VS-06)', () => {
+    const { vs } = setup()
+    expect(vs.virtualScroll.value).toBeNull()
+
+    // 300 / 30 + overscan 10 = 20 行，key 为行 key
+    expect(vs.virtualItems.value.length).toBe(20)
+    expect(vs.virtualItems.value[1]).toEqual({ index: 1, key: 'k1', start: 30, size: 30, end: 60, lane: 0 })
+    expect(vs.actualRenderTableData.value.map((x: any) => x.id)).toEqual(vs.virtualItems.value.map(x => x.key))
+    expect(vs.virtualPaddingTop.value).toBe(0)
+    expect(vs.virtualPaddingBottom.value).toBe(30 * 30)
+    expect(vs.virtualTotalSize.value).toBe(50 * 30)
+  })
+
+  it('waits for the virtualizer when maxHeight is not in px', () => {
+    const { vs } = setup({ maxHeight: '50%' })
+    expect(vs.virtualItems.value).toEqual([])
+  })
+
+  it('turns a sticky or a scrolling header into the viewport offsets', () => {
+    const { vs, props, headerHeight } = setup()
+    expect(vs.virtualScrollViewportOffsets.value).toEqual({ scrollMargin: 0, stickyStart: 40, stickyEnd: 20 })
+
+    props.fixedHeader = false
+    props.fixedFooter = false
+    headerHeight.value = 50
+    expect(vs.virtualScrollViewportOffsets.value).toEqual({ scrollMargin: 50, stickyStart: 0, stickyEnd: 0 })
+  })
+
+  it('falls back to the row index as key without rowKeyFieldName', () => {
+    const { vs } = setup({ rowKeyFieldName: null })
+    expect(vs.getVirtualRowKey(3)).toBe(3)
   })
 })
