@@ -1,4 +1,4 @@
-import type { ColgroupData } from '../ve-table-types'
+import type { ColgroupData, RowHeight } from '../ve-table-types'
 import { getValByUnit } from '@vue3-easytable/common/utils/index.js'
 import { h } from 'vue'
 import { bindCustomEvents, getCustomEvents } from '../features/custom-events/bindCustomEvents'
@@ -61,7 +61,7 @@ export default defineComponent({
     },
     // footer rows
     footerRows: {
-      type: Array,
+      type: Array as PropType<RowHeight[]>,
       default() {
         return []
       },
@@ -89,7 +89,7 @@ export default defineComponent({
          * @desc  get body td class
          * @param {string} fixed - 固定方式
          */
-    getBodyTdClass({ fixed }) {
+    getBodyTdClass({ fixed }: { fixed?: unknown }) {
       const result = {
         [clsName('footer-td')]: true,
       }
@@ -139,7 +139,7 @@ export default defineComponent({
          * @desc  get body td style
          * @param {string} align - 居中方式
          */
-    getBodyTdStyle({ align }) {
+    getBodyTdStyle({ align }: { align?: string }) {
       const { rowIndex, footerRows } = this
 
       const result: Record<string, any> = {
@@ -162,9 +162,7 @@ export default defineComponent({
             0,
           )
         }
-        rowHeight = getValByUnit(rowHeight)
-
-        result.bottom = rowHeight
+        result.bottom = getValByUnit(rowHeight)
       }
 
       return result
