@@ -1,4 +1,4 @@
-import type { ColgroupData } from '../ve-table-types'
+import type { ColgroupData, RowHeight } from '../ve-table-types'
 import VueDomResizeObserver from '@vue3-easytable/common/comps/resize-observer'
 import { bindCustomEvents, getCustomEvents } from '../features/custom-events/bindCustomEvents'
 import { injectTableContext } from '../features/table-context'
@@ -7,7 +7,7 @@ import { COMPS_CUSTOM_ATTRS, COMPS_NAME, EMIT_EVENTS } from '../util/constant'
 import FooterTd from './footer-td'
 
 export default defineComponent({
-  name: COMPS_NAME.VE_TABLE_BODY_TR,
+  name: COMPS_NAME.VE_TABLE_FOOTER_TR,
   props: {
     rowData: {
       type: Object,
@@ -55,7 +55,7 @@ export default defineComponent({
     },
     // footer rows
     footerRows: {
-      type: Array,
+      type: Array as PropType<RowHeight[]>,
       default() {
         return []
       },
@@ -80,13 +80,9 @@ export default defineComponent({
     },
     // tr class
     trClass() {
-      let result = null
-
-      result = {
+      return {
         [clsName('footer-tr')]: true,
       }
-
-      return result
     },
   },
 

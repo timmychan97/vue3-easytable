@@ -13,8 +13,9 @@ import { safeCall } from '../util/safe-call'
 
 /*
  * 表头筛选的已确认状态（DD-09），按列 key 保存在表头（header/index.tsx）中。
- * 列配置变化（新的 columns 数组、隐藏 / 显示列、右键固定列）时表头行会重新创建（key 含 columnsOptionResetTime），
- * 本组件的 data 随之丢失；重新创建时从这里恢复，只要用户的 filterList 按值没有变化。
+ * 表头单元格重新创建时（例如列被隐藏后再显示、分组表头结构变化）本组件的 data 随之丢失；
+ * 重新创建时从这里恢复，只要用户的 filterList 按值没有变化。
+ * （RENDER-12 之前，任何列配置变化都会重新创建整个表头行。）
  */
 export interface HeaderFilterState {
   // 用户 filterList 的副本，只用于按值比较

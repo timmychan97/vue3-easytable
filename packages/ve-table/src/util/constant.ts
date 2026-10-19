@@ -145,8 +145,6 @@ export const EMIT_EVENTS = {
 export const HOOKS_NAME = {
   // table container scroll
   TABLE_CONTAINER_SCROLL: 'table-container-scroll',
-  // table-container-mouseup
-  TABLE_CONTAINER_MOUSEUP: 'table-container-mouseup',
   // table-container-mousemove
   // TABLE_CONTAINER_MOUSEMOVE: "table-container-mousemove",
   // table size change
@@ -184,6 +182,9 @@ export const COMPS_NAME = {
 
   VE_TABLE_COLGROUP: 'VeTableColgroup',
   VE_TABLE_FOOTER: 'VeTableFooter',
+  // 表尾行 / 单元格有自己的名称，不与表体组件同名（RENDER-11）
+  VE_TABLE_FOOTER_TR: 'VeTableFooterTr',
+  VE_TABLE_FOOTER_TD: 'VeTableFooterTd',
 
   VE_TABLE_EXPAND_TR: 'VeTableExpandTr',
   VE_TABLE_EXPAND_TR_ICON: 'VeTableExpandTrIcon',
