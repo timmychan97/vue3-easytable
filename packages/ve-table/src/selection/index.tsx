@@ -242,7 +242,8 @@ export default defineComponent({
 
       if (colgroups.find(x => x.fixed === 'left')) {
         const col = colgroups.find(x => !x.fixed)
-        if (col && col.field === cellSelectionRangeData.leftColKey)
+        // leftColKey 是列 key，按 key 比较（COL-06）
+        if (col && col.key === cellSelectionRangeData.leftColKey)
           result = true
       }
 

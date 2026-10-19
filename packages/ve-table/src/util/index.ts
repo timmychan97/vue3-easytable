@@ -2,6 +2,7 @@ import {
   isEmptyArray,
   isEmptyValue,
   isFunction,
+  isNumber,
 } from '@vue3-easytable/common/utils'
 import { MOUSE_EVENT_CLICK_TYPE } from '@vue3-easytable/common/utils/constant'
 import { getRandomId } from '@vue3-easytable/common/utils/random'
@@ -313,17 +314,11 @@ export function getHeaderContextmenuOptionCollection(t) {
     //     label: t("paste"),
     //     type: CONTEXTMENU_NODE_TYPES.PASTE,
     // },
-    {
-      label: t('删除列'),
-      type: CONTEXTMENU_NODE_TYPES.REMOVE_COLUMN,
-    },
+    // 删除列（REMOVE_COLUMN）、隐藏列（HIDE_COLUMN）尚未实现，其类型常量也已注释，
+    // 放在这里会得到 type: undefined，误匹配用户未写 type 的菜单项（MENU-01）
     {
       label: t('清空列'),
       type: CONTEXTMENU_NODE_TYPES.EMPTY_COLUMN,
-    },
-    {
-      label: t('隐藏列'),
-      type: CONTEXTMENU_NODE_TYPES.HIDE_COLUMN,
     },
     {
       label: t('左列冻结'),
@@ -378,10 +373,7 @@ export function getBodyContextmenuOptionCollection(t) {
       label: t('清空行'),
       type: CONTEXTMENU_NODE_TYPES.EMPTY_ROW,
     },
-    {
-      label: t('删除列'),
-      type: CONTEXTMENU_NODE_TYPES.REMOVE_COLUMN,
-    },
+    // 删除列（REMOVE_COLUMN）尚未实现，见 getHeaderContextmenuOptionCollection（MENU-01）
     {
       label: t('清空单元格'),
       type: CONTEXTMENU_NODE_TYPES.EMPTY_CELL,
@@ -581,10 +573,6 @@ export function setBodyContextmenuOptions({
             = selectionRangeIndexes.endRowIndex
               - selectionRangeIndexes.startRowIndex
               + 1
-    const colCount
-            = selectionRangeIndexes.endColIndex
-              - selectionRangeIndexes.startColIndex
-              + 1
 
     const { contextmenus, beforeShow } = contextmenuBodyOption
 
@@ -640,22 +628,6 @@ export function setBodyContextmenuOptions({
           === CONTEXTMENU_NODE_TYPES.EMPTY_CELL
         ) {
           isContinue = !isWholeRowSelection
-        }
-        // remove column.没选中整行时支持
-        else if (
-          contentmenuCollectionItem.type
-          === CONTEXTMENU_NODE_TYPES.REMOVE_COLUMN
-        ) {
-          if (isWholeRowSelection) {
-            isContinue = false
-          }
-          else {
-            contentmenuCollectionItem.label
-                            = contentmenuCollectionItem.label.replace(
-                '$1',
-                colCount,
-              )
-          }
         }
 
         if (isContinue)
@@ -1112,6 +1084,10 @@ export function getNextColKey({ colgroups, currentColKey }) {
 
   if (!isEmptyValue(currentColKey)) {
     const index = colgroups.findIndex(x => x.key === currentColKey)
+    // 未知的列 key 返回 null（与 getPreviewColKey 一致）
+    if (index < 0)
+      return result
+
     if (index === colgroups.length - 1)
       result = currentColKey
 
@@ -1486,7 +1462,7 @@ export function setColumnFixed({
 
       if (COLUMN_FIXED_TYPE.LEFT === fixedType) {
         // 不允许左冻结最后一列
-        if (index <= fixedColIndex && index < cloneColumns.length)
+        if (index <= fixedColIndex && index < cloneColumns.length - 1)
           colItem.fixed = fixedType
       }
       else {
@@ -1499,6 +1475,97 @@ export function setColumnFixed({
   }
 
   return result
+}
+
+/***
+ * @restoreColumnsState
+ * @desc 隐藏/显示列会从 props.columns 重新生成 cloneColumns，这里把用户交互产生的列状态恢复回去（COL-03）：
+ *   1. 右键菜单（取消）固定列后的 fixed（顶层列；分组表头的子列在 initGroupColumns 中继承父级）
+ *   2. 拖动调整后的列宽 colgroups[]._columnResizeWidth，写回叶子列的 width（与 setColumnFixed 的做法一致）
+ * 本次新显示的列（之前不在 prevCloneColumns 中）沿用列配置的 fixed，但要保证固定列连续：
+ *   位于左固定区域内则左固定，位于右固定区域内则右固定，会把固定区域断开时取消固定
+ * @param {array<object>} cloneColumns 新生成的 cloneColumns（会被直接修改）
+ * @param {array<object>} prevCloneColumns 当前的 cloneColumns
+ * @param {array<object>} colgroups 当前的 colgroups
+ * @param {bool} enableColumnResize
+ * @return cloneColumns
+ */
+export function restoreColumnsState({
+  cloneColumns,
+  prevCloneColumns,
+  colgroups,
+  enableColumnResize,
+}) {
+  // 列的标识：有 key 用 key；没有 key 的分组表头用其叶子列的 key
+  const getLeafKeys = (column) => {
+    if (!isEmptyArray(column.children))
+      return column.children.flatMap(getLeafKeys)
+    return isEmptyValue(column.key) ? [] : [column.key]
+  }
+  const getIdentityKeys = column =>
+    isEmptyValue(column.key) ? getLeafKeys(column) : [column.key]
+
+  const prevColumns = cloneColumns.map((column) => {
+    const keys = getIdentityKeys(column)
+    if (!keys.length)
+      return undefined
+    return prevCloneColumns.find(prev =>
+      getIdentityKeys(prev).some(key => keys.includes(key)),
+    )
+  })
+
+  const isLeft = fixed => fixed === COLUMN_FIXED_TYPE.LEFT
+  const isRight = fixed => fixed === COLUMN_FIXED_TYPE.RIGHT
+
+  // 已存在的列：沿用之前的固定状态
+  cloneColumns.forEach((column, index) => {
+    const prev = prevColumns[index]
+    if (prev)
+      column.fixed = prev.fixed
+  })
+
+  // 新显示的列：按相邻列保证固定列连续
+  cloneColumns.forEach((column, index) => {
+    if (prevColumns[index] || column.operationColumn)
+      return
+
+    const prevColumn = index > 0 ? cloneColumns[index - 1] : undefined
+    const nextIndex = prevColumns.findIndex((x, i) => i > index && x)
+    const nextColumn = nextIndex > -1 ? cloneColumns[nextIndex] : undefined
+
+    if (nextColumn && isLeft(nextColumn.fixed)) {
+      column.fixed = COLUMN_FIXED_TYPE.LEFT
+    }
+    else if (prevColumn && isRight(prevColumn.fixed)) {
+      column.fixed = COLUMN_FIXED_TYPE.RIGHT
+    }
+    else if (isLeft(column.fixed)) {
+      if (prevColumn && !isLeft(prevColumn.fixed))
+        column.fixed = ''
+    }
+    else if (isRight(column.fixed)) {
+      if (nextColumn && !isRight(nextColumn.fixed))
+        column.fixed = ''
+    }
+  })
+
+  // 拖动调整后的列宽
+  if (enableColumnResize) {
+    const restoreWidth = (column) => {
+      if (!isEmptyArray(column.children)) {
+        column.children.forEach(restoreWidth)
+        return
+      }
+      const colgroup = colgroups.find(
+        x => !isEmptyValue(x.key) && x.key === column.key,
+      )
+      if (colgroup && isNumber(colgroup._columnResizeWidth))
+        column.width = colgroup._columnResizeWidth
+    }
+    cloneColumns.forEach(restoreWidth)
+  }
+
+  return cloneColumns
 }
 
 /***
