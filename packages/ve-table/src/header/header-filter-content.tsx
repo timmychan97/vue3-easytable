@@ -3,7 +3,7 @@ import { isFunction } from '@vue3-easytable/common/utils'
 import { ICON_NAMES } from '@vue3-easytable/common/utils/constant'
 import VeDropdown from '@vue3-easytable/ve-dropdown'
 import VeIcon from '@vue3-easytable/ve-icon'
-import { defineComponent } from 'vue'
+import { defineComponent, h } from 'vue'
 import { clsName, getEmitEventName } from '../util'
 import { COMPS_NAME, EMIT_EVENTS, LOCALE_COMP_NAME } from '../util/constant'
 
@@ -50,7 +50,8 @@ export default defineComponent({
       filterReset && filterReset(this.filterList)
     },
     // getIcon
-    getIcon(h) {
+    // RENDER-01：filterIcon 接收真正的 h
+    getIcon() {
       let result
       const { filterIcon } = this.column.filter
       if (isFunction(filterIcon))
@@ -62,7 +63,7 @@ export default defineComponent({
       return result
     },
   },
-  render(h) {
+  render() {
     const { filterList, isMultiple, maxHeight, beforeVisibleChange }
             = this.column.filter
 
@@ -93,7 +94,7 @@ export default defineComponent({
           onMousedown={(e: MouseEvent) => e.stopPropagation()}
         >
           <span class={clsName('filter-icon')}>
-            {this.getIcon(h)}
+            {this.getIcon()}
           </span>
         </span>
       </VeDropdown>

@@ -116,10 +116,12 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
 
     Before the fix, the file failed to load with `ReferenceError: HTMLElement is not defined` at `ve-contextmenu/src/index.tsx:53`. With that fixed, it failed on `HTMLDivElement` in `column-resizer`. After that, VeTable failed with `document is not defined` in `getScrollbarWidth`, and the controlled dropdowns left `document is not defined` unhandled rejections. `ve-dropdown.spec.tsx` › "appends the container to body by default" and "accepts an element" also cover this.
 
-- [ ] **INFRA-06** 🟢 `VeTable` declares no `emits`
+- [x] ✅ 2026-10-19 · fix/audit-batch7-render-rows · **INFRA-06** 🟢 `VeTable` declares no `emits`
   - **Where:** `ve-table.tsx` (e.g. `on-row-insert` in `handleRowInsert`, ~2111)
   - **Effect:** listeners also fall through as attributes onto the root `<div>`, and there is no typing.
   - **Fix:** declare `emits` for every emitted event.
+  - **Done:** `emits: [EMIT_EVENTS.ROW_INSERT]`. A grep of `$emit` / `emit(` in `ve-table.tsx`, `methods/*`, `features/*` and `util/*` finds only `on-row-insert`; all other table-internal events go through the mitt event bus (`dispatch` / `on`), not `$emit`. The array form keeps `$emit(EMIT_EVENTS.…)` type-checking (the `EMIT_EVENTS` values are typed `string`, so a typed object form would need literal keys). No snapshot changed: a fallthrough `onOnRowInsert` was bound as a DOM listener, not rendered as an attribute.
+  - **Verified:** `ve-table-emits.spec.ts` › "declares every emitted event" and "the on-row-insert listener is an emit listener, not a fallthrough attribute" (before: `emits` was empty and `$attrs` contained `onOnRowInsert`; the listener still fires exactly once).
 
 - [x] ✅ 2026-10-16 · fix/audit-batch3b-state-reconcile + fix/audit-batch5-clipboard-codec · **INFRA-07** 🟠 A throwing user callback leaves internal state half-updated
   - **Where:**
@@ -136,7 +138,7 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
     - **Verified:** `ve-table-state-reconcile.spec.ts` › "throwing editing and autofill callbacks (INFRA-07)": "a throwing beforeCellValueChange cancels the change and still clears editing", "a throwing afterCellValueChange keeps the change and clears editing once", "after callbacks see the editing state already cleared", "a throwing afterAutofill still updates the selection and clears the autofill end cell" and "a throwing beforeAutofill cancels the fill and still clears the autofill end cell". Before the fix the errors escaped from `stopEditingCell()` (and editing stayed on), and the autofill errors escaped from the watcher.
   - **Closed** when both branches were merged into `refactor/all` (2026-10-16). Remaining unwrapped user callback found by batch 3b: `beforeStartCellEditing`, tracked as INFRA-11.
 
-- [ ] **INFRA-08** 🟠 Optional user callbacks are called without existence guards
+- [x] ✅ 2026-10-19 · fix/audit-batch7-render-rows · **INFRA-08** 🟠 Optional user callbacks are called without existence guards
   - **Where:**
     - `body/index.tsx:705`: `checkboxOption.selectedRowChange`
     - `body/index.tsx:779`: `radioOption.selectedRowChange`
@@ -146,6 +148,8 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
   - **Trigger:** e.g. a column with `sortBy` but no `sortOption` throws on click.
   - **Fix:** optional chaining plus `typeof fn === 'function'` checks.
   - **Progress (2026-10-16, `fix/audit-batch4-row-state`):** the row checkbox, radio and expand callbacks now go through the MOD-08 composables, which call `selectedRowChange`, `selectedAllChange` and the expand callbacks only when they exist (a missing `selectedRowChange` used to throw `selectedRowChange is not a function` on a checkbox click). The header `sortOption` sites and `hideSelectAll` are still open.
+  - **Done (2026-10-19, `fix/audit-batch7-render-rows`):** `header-th.tsx` `sortChange` reads `sortOption?.sortAlways`; `header/index.tsx` `sortChange` reads `sortOption?.multipleSort` / `sortOption?.sortChange` and calls `sortChange` only when it is a function (the sort state and the `SORT_CHANGE` dispatch to the table still happen); `header-th.tsx` uses `checkboxOption?.hideSelectAll`. Re-checked the body sites: `body/index.tsx` no longer reads `checkboxOption` / `radioOption` directly. Selection goes through `useRowSelection` / `useRowRadio`, which return early for a `null` option, treat an unset `selectedRowKeys` as uncontrolled, and call the callbacks only when they are functions. The remaining `expandOption.trigger` / `expandable` / `render` reads only run when an expand option exists (`isExpandRow`, `if (expandOption)`).
+  - **Verified:** `ve-table-callback-guards.spec.tsx` › "missing optional options and callbacks (INFRA-08)": "a sortable column without sortOption does not throw on click" (before: `Cannot destructure property 'sortAlways' of 'sortOption' as it is null`), "a sortOption without sortChange does not throw on click" (before: `sortChange is not a function`), "a checkbox column without checkboxOption renders the header" (before: `Cannot read properties of null (reading 'hideSelectAll')` on mount), plus "sortChange is still called with the sort columns" and "hideSelectAll still hides the header checkbox" as guards.
 
 - [ ] **INFRA-09** 🟢 Directive robustness
   - **Where:** `common/directives/clickoutside.ts` registers a handler even when the value isn't a function (it throws on every click), and has no `updated` hook (the callback captured at mount goes stale). `common/directives/events-outside.ts`: `beforeUnmount` calls `events.forEach` without checking `events`.
@@ -155,10 +159,12 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
   - **Where:** `common/utils/resize-event.ts:36-41`. `splice(indexOf(fn), 1)` with `-1` removes the **last** listener. After `disconnect()` the empty array is kept, so a later `addResizeListener` on the same element never observes again.
   - **Fix:** guard `idx > -1`, and delete the entry when the array is empty.
 
-- [ ] **INFRA-11** 🟢 User callbacks still called without `safeCall` (found in batches 3b and 6)
+- [x] ✅ 2026-10-19 · fix/audit-batch7-render-rows · **INFRA-11** 🟢 User callbacks still called without `safeCall` (found in batches 3b and 6)
   - **Where:** `beforeStartCellEditing` (`ve-table.tsx`, `startEditingCell`) and `virtualScrollOption.scrolling` (called from the virtual-scroll adapter's change handler).
   - **Effect:** a throw from `beforeStartCellEditing` escapes `startEditingCell` / the keyboard handler; a throw from `scrolling` escapes the virtualizer's change notification.
   - **Fix:** route both through `util/safe-call.ts`, as INFRA-07 did for the editing, autofill and clipboard callbacks.
+  - **Done:** both go through `safeCall`. A throwing `beforeStartCellEditing` cancels editing, like returning `false` (the INFRA-07 rule for `before*` callbacks). As before, a previous edit has already been saved and closed at that point. `fireScrolling` in `virtual-scroll.ts` calls `scrolling` through `safeCall`, so `onChange()` still runs after a throw.
+  - **Verified:** `ve-table-callback-guards.spec.tsx` › "throwing callbacks go through safeCall (INFRA-11)": "a throwing beforeStartCellEditing cancels editing and is logged" (before: `start boom` escaped `startEditingCell`) and "a throwing scrolling callback still lets the rows follow the scroll" (before: unhandled `scrolling boom` rejections, and the rendered rows stayed at the top after scrolling to 4000px), plus "beforeStartCellEditing returning false still cancels, other values allow editing" as a guard.
 
 ---
 
@@ -529,14 +535,19 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
   - **Done:** `useRowSelection.isSelectedAll` uses exactly that formula. `isIndeterminate` counts only selected keys that are in the data (some but not all rows), which keeps the old "checked + indeterminate" look when every enabled row is selected but a disabled row isn't.
   - **Verified:** `ve-table-row-state.spec.tsx` › "all rows disabled and none selected: header is not checked", "selected keys that are not in the data do not inflate the count", "disabled keys that are not in the data do not inflate the count" (all three showed a checked header before), plus "every enabled row selected, the disabled row unselected: header is checked"; `ve-table-row-state-composables.spec.ts` › "isSelectedAll compares sets (ROW-05)".
 
-- [ ] **ROW-06** 🟢 With expand `trigger: 'row'`, an icon click dispatches `BODY_CELL_CLICK` twice
+- [x] ✅ 2026-10-19 · fix/audit-batch7-render-rows · **ROW-06** 🟢 With expand `trigger: 'row'`, an icon click dispatches `BODY_CELL_CLICK` twice
   - **Where:** `expand-tr-icon.tsx:68`. The click bubbles into the td.
   - **Fix:** `stopPropagation` on the icon click, or de-duplicate in the handler.
+  - **Done:** de-duplicated in the icon. `stopPropagation` would also stop the click from reaching the `<tr>`, which is what expands the row with `trigger: 'row'`. With `trigger: 'row'` the icon's click handler now does nothing and the click bubbles to the td (one `BODY_CELL_CLICK`, the user's `bodyCellEvents.click`) and then the tr (`bodyRowEvents.click`, expand). `icon` / `cell` triggers are unchanged: the icon calls `cellClick`, which stops propagation.
+  - **Verified:** `ve-table-row-expand-trigger.spec.tsx` › "trigger row: an icon click dispatches BODY_CELL_CLICK once and expands once" (2 dispatches before), plus "trigger icon (default) …" and "trigger cell …", which guard the other two triggers (one dispatch, one expand).
 
-- [ ] **ROW-07** 🟢 Controlled select-all drops other pages' keys (found in batch 4)
+- [x] ✅ 2026-10-19 · fix/audit-batch7-render-rows · **ROW-07** 🟢 Controlled select-all drops other pages' keys (found in batch 4)
   - **Where:** `features/row-selection/useRowSelection.ts` `selectAll`. Selecting all builds the key list from the current data, and deselecting keeps only the disabled-and-selected keys, so keys selected on other pages are dropped in both directions.
   - **Note:** this is the original behaviour, kept on purpose by MOD-08. The pagination demo works around it with its own key collection.
   - **Fix (needs a decision):** keep selected keys that aren't in the current data when selecting or deselecting all, and document it.
+  - **Proposed decision (2026-10-19):** select all / deselect all act on the rows of the current `tableData` only. Selected keys that are not in the current data (other pages) are kept, in their existing order, ahead of the current data's keys; disabled rows keep their state as before. This applies to controlled and uncontrolled mode alike, so a selection can span pages without a separate key collection. The header checkbox state was already computed from the current data only (ROW-05).
+  - **Done:** `selectAll` builds `[...selected keys not in the data, ...current data keys]` (select: enabled or already selected rows; deselect: disabled-and-selected rows). Documented in `row-checkbox/explain.md` (item 6, en/nb/zh), the zh API table (`selectedAllChange`) and the `pagination/checkbox.md` demo (en/nb/zh). The demo's own key collection is gone: `selectedRowKeys` is the cross-page collection and both callbacks just assign `selectedRowKeys`. (The old demo also threw a `ReferenceError` on deselect-all, and its row-uncheck spliced the collection at the wrong index.)
+  - **Verified:** `ve-table-row-select-all.spec.tsx` › "controlled: select all / deselect all keep the other page's keys", "uncontrolled: the selection survives switching pages" and "disabled rows of the current data keep their state" (all three: the other page's keys were missing from `selectedRowKeys` before). The existing `ve-table-row-state-composables.spec.ts` › "selectAll keeps disabled rows as they are" still passes unchanged.
 
 ---
 
@@ -563,7 +574,7 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
 
 ## RENDER — body, header and footer rendering
 
-- [ ] **RENDER-01** 🟠 🔍 The `h` passed to user render callbacks is the component proxy, not `h`
+- [x] ✅ 2026-10-19 · fix/audit-batch7-render-rows · **RENDER-01** 🟠 🔍 The `h` passed to user render callbacks is the component proxy, not `h`
   - **Where:**
     - `body/body-td.tsx:557` → `renderBodyCell(params, h)` (~327)
     - `header/header-th.tsx:558` → `renderHeaderCell`
@@ -573,6 +584,8 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
   - **Cause:** Vue 3 calls `render(proxy, cache, …)`, so the `render(h)` parameter shadows the imported `h`.
   - **Trigger:** user code calling `h('span')` throws "h is not a function". (`expand-tr.tsx:109` is correct.)
   - **Fix:** remove the `h` parameter and pass the imported `h`.
+  - **Done:** the `render(h)` / `getRenderContent(h)` / `getIcon(h)` / `getCustomContent(h)` parameters are gone in `body-td.tsx`, `footer-td.tsx`, `header-th.tsx`, `header-filter-content.tsx` and `header-filter-custom-content.tsx`; each file imports `h` from `vue` and passes it as the same 2nd argument (`filterIcon(h)` for the icons), so existing `(params, h) => …` callbacks keep working and now get a real `h`. The custom filter's `render` was called as a slot function, so its `h` was the slot props (`undefined`); it now gets `h` too.
+  - **Verified:** `ve-table-render-cells.spec.tsx` › "render callbacks receive the real h (RENDER-01)": "renderBodyCell, renderHeaderCell and renderFooterCell can call h" and "filter and custom filter callbacks can call h" (both threw `hArg is not a function` before; they assert the argument is `vue`'s `h`).
 
 - [x] ✅ 2026-10-16 · fix/audit-batch6-vs-render-perf · **RENDER-02** 🟠 Unkeyed fragments around each body row cause mass remounts *(non-virtual path only since `442962c`)*
   - **Where:** `body/index.tsx:899-911`. Each row returns `[<BodyTr key=…/>, expandRow]`, so Vue builds unkeyed Fragments and matches rows by position. *The virtual path (848-897) now wraps each row in a keyed `<tbody>`, and the placeholder branch that dropped expand rows is gone.*
@@ -587,14 +600,18 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
   - **Done:** as proposed. The `rawCellValue` data field and the deep `rowData` watcher are removed.
   - **Verified:** `ve-table-render.spec.tsx` › `body cells read only their own field (RENDER-03)`: `does not traverse the whole row object` (each row has a nested object with a counting getter that no column uses; editing one cell read it 7 times before, 0 now) and `follows a change of column.field` (same column key, new field; the cell kept showing the old field's value before). `updates the cell when its field changes in place` guards the normal edit path.
 
-- [ ] **RENDER-04** 🟢 A cell span with only one dimension makes the cell disappear
+- [x] ✅ 2026-10-19 · fix/audit-batch7-render-rows · **RENDER-04** 🟢 A cell span with only one dimension makes the cell disappear
   - **Where:** `body-td.tsx:413-416, 581`; `footer-td.tsx:271-274, 321`. `bodyCellSpan` returning `{ colspan: 2 }` leaves `rowspan` undefined.
   - **Fix:** `rowspan ?? 1` and `colspan ?? 1`.
+  - **Done:** `getCellSpan()` in `body-td.tsx` and `footer-td.tsx` uses `?? 1` for each dimension, so only an explicit `0` hides a cell. A callback returning `null` (`typeof null === 'object'`) used to crash the render with `Cannot read properties of null (reading 'rowspan')`; it now means "no span".
+  - **Verified:** `ve-table-render-cells.spec.tsx` › "cell span with only one dimension (RENDER-04)": "body cell with only colspan keeps rowspan 1", "footer cell with only colspan keeps rowspan 1" (both: the cell was missing before) and "a span callback returning null keeps the cell" (threw before).
 
-- [ ] **RENDER-05** 🟠 🔍 `getTextContentOfVNode` always returns `''` for a VNode
+- [x] ✅ 2026-10-19 · fix/audit-batch7-render-rows · **RENDER-05** 🟠 🔍 `getTextContentOfVNode` always returns `''` for a VNode
   - **Where:** [common/utils/index.ts:87-88](../packages/common/utils/index.ts#L87-L88). It returns early whenever the VNode has children, so the recursion below is unreachable.
   - **Effect:** `column.ellipsis.showTitle` gives an empty `title` for any `renderBodyCell` that returns a VNode (`body-td.tsx:351`).
   - **Fix:** remove the early return, and handle string children, arrays and the `default` slot function.
+  - **Done:** the early return is removed and the recursion handles string / number children, child arrays and a component VNode's `default` slot function. Comment VNodes and `true` / `false` / `null` children (left by conditional rendering) add no text; a top-level boolean still becomes `'true'` / `'false'` as before.
+  - **Verified:** `ve-table-render-cells.spec.tsx` › "getTextContentOfVNode (RENDER-05)": "reads the text of element VNodes, nested children and arrays", "reads the default slot of component VNodes", "keeps the plain value behaviour and skips empty children" and "the ellipsis title shows the text of a renderBodyCell VNode" (all returned `''` before; the ellipsis `title` was empty).
 
 - [x] ✅ 2026-10-16 · fix/audit-batch6-vs-render-perf · **RENDER-06** 🟠 🔍 A scrollbar width of `0` is never cached, so it is re-measured on every render
   - **Where:** [ve-table.tsx:1168-1182](../packages/ve-table/src/ve-table.tsx#L1168-L1182) (`if (scrollBarWidth)`). Callers ~479 and ~2354.
@@ -603,9 +620,11 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
   - **Done:** `scrollBarWidth` starts as `null`, and `getScrollBarWidth` returns the cached value whenever it is not `null`, including `0`.
   - **Verified:** `ve-table-render.spec.tsx` › `scrollbar width (RENDER-06)` › `measures a 0px scrollbar width only once`. It counts the `.ve-scrollbar-wrap` probes appended to `body` across several re-renders (jsdom always measures 0, like an overlay scrollbar). It counted 6 before and counts 1 now.
 
-- [ ] **RENDER-07** 🟢 Checkbox and radio cells render a stray `column="[object Object]"` attribute (found in batch 4)
+- [x] ✅ 2026-10-19 · fix/audit-batch7-render-rows · **RENDER-07** 🟢 Checkbox and radio cells render a stray `column="[object Object]"` attribute (found in batch 4)
   - **Where:** the body checkbox / radio content components receive `column` from `body-td.tsx` but don't declare it, so it falls through onto the `<label>`. It is visible in the snapshots.
   - **Fix:** stop passing `column`, or declare it (or set `inheritAttrs: false`), then refresh the affected snapshots.
+  - **Done:** `body-td.tsx` no longer passes `column` to `BodyCheckboxContent` / `BodyRadioContent`, and `header-th.tsx` no longer passes it to `HeaderCheckboxContent` (the header select-all checkbox had the same stray attribute). None of them used it. The `ve-table-row-checkbox` and `ve-table-row-radio` `render` snapshots were updated; the only change is the removed `column="[object Object]"` (5 body cells each, plus the header checkbox).
+  - **Verified:** `ve-table-render-cells.spec.tsx` › "checkbox and radio cells have no stray column attribute (RENDER-07)" › "checkbox cells" / "radio cells" (both found `column=` before).
 
 ---
 

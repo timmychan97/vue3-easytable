@@ -1,5 +1,6 @@
 import emitter from '@vue3-easytable/common/mixins/emitter'
 import { getValByUnit } from '@vue3-easytable/common/utils/index.js'
+import { h } from 'vue'
 import { clsName, getFixedTotalWidthByColumnKey } from '../util'
 
 import { COMPS_NAME } from '../util/constant'
@@ -230,12 +231,13 @@ export default defineComponent({
     },
 
     // get render content
-    getRenderContent(h) {
+    getRenderContent() {
       let content = null
 
       const { column, rowData, rowIndex } = this
 
       // has render function
+      // RENDER-01：第二个参数传入真正的 h
       if (typeof column.renderFooterCell === 'function') {
         const renderResult = column.renderFooterCell(
           {
@@ -270,9 +272,10 @@ export default defineComponent({
             rowIndex,
           })
 
-          if (typeof result === 'object') {
-            rowspan = result.rowspan
-            colspan = result.colspan
+          // RENDER-04：只返回一个维度时，另一个维度默认为 1（之前为 undefined，单元格会消失）；返回 null 时不合并
+          if (result && typeof result === 'object') {
+            rowspan = result.rowspan ?? 1
+            colspan = result.colspan ?? 1
           }
         }
       }
@@ -316,7 +319,7 @@ export default defineComponent({
       fn && fn(e)
     },
   },
-  render(h) {
+  render() {
     const { column, rowData, rowIndex, eventCustomOption } = this
 
     const { rowspan, colspan } = this.getCellSpan()
@@ -386,7 +389,7 @@ export default defineComponent({
     return (
       <td {...tdProps}>
         {/* other cell content */}
-        {this.getRenderContent(h)}
+        {this.getRenderContent()}
       </td>
     )
   },

@@ -1,5 +1,6 @@
 import emitter from '@vue3-easytable/common/mixins/emitter'
 import { getTextContentOfVNode, isBoolean, isEmptyValue, isNumber } from '@vue3-easytable/common/utils/index'
+import { h } from 'vue'
 import { clsName, getRowKeysByRangeRowKeys } from '../util'
 
 import {
@@ -298,12 +299,13 @@ export default defineComponent({
     },
 
     // get render content
-    getRenderContent(h) {
+    getRenderContent() {
       let content = null
 
       const { column, rowData, rowIndex, rawCellValue } = this
 
       // has render function
+      // RENDER-01：第二个参数传入真正的 h（Vue 3 的 render 第一个参数是组件代理，不是 h）
       if (typeof column.renderBodyCell === 'function') {
         const renderResult = column.renderBodyCell(
           {
@@ -345,8 +347,8 @@ export default defineComponent({
     getCheckboxContent() {
       if (this.column.type === COLUMN_TYPES.CHECKBOX) {
         // checkbox content props
+        // RENDER-07：不再传 column（组件未声明该 prop，会作为 column="[object Object]" 透传到 DOM 上）
         const checkboxProps = {
-          column: this.column,
           rowKey: this.rowData[this.rowKeyFieldName],
         }
 
@@ -359,8 +361,8 @@ export default defineComponent({
     getRadioContent() {
       if (this.column.type === COLUMN_TYPES.RADIO) {
         // radio props
+        // RENDER-07：同上，不传未声明的 column
         const radioProps = {
-          column: this.column,
           rowKey: this.rowData[this.rowKeyFieldName],
         }
 
@@ -385,9 +387,10 @@ export default defineComponent({
             rowIndex,
           })
 
-          if (typeof result === 'object') {
-            rowspan = result.rowspan
-            colspan = result.colspan
+          // RENDER-04：只返回一个维度时，另一个维度默认为 1（之前为 undefined，单元格会消失）；返回 null 时不合并
+          if (result && typeof result === 'object') {
+            rowspan = result.rowspan ?? 1
+            colspan = result.colspan ?? 1
           }
         }
       }
@@ -529,7 +532,7 @@ export default defineComponent({
       })
     },
   },
-  render(h) {
+  render() {
     const {
       column,
       cellClick,
@@ -627,7 +630,7 @@ export default defineComponent({
         {/* radio content */}
         {this.getRadioContent()}
         {/* other cell content */}
-        {this.getRenderContent(h)}
+        {this.getRenderContent()}
       </td>
     )
   },

@@ -2,6 +2,7 @@ import { isBoolean, isFunction } from '@vue3-easytable/common/utils'
 import { ICON_NAMES } from '@vue3-easytable/common/utils/constant'
 import VeDropdown from '@vue3-easytable/ve-dropdown'
 import VeIcon from '@vue3-easytable/ve-icon'
+import { h } from 'vue'
 import { clsName } from '../util'
 import { COMPS_NAME } from '../util/constant'
 
@@ -38,7 +39,8 @@ export default defineComponent({
       this.internalVisible = visible
     },
     // get custom content
-    getCustomContent(h) {
+    // RENDER-01：作为插槽函数调用时参数是插槽 props，不是 h；这里始终传入真正的 h
+    getCustomContent() {
       let result = null
 
       const { render } = this.column.filterCustom
@@ -62,7 +64,7 @@ export default defineComponent({
       return result
     },
     // getIcon
-    getIcon(h) {
+    getIcon() {
       let result
       const { filterIcon } = this.column.filterCustom
       if (isFunction(filterIcon))
@@ -81,7 +83,7 @@ export default defineComponent({
       this.internalVisible = true
     },
   },
-  render(h) {
+  render() {
     const compProps = {
       isCustomContent: true,
       isControlled: true,
@@ -104,11 +106,11 @@ export default defineComponent({
           onMousedown={(e: MouseEvent) => e.stopPropagation()}
         >
           <span class={clsName('filter-icon')}>
-            {this.getIcon(h)}
+            {this.getIcon()}
           </span>
         </span>
         {/* custom content */}
-        {/* {this.getCustomContent(h)} */}
+        {/* {this.getCustomContent()} */}
       </VeDropdown>
     )
   },

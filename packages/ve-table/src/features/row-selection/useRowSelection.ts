@@ -162,9 +162,11 @@ export function useRowSelection(options: UseRowSelectionOptions) {
   }
 
   /**
-   * 全选 / 取消全选
+   * 全选 / 取消全选（只作用于当前数据中的行）
    * 1、全选：当前数据的全部 key，但不包含“禁用且未选中”的行
-   * 2、取消全选：只保留“禁用且已选中”的行
+   * 2、取消全选：当前数据中只保留“禁用且已选中”的行
+   * 3、ROW-07：不在当前数据中的已选 key（例如分页时其他页的 key）保持不变并排在前面，
+   *    因此可以跨页勾选；之前全选 / 取消全选都会丢掉这些 key
    */
   function selectAll(isSelected: boolean) {
     const option = getOption()
@@ -173,10 +175,17 @@ export function useRowSelection(options: UseRowSelectionOptions) {
 
     const selected = selectedKeySet.value
     const disabled = disabledKeySet.value
+    const all = toValue(allRowKeys)
+    const inData = new Set(all)
 
-    const nextKeys = isSelected
-      ? toValue(allRowKeys).filter(key => !disabled.has(key) || selected.has(key))
-      : (option.disableSelectedRowKeys || []).filter(key => selected.has(key))
+    // 不在当前数据中的已选 key（集合已去重，保持原有顺序）
+    const outsideKeys = [...selected].filter(key => !inData.has(key))
+
+    const currentKeys = isSelected
+      ? all.filter(key => !disabled.has(key) || selected.has(key))
+      : all.filter(key => disabled.has(key) && selected.has(key))
+
+    const nextKeys = outsideKeys.concat(currentKeys)
 
     commit(nextKeys)
 

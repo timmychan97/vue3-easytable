@@ -80,6 +80,7 @@ import {
   recursiveRemoveColumnByKey,
   restoreColumnsState,
 } from './util/index.js'
+import { safeCall } from './util/safe-call.js'
 import { createVirtualScroll } from './virtual-scroll'
 
 export default defineComponent({
@@ -88,6 +89,12 @@ export default defineComponent({
     'click-outside': clickoutside,
   },
   mixins: [emitter('eventBus')],
+  /*
+   * INFRA-06：声明组件对外触发的全部事件（this.$emit）。
+   * 未声明时监听器会作为属性透传到根元素上。内部组件之间的通信走 eventBus（dispatch / on），不在此列。
+   * - on-row-insert：行插入（rowInsertOption），参数 { insertRowIndex }
+   */
+  emits: [EMIT_EVENTS.ROW_INSERT],
   inject: {
     // 语言包：最近的 ConfigProvider，否则为全局语言包（右键菜单文案使用）。
     // ve-table 仍是 Options API（MOD-02），这里用 inject 选项而不是 setup，保持实例结构不变
@@ -2186,15 +2193,20 @@ export default defineComponent({
 
       const { beforeStartCellEditing } = editOption
 
+      // INFRA-11：通过 safeCall 调用；与其他 before* 回调一致，抛出异常等同于返回 false（取消编辑）
       if (isFunction(beforeStartCellEditing)) {
-        const allowContinue = beforeStartCellEditing({
-          row: cloneDeep(currentRow),
-          column: currentColumn,
-          cellValue: isDefined(defaultValue)
-            ? defaultValue
-            : currentRow[currentColumn.field],
-        })
-        if (isBoolean(allowContinue) && !allowContinue)
+        const { value: allowContinue, threw } = safeCall(
+          'beforeStartCellEditing',
+          beforeStartCellEditing,
+          {
+            row: cloneDeep(currentRow),
+            column: currentColumn,
+            cellValue: isDefined(defaultValue)
+              ? defaultValue
+              : currentRow[currentColumn.field],
+          },
+        )
+        if (threw || (isBoolean(allowContinue) && !allowContinue))
           return false
       }
 

@@ -704,7 +704,7 @@ export const db = {
       },
       {
         param: 'selectedAllChange',
-        desc: '全选改变事件。事件接收 2 个参数，<code>isSelected</code> 是否全选。<code>selectedRowKeys</code>所有选中的 rowKey 信息',
+        desc: '全选改变事件。事件接收 2 个参数，<code>isSelected</code> 是否全选。<code>selectedRowKeys</code>所有选中的 rowKey 信息。全选 / 取消全选只改变当前数据中的行，不在当前数据中的已选 key（例如其他页的行）会保留',
         type: '<code>Function({isSelected, selectedRowKeys})</code>',
         optionalVal: '-',
         default: '-',

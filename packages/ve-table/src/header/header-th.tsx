@@ -2,6 +2,7 @@ import emitter from '@vue3-easytable/common/mixins/emitter'
 import { getValByUnit, isEmptyValue } from '@vue3-easytable/common/utils'
 import { ICON_NAMES } from '@vue3-easytable/common/utils/constant'
 import VeIcon from '@vue3-easytable/ve-icon'
+import { h } from 'vue'
 import {
   clsName,
   getColKeysByHeaderColumn,
@@ -341,13 +342,10 @@ export default defineComponent({
       const { checkboxOption } = this
 
       if (this.groupColumnItem.type === COLUMN_TYPES.CHECKBOX) {
-        if (!checkboxOption.hideSelectAll) {
-          // checkbox content props
-          const checkboxProps = {
-            column: this.groupColumnItem,
-          }
-
-          result = <HeaderCheckboxContent {...checkboxProps} />
+        // INFRA-08：没有 checkboxOption 时也渲染全选
+        if (!checkboxOption?.hideSelectAll) {
+          // RENDER-07：不传 column（组件未声明该 prop，会透传成 column="[object Object]"）
+          result = <HeaderCheckboxContent />
         }
       }
       return result
@@ -356,7 +354,8 @@ export default defineComponent({
     sortChange() {
       let sortResult = ''
       const { sortColumns, groupColumnItem, sortOption } = this
-      const { sortAlways } = sortOption
+      // INFRA-08：列设置了 sortBy 但没有 sortOption 时也能排序
+      const sortAlways = sortOption?.sortAlways
 
       const currentField = groupColumnItem.field
       const sortBy = sortColumns[currentField]
@@ -554,7 +553,7 @@ export default defineComponent({
       fn && fn(e)
     },
   },
-  render(h) {
+  render() {
     const {
       groupColumnItem,
       getTheadThClass,
@@ -565,6 +564,7 @@ export default defineComponent({
 
     let content
 
+    // RENDER-01：第二个参数传入真正的 h
     if (typeof groupColumnItem.renderHeaderCell === 'function') {
       const { ...column } = groupColumnItem
 
