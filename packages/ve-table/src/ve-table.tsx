@@ -340,17 +340,14 @@ export default defineComponent({
       previewTableContainerScrollLeft: null as number | null,
 
       // Cell selection
+      // 整列 / 整行选择的指示器，只保存 key（SEL-09）
       headerIndicatorColKeys: {
         startColKey: '',
-        startColKeyIndex: -1,
         endColKey: '',
-        endColKeyIndex: -1,
       } as HeaderIndicatorColKeys,
       bodyIndicatorRowKeys: {
         startRowKey: '',
-        startRowKeyIndex: -1,
         endRowKey: '',
-        endRowKeyIndex: -1,
       } as BodyIndicatorRowKeys,
       cellSelectionData: {
         currentCell: { rowKey: '', colKey: '', rowIndex: -1 },
@@ -697,7 +694,7 @@ export default defineComponent({
     },
     // contextmenu type
     contextMenuType() {
-      if (this.headerIndicatorColKeys.startColKeyIndex > -1)
+      if (!isEmptyValue(this.headerIndicatorColKeys.startColKey))
         return CONTEXTMENU_TYPES.HEADER_CONTEXTMENU
 
       else
@@ -1458,8 +1455,12 @@ export default defineComponent({
       if (!this.enableCellSelection)
         return false
 
+      // SEL-10：点击的是单元格中渲染的输入框、按钮等：焦点和按键归该元素
+      const isWidgetMousedown = !!this.getCellWidgetElement(event.target)
+
       // SEL-08：点击单元格（包括当前单元格）恢复单元格导航
-      this.keyboardMode = KEYBOARD_MODE.CELL
+      if (!isWidgetMousedown)
+        this.keyboardMode = KEYBOARD_MODE.CELL
 
       const { shiftKey } = event
 
@@ -1486,12 +1487,12 @@ export default defineComponent({
         const { bodyIndicatorRowKeys } = this
         this.isBodyOperationColumnMousedown = true
 
+        const { startRowKey, endRowKey } = bodyIndicatorRowKeys
+        // 下标按当前行顺序计算，插入行后不会过期（SEL-09）
         const {
-          startRowKey,
-          endRowKey,
-          startRowKeyIndex,
-          endRowKeyIndex,
-        } = bodyIndicatorRowKeys
+          startRowIndex: startRowKeyIndex,
+          endRowIndex: endRowKeyIndex,
+        } = this.getIndicatorIndexes()
         let newStartRowKey = startRowKey
         let newEndRowKey = endRowKey
 
@@ -1525,8 +1526,8 @@ export default defineComponent({
         })
       }
       else {
-        // body cell mousedown
-        this.isBodyCellMousedown = true
+        // body cell mousedown（在输入框中拖动选择文字时不扩展单元格选区，SEL-10）
+        this.isBodyCellMousedown = !isWidgetMousedown
 
         const isClearByRightClick
                     = isClearSelectionByBodyCellRightClick({
@@ -1717,8 +1718,12 @@ export default defineComponent({
         this.$refs[this.cellSelectionRef].clearNormalEndCellRect()
       }
 
-      const { startColKey, endColKey, startColKeyIndex, endColKeyIndex }
-                = headerIndicatorColKeys
+      const { startColKey, endColKey } = headerIndicatorColKeys
+      // 下标按当前列顺序计算（SEL-09）
+      const {
+        startColIndex: startColKeyIndex,
+        endColIndex: endColKeyIndex,
+      } = this.getIndicatorIndexes()
 
       let newStartColKey = startColKey
       let newEndColKey = endColKey
@@ -1877,12 +1882,21 @@ export default defineComponent({
         return false
 
       if (!isEmptyValue(rowKey) && !isEmptyValue(colKey)) {
+        // 不用 getColumnByColkey：它把 0 当作空 key
+        const column = this.colgroups.find(x => x.key === colKey)
+
+        // 未知的行或列：不改变选区（SEL-06）
+        if (!column || !this.allRowKeys.includes(rowKey))
+          return false
+
+        // 普通单元格选择，不再是整列 / 整行选择（SEL-09）
+        this.clearIndicatorKeys()
+
         this.cellSelectionCurrentCellChange({
           rowKey,
           colKey,
         })
 
-        const column = getColumnByColkey(colKey, this.colgroups)
         // column to visible
         this.columnToVisible(column)
         // row to visible
@@ -1915,6 +1929,20 @@ export default defineComponent({
         return false
       }
 
+      // 未知的行或列：不改变选区（SEL-06）
+      const { allRowKeys, colgroups } = this
+      if (
+        !allRowKeys.includes(startRowKey)
+        || !allRowKeys.includes(endRowKey)
+        || !colgroups.some(x => x.key === startColKey)
+        || !colgroups.some(x => x.key === endColKey)
+      ) {
+        return false
+      }
+
+      // 普通区域选择，不再是整列 / 整行选择（SEL-09）
+      this.clearIndicatorKeys()
+
       this.cellSelectionCurrentCellChange({
         rowKey: startRowKey,
         colKey: startColKey,
@@ -1927,7 +1955,7 @@ export default defineComponent({
 
       // row to visible
       if (isScrollToStartCell) {
-        const column = getColumnByColkey(startColKey, this.colgroups)
+        const column = colgroups.find(x => x.key === startColKey)
         // column to visible
         this.columnToVisible(column)
         this[INSTANCE_METHODS.SCROLL_TO_ROW_KEY]({
@@ -2332,6 +2360,10 @@ export default defineComponent({
       },
       // SEL-08：根元素可获得焦点（Esc 离开单元格导航后焦点停在这里，Tab 进入表格时也落在这里）
       tabindex: enableCellSelection ? 0 : undefined,
+      // SEL-10：焦点进入单元格中的输入框等元素时，单元格导航休眠
+      onFocusin: (event: FocusEvent) => {
+        this.dealFocusin(event)
+      },
     }
 
     // table container wrapper props

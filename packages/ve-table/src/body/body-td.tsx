@@ -244,8 +244,7 @@ export default defineComponent({
           if (operationColumn) {
             const { topRowKey, bottomRowKey }
                             = cellSelectionRangeData
-            const { startRowKeyIndex } = bodyIndicatorRowKeys
-            const isIndicatorActive = startRowKeyIndex > -1
+            const isIndicatorActive = !isEmptyValue(bodyIndicatorRowKeys.startRowKey)
 
             let indicatorRowKeys = []
             if (topRowKey === bottomRowKey) {

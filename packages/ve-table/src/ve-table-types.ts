@@ -57,18 +57,15 @@ export interface CellSelectionRangeData {
   bottomRowKey: string | number
 }
 
+// 只保存 key，下标按需计算（SEL-09）
 export interface HeaderIndicatorColKeys {
   startColKey: string | number
-  startColKeyIndex: number
   endColKey: string | number
-  endColKeyIndex: number
 }
 
 export interface BodyIndicatorRowKeys {
   startRowKey: string | number
-  startRowKeyIndex: number
   endRowKey: string | number
-  endRowKeyIndex: number
 }
 
 // ── Editing ──

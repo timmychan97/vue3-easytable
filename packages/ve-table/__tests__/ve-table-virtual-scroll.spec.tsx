@@ -838,6 +838,89 @@ describe('veTable virtual scroll', () => {
       rectSpy.mockRestore()
     })
 
+    // EDIT-03：目标单元格未渲染（在虚拟窗口之外）时，编辑框不能留在上一个单元格上
+    it('the editor drops the previous cell when the selected cell is not rendered', async () => {
+      const rectSpy = mockCellRects()
+
+      const wrapper = mountVirtual({
+        columns: COLUMNS.map(x => ({ ...x, edit: true })),
+        editOption: {},
+      })
+      wrapper.triggerResizeObserver({ width: MAX_HEIGHT })
+      await settle()
+
+      await wrapper.find('tbody[data-index="5"] td[col-key="b"]').trigger('mousedown')
+      await settle()
+
+      const editor = wrapper.findComponent({ name: 'VeTableEditInput' })
+      expect((editor.vm as any).cellEl).not.toBe(null)
+
+      const vm = wrapper.vm as any
+      vm.setCellSelection({ rowKey: 900, colKey: 'b', isScrollToRow: false })
+      await settle()
+
+      expect(wrapper.find('tbody[data-index="900"]').exists()).toBe(false)
+      expect((editor.vm as any).cellEl).toBe(null)
+      expect((editor.vm as any).overflowViewport).toBe(true)
+
+      // 编辑未渲染的单元格：编辑框不显示（之前显示在第 5 行的单元格上）
+      vm.startEditingCell({ rowKey: 900, colKey: 'b' })
+      await settle()
+      expect(vm.isCellEditing).toBe(true)
+      expect(wrapper.find('.ve-table-edit-input-container').classes())
+        .not
+        .toContain('ve-table-edit-input-container-show')
+
+      // 滚动到该行后，编辑框重新找到单元格并显示（滚动停止后的防抖查找与定位）
+      await scrollContainer(wrapper, 900 * MIN_ROW_HEIGHT)
+      await later(250)
+      const tdEl = wrapper.find('tbody[data-index="900"] td[col-key="b"]')
+      expect(tdEl.exists()).toBe(true)
+      expect((editor.vm as any).cellEl).toBe(tdEl.element)
+      expect((editor.vm as any).overflowViewport).toBe(false)
+      expect(wrapper.find('.ve-table-edit-input-container').classes())
+        .toContain('ve-table-edit-input-container-show')
+
+      wrapper.unmount()
+      rectSpy.mockRestore()
+    })
+
+    // EDIT-03：先滚动到未渲染的活动单元格，再开始编辑，编辑框也要找到它
+    it('the editor finds the cell when editing starts after scrolling to it', async () => {
+      const rectSpy = mockCellRects()
+
+      const wrapper = mountVirtual({
+        columns: COLUMNS.map(x => ({ ...x, edit: true })),
+        editOption: {},
+      })
+      wrapper.triggerResizeObserver({ width: MAX_HEIGHT })
+      await settle()
+
+      await wrapper.find('tbody[data-index="5"] td[col-key="b"]').trigger('mousedown')
+      await settle()
+
+      const vm = wrapper.vm as any
+      vm.setCellSelection({ rowKey: 900, colKey: 'b', isScrollToRow: false })
+      await settle()
+
+      // 未编辑时滚动不会重新查找单元格
+      await scrollContainer(wrapper, 900 * MIN_ROW_HEIGHT)
+      await later(250)
+      const tdEl = wrapper.find('tbody[data-index="900"] td[col-key="b"]')
+      expect(tdEl.exists()).toBe(true)
+
+      vm.startEditingCell({ rowKey: 900, colKey: 'b' })
+      await settle()
+
+      const editor = wrapper.findComponent({ name: 'VeTableEditInput' })
+      expect((editor.vm as any).cellEl).toBe(tdEl.element)
+      expect(wrapper.find('.ve-table-edit-input-container').classes())
+        .toContain('ve-table-edit-input-container-show')
+
+      wrapper.unmount()
+      rectSpy.mockRestore()
+    })
+
     it('the row insert indicator sees every rendered row', async () => {
       const wrapper = mountVirtual({
         rowInsertOption: { enable: true },

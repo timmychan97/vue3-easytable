@@ -31,7 +31,59 @@ function isKeydownForTable(path: EventTarget[], rootEl: HTMLElement) {
     || target === document.documentElement
 }
 
+/*
+ * 可获得焦点、拥有自己按键的元素（SEL-10）。
+ * 用 closest 查找，因此点击按钮中的图标、label 中的文字也算作点击该元素
+ */
+const INTERACTIVE_SELECTOR = [
+  'input',
+  'textarea',
+  'select',
+  'button',
+  'label',
+  'a[href]',
+  '[contenteditable]:not([contenteditable="false"])',
+  '[tabindex]',
+].join(', ')
+
 export const keyboardMethods = {
+  /*
+   * @getEditorTextareaEl
+   * @desc 本表格的编辑框（textarea），单元格导航时由它持有焦点
+   */
+  getEditorTextareaEl(this: any): HTMLTextAreaElement | null {
+    const editor = this.$refs[this.editInputRef] as any
+    return editor?.$refs?.textareaInputRef ?? null
+  },
+
+  /*
+   * @getCellWidgetElement
+   * @desc 目标所在的、表格内部的可交互元素（单元格中渲染的输入框、按钮、复选框，嵌套的表格等）（SEL-10）
+   * 表格根元素与本表格的编辑框属于表格自身，不算
+   * @return {Element|null}
+   */
+  getCellWidgetElement(this: any, target: EventTarget | null): Element | null {
+    const rootEl = this.$refs[this.tableRootRef] as HTMLElement | undefined
+    if (!rootEl || !(target instanceof Element))
+      return null
+
+    const el = target.closest(INTERACTIVE_SELECTOR)
+    if (!el || el === rootEl || !rootEl.contains(el) || el === this.getEditorTextareaEl())
+      return null
+
+    return el
+  },
+
+  /*
+   * @dealFocusin
+   * @desc 焦点进入表格内部的可交互元素（点击、Tab、程序聚焦）时，单元格导航休眠（SEL-10）：
+   * 按键交给该元素，编辑框不再抢焦点。点击单元格、或在根元素上按 Enter / 方向键恢复
+   */
+  dealFocusin(this: any, event: FocusEvent) {
+    if (this.getCellWidgetElement(event.target))
+      this.keyboardMode = KEYBOARD_MODE.TABLE
+  },
+
   dealKeydownEvent(this: any, event: KeyboardEvent) {
     const {
       colgroups,
@@ -46,6 +98,10 @@ export const keyboardMethods = {
 
     // SEL-02：忽略来自表格外部（其他输入框等）的按键
     if (!rootEl || !isKeydownForTable(path, rootEl))
+      return
+
+    // SEL-10：单元格中渲染的输入框、按钮等（以及嵌套的表格）自己处理按键
+    if (this.getCellWidgetElement(path[0]))
       return
 
     const { keyCode, ctrlKey, shiftKey, altKey } = event
@@ -349,6 +405,9 @@ export const keyboardMethods = {
 
   selectCellByDirection(this: any, { direction }: { direction: string }) {
     const { colgroups, allRowKeys, cellSelectionData } = this
+
+    // 键盘导航把选区收缩为单个单元格，整列 / 整行选择的指示器随之清除（SEL-09）
+    this.clearIndicatorKeys()
 
     const { rowKey, colKey } = cellSelectionData.currentCell
 

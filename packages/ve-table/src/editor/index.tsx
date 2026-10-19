@@ -306,6 +306,15 @@ export default defineComponent({
           this.cellEl = cellEl
           this.overflowViewport = false
         }
+        else {
+          /*
+          单元格未渲染（虚拟滚动窗口之外、被合并的单元格等）：丢弃上一个单元格，
+          否则编辑框会停留在旧单元格上，而编辑的是新单元格（EDIT-03）。
+          滚动后由 TABLE_CONTAINER_SCROLL hook 重新查找
+          */
+          this.cellEl = null
+          this.overflowViewport = true
+        }
       }
     },
 
@@ -406,6 +415,12 @@ export default defineComponent({
     showTextarea() {
       this.setRawCellValue()
       this.displayTextarea = true
+
+      // 选中时单元格未渲染、之后才滚动进来（未编辑时滚动不会重新查找）：开始编辑时重新查找并定位（EDIT-03）
+      if (!this.cellEl && this.overflowViewport) {
+        this.setCellEl()
+        this.setTextareaPosition()
+      }
     },
 
     // hide textarea

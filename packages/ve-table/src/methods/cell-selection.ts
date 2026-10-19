@@ -63,44 +63,57 @@ export const cellSelectionMethods = {
     this.cellSelectionAutofillCellChange({ rowKey: '', colKey: '' })
   },
 
+  /*
+   * 表头 / 行指示器（整列、整行选择）只保存 key（SEL-09）。
+   * 行列位置会变化（插入行、排序、隐藏列），需要下标时用 getIndicatorIndexes 按 key 重新计算
+   */
   // header indicator colKeys change
   headerIndicatorColKeysChange(this: any, { startColKey, endColKey }: any) {
-    const { colgroups } = this
     this.headerIndicatorColKeys.startColKey = startColKey
-    this.headerIndicatorColKeys.startColKeyIndex = colgroups.findIndex(
-      (x: any) => x.key === startColKey,
-    )
     this.headerIndicatorColKeys.endColKey = endColKey
-    this.headerIndicatorColKeys.endColKeyIndex = colgroups.findIndex(
-      (x: any) => x.key === endColKey,
-    )
   },
 
   // clear header indicator colKeys
   clearHeaderIndicatorColKeys(this: any) {
     this.headerIndicatorColKeys.startColKey = ''
-    this.headerIndicatorColKeys.startColKeyIndex = -1
     this.headerIndicatorColKeys.endColKey = ''
-    this.headerIndicatorColKeys.endColKeyIndex = -1
   },
 
   // body indicator rowKeys change
   bodyIndicatorRowKeysChange(this: any, { startRowKey, endRowKey }: any) {
-    const { allRowKeys } = this
     this.bodyIndicatorRowKeys.startRowKey = startRowKey
-    this.bodyIndicatorRowKeys.startRowKeyIndex
-              = allRowKeys.indexOf(startRowKey)
     this.bodyIndicatorRowKeys.endRowKey = endRowKey
-    this.bodyIndicatorRowKeys.endRowKeyIndex
-              = allRowKeys.indexOf(endRowKey)
   },
 
   // clear body indicator RowKeys
   clearBodyIndicatorRowKeys(this: any) {
     this.bodyIndicatorRowKeys.startRowKey = ''
-    this.bodyIndicatorRowKeys.startRowKeyIndex = -1
     this.bodyIndicatorRowKeys.endRowKey = ''
-    this.bodyIndicatorRowKeys.endRowKeyIndex = -1
+  },
+
+  // 清除表头与行指示器：选区被键盘、单元格点击或 API 改为普通单元格选择时调用（SEL-09）
+  clearIndicatorKeys(this: any) {
+    this.clearHeaderIndicatorColKeys()
+    this.clearBodyIndicatorRowKeys()
+  },
+
+  /*
+   * @getIndicatorIndexes
+   * @desc 按当前的 colgroups / allRowKeys 计算指示器的起止下标，未设置或已不存在时为 -1（SEL-09）
+   */
+  getIndicatorIndexes(this: any) {
+    const { colgroups, allRowKeys, headerIndicatorColKeys, bodyIndicatorRowKeys } = this
+    const colIndex = (colKey: any) =>
+      isEmptyValue(colKey) ? -1 : colgroups.findIndex((x: any) => x.key === colKey)
+    const rowIndex = (rowKey: any) =>
+      isEmptyValue(rowKey) ? -1 : allRowKeys.indexOf(rowKey)
+
+    return {
+      startColIndex: colIndex(headerIndicatorColKeys.startColKey),
+      endColIndex: colIndex(headerIndicatorColKeys.endColKey),
+      startRowIndex: rowIndex(bodyIndicatorRowKeys.startRowKey),
+      endRowIndex: rowIndex(bodyIndicatorRowKeys.endRowKey),
+    }
   },
 
   // set cell selection by autofill
@@ -387,15 +400,18 @@ export const cellSelectionMethods = {
     if (isEmptyValue(startRowKey) || isEmptyValue(endRowKey))
       return false
 
-    if (colgroups.length > 1) {
+    // 整行选择只包含非操作列（SEL-03：之前固定从 colgroups[1] 开始，没有操作列时会漏掉第一列）
+    const dataColumns = colgroups.filter((x: any) => !x.operationColumn)
+
+    if (dataColumns.length) {
       this.cellSelectionCurrentCellChange({
         rowKey: startRowKey,
-        colKey: colgroups[1].key,
+        colKey: dataColumns[0].key,
       })
 
       this.cellSelectionNormalEndCellChange({
         rowKey: endRowKey,
-        colKey: colgroups[colgroups.length - 1].key,
+        colKey: dataColumns[dataColumns.length - 1].key,
       })
     }
   },

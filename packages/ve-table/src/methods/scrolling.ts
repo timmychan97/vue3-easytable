@@ -11,7 +11,8 @@ export const scrollingMethods = {
   columnToVisible(this: any, nextColumn: any) {
     const { hasXScrollBar, colgroups } = this
 
-    if (!hasXScrollBar)
+    // 未知的列（SEL-06）
+    if (!hasXScrollBar || !nextColumn)
       return false
 
     const tableContainerRef = this.$refs[this.tableContainerRef] as HTMLElement
