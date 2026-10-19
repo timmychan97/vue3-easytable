@@ -1210,4 +1210,24 @@ describe('veContextmenu', () => {
       expect(openPoppers()).toHaveLength(0)
     })
   })
+
+  // MENU-09：id 由组件内部生成，调用方传入的菜单不需要 id（这里故意不使用 as any，由 vue-tsc 检查类型）
+  it('accepts typed options without id and generates distinct ids (MENU-09)', async () => {
+    const wrapper = mountDetached(veContextmenu, {
+      props: {
+        options: [
+          { label: 'menu1' },
+          { label: 'menu2', children: [{ label: 'menu2-1' }, { label: 'menu2-2', disabled: true }] },
+        ],
+        eventTarget: document.querySelector('#contextmenu-target') as HTMLElement,
+      },
+    })
+    await nextTick()
+
+    const ids = (wrapper.vm as any).internalOptions.flatMap((x: any) => [x.id, ...(x.children ?? []).map((c: any) => c.id)])
+    expect(ids).toHaveLength(4)
+    expect(ids.every((id: unknown) => typeof id === 'string' && id !== '')).toBe(true)
+    expect(new Set(ids).size).toBe(4)
+    wrapper.unmount()
+  })
 })

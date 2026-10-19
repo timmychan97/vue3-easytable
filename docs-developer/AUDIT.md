@@ -846,6 +846,12 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
   - **Done (with MOD-09):** the watcher stays `immediate`, but it now only builds menu data: there are no hand-made containers left, so it touches no DOM. Until the menu is first opened (always after mount) it renders hidden inside the component, as before, and no `<Teleport>` is rendered during SSR or hydration (see MOD-09 for why). Random panel ids are only rendered on the teleported poppers, so the SSR markup has none.
   - **Verified:** `ssr.spec.ts` › "veContextmenu" (failed before with `ReferenceError: document is not defined` from the watcher; the menu labels are now in the HTML), "veContextmenu with an element-less eventTarget and empty options" and "veTable with contextmenu options". The VeTable case already passed before the fix: VeTable starts with empty `contextmenuOptions`, so the watcher did no work during SSR. `use-popper.spec.tsx` › "usePopper with SSR hydration" renders a dropdown and a contextmenu to a string, hydrates them in jsdom without hydration warnings, opens and closes both, unmounts, and checks that the host and a sibling node are still in `body`. The `it.todo` is gone (suite: 0 todo).
 
+- [x] ✅ 2026-10-19 · fix/audit-wave3-dropdown-menu · **MENU-09** 🟢 The contextmenu `Option` type requires `id` (found in wave 2)
+  - **Where:** `ve-contextmenu/src/index.tsx` `export interface Option` (`id: string | number`). `createInternalOptionsRecursion()` overwrites every `id` with a generated one, so a caller's `id` is never used.
+  - **Trigger:** typed code (or a test without `as any`) that passes `options` without `id` to `VeContextmenu` fails to compile with TS2769 / TS2741.
+  - **Done:** `Option.id` is optional. `InternalOption` redeclares `id: string | number` as required, because internal options always have a generated id, so the component's own code still type-checks without non-null assertions.
+  - **Verified:** `ve-contextmenu.spec.tsx` › "accepts typed options without id and generates distinct ids (MENU-09)" passes options without `id` and without `as any`. Before the fix vue-tsc reported 3 TS2741 errors on it (`Property 'id' is missing ... required in type 'Option'`; 255 errors in total), now none (252). At runtime it checks that the 4 menus get distinct non-empty string ids.
+
 ---
 
 ## DD — dropdown and select
