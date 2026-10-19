@@ -114,17 +114,12 @@ export const contextmenuMethods = {
         if (isBoolean(callback) && !callback)
           return false
       }
-      const editInputEditor = this.$refs[this.editInputRef]
-
-      // cut
-      if (CONTEXTMENU_NODE_TYPES.CUT === type) {
-        editInputEditor.textareaSelect()
-        document.execCommand('cut')
-      }
-      // copy
-      else if (CONTEXTMENU_NODE_TYPES.COPY === type) {
-        editInputEditor.textareaSelect()
-        document.execCommand('copy')
+      // cut / copy：通过 navigator.clipboard 写入（不可用时退回 execCommand），
+      // 失败时调用 clipboardOption.writeError（CLIP-06）
+      if (CONTEXTMENU_NODE_TYPES.CUT === type || CONTEXTMENU_NODE_TYPES.COPY === type) {
+        // 焦点回到编辑 textarea，菜单关闭后可继续用键盘操作
+        this.$refs[this.editInputRef]?.textareaSelect()
+        this.contextmenuCopyOrCut(CONTEXTMENU_NODE_TYPES.CUT === type ? 'cut' : 'copy')
       }
       // empty column
       else if (CONTEXTMENU_NODE_TYPES.EMPTY_COLUMN === type) {
@@ -219,17 +214,12 @@ export const contextmenuMethods = {
         (x: any) => x === rowKey,
       )
 
-      const editInputEditor = this.$refs[this.editInputRef]
-
-      // cut
-      if (CONTEXTMENU_NODE_TYPES.CUT === type) {
-        editInputEditor.textareaSelect()
-        document.execCommand('cut')
-      }
-      // copy
-      else if (CONTEXTMENU_NODE_TYPES.COPY === type) {
-        editInputEditor.textareaSelect()
-        document.execCommand('copy')
+      // cut / copy：通过 navigator.clipboard 写入（不可用时退回 execCommand），
+      // 失败时调用 clipboardOption.writeError（CLIP-06）
+      if (CONTEXTMENU_NODE_TYPES.CUT === type || CONTEXTMENU_NODE_TYPES.COPY === type) {
+        // 焦点回到编辑 textarea，菜单关闭后可继续用键盘操作
+        this.$refs[this.editInputRef]?.textareaSelect()
+        this.contextmenuCopyOrCut(CONTEXTMENU_NODE_TYPES.CUT === type ? 'cut' : 'copy')
       }
       // paste todo
       // else if (CONTEXTMENU_NODE_TYPES.PASTE === type) {

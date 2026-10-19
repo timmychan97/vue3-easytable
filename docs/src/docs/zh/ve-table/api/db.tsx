@@ -1213,6 +1213,15 @@ export const db = {
         optionalVal: '-',
         default: '-',
       },
+      {
+        param: 'writeError',
+        desc: '右键菜单“复制”“剪切”写入剪贴板失败时的回调（如无权限、非安全上下文且 <code>execCommand</code> 不可用）。剪切失败时单元格保持不变，也不会调用 <code>afterCopy</code> / <code>afterCut</code>；未提供时输出 <code>console.warn</code>。参数说明：\r1、<code>type</code>：<code>"copy"</code> 或 <code>"cut"</code>\r2、<code>error</code>：浏览器返回的错误\r3、<code>text</code>：要写入的文本（可用于提示用户手动复制）\r4、<code>data</code>、<code>selectionRangeIndexes</code>、<code>selectionRangeKeys</code>：同 <code>beforeCopy</code>',
+        type: `<code>Function({
+                    type, error, text, data, selectionRangeIndexes, selectionRangeKeys
+})</code>`,
+        optionalVal: '-',
+        default: '-',
+      },
     ],
     columns: columnsType1,
   },
