@@ -2530,7 +2530,7 @@ export default defineComponent({
     const contextmenuProps = {
       ref: this.contextmenuRef,
       eventTarget: this.contextmenuEventTarget as string | HTMLElement,
-      options: contextmenuOptions as any,
+      options: contextmenuOptions,
       onOnNodeClick: (type: any) => {
         this.contextmenuItemClick(type)
       },

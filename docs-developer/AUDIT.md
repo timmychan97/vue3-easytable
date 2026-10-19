@@ -977,6 +977,12 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
   - **Done:** `Option` now declares `type?: string`, and `label` is optional, because a separator has none. A flat type rather than a menu-item / separator union: ve-table's own `ContextmenuOption` (`ve-table-types.ts`) has the same optional `type` and `label`, and a union would reject an item whose `type` is a plain `string`. `InternalOption` no longer redeclares `type`. The five `as any` casts are gone.
   - **Verified:** new `ve-contextmenu-types.spec.ts` › "contextmenu Option type (MENU-10)": a typed `Option[]` with typed items and separators (also nested), `expectTypeOf` on `Option['type']` / `Option['label']`, and `@ts-expect-error` for a non-string `type`, a non-string `label` and a bad nested item. At runtime it renders 2 nodes and 1 separator. Before the fix vue-tsc reported 11 new errors (6 in the new spec, 5 TS2322 in `ve-contextmenu.spec.tsx` once the casts were removed; 263 in total), now none (252).
 
+- [x] ✅ 2026-10-19 · fix/audit-pre-mod02 · **MENU-11** 🟢 ve-table casts the menu options to `any` for VeContextmenu (found in wave 3)
+  - **Where:** `ve-table.tsx` `render()`, `contextmenuProps`: `options: contextmenuOptions as any`.
+  - **Effect:** none at runtime; the cast hid any mismatch between ve-table's `ContextmenuOption` (`ve-table-types.ts`) and the `VeContextmenu` `Option` type.
+  - **Done:** the cast is removed. No type change was needed: since MENU-10 made `Option.type` and `label` optional, `ContextmenuOption[]` (optional `type` / `label` / `children`, plus an index signature that covers `id` and `disabled`) is assignable to `Option[]`.
+  - **Verified:** `vue-tsc` total unchanged at 238 with the cast removed (no new error in `ve-table.tsx`). New guard `ve-table-types.spec.ts` › "table contextmenu options type (MENU-11)": `expectTypeOf<ContextmenuOption[]>().toMatchTypeOf<Option[]>()` and a typed `ContextmenuOption[]` (item with `icon`, separator without `label`, nested `children`) assigned to `Option[]` without a cast. `ve-table-contextmenu.spec.tsx` still passes.
+
 ---
 
 ## DD — dropdown and select
