@@ -3,6 +3,7 @@ import { useAutofill } from '@/ve-table/src/features/cell-selection/useAutofill'
 import { useCellSelection } from '@/ve-table/src/features/cell-selection/useCellSelection'
 import { useCellSelectionState } from '@/ve-table/src/features/cell-selection/useCellSelectionState'
 import { useSelectionDrag } from '@/ve-table/src/features/cell-selection/useSelectionDrag'
+import { useClipboard } from '@/ve-table/src/features/clipboard/useClipboard'
 import { useColumns } from '@/ve-table/src/features/columns/useColumns'
 import { useEditing } from '@/ve-table/src/features/editing/useEditing'
 import { useTableLayout } from '@/ve-table/src/features/layout/useTableLayout'
@@ -631,5 +632,90 @@ describe('useAutofill', () => {
     expect(autofill.isAutofillStarting.value).toBe(false)
     expect(props.tableData.map((x: any) => x.a)).toEqual(['x', 'y', 'z'])
     expect(calls).toEqual([])
+  })
+})
+
+describe('useClipboard', () => {
+  function setup(clipboardOption: any = {}, editing = false) {
+    const calls: any[] = []
+    const props = reactive({
+      clipboardOption: {
+        afterPaste: ({ data }: any) => calls.push(['afterPaste', data]),
+        afterDelete: ({ data }: any) => calls.push(['afterDelete', data]),
+        ...clipboardOption,
+      },
+      tableData: [{ id: 'r0', a: 'x', b: 1 }, { id: 'r1', a: 'y', b: 2 }],
+      editOption: null,
+      rowKeyFieldName: 'id',
+    }) as any
+    const colgroups = ref<any[]>([{ key: 'a', field: 'a' }, { key: 'b', field: 'b' }])
+    const cellSelectionRangeData = ref<any>({ leftColKey: 'a', rightColKey: 'b', topRowKey: 'r1', bottomRowKey: 'r1' })
+    const cells: any[] = []
+    const tableContext = createTableContext()
+    tableContext.on(HOOKS_NAME.CLIPBOARD_CELL_VALUE_CHANGE, () => calls.push(['hook']))
+    const { result, stop } = runInScope(() => useClipboard({
+      props,
+      colgroups,
+      allRowKeys: computed(() => props.tableData.map((x: any) => x.id)),
+      cellSelectionRangeData,
+      cellSelectionCurrentCellChange: cell => cells.push(['current', cell]),
+      cellSelectionNormalEndCellChange: cell => cells.push(['end', cell]),
+      isCellEditing: computed(() => editing),
+      tableContext,
+    }))
+    return { props, clipboard: result, calls, cells, stop }
+  }
+
+  function pasteEvent(text: string) {
+    return {
+      clipboardData: { getData: () => text },
+      preventDefault: vi.fn(),
+    } as any
+  }
+
+  it('pastes into the selection, then updates the selection, the hook and the after callback in that order', () => {
+    const { props, clipboard, calls, cells, stop } = setup()
+    const event = pasteEvent('P\tQ\n')
+
+    clipboard.editorPaste(event)
+
+    expect(event.preventDefault).toHaveBeenCalled()
+    expect(props.tableData[1]).toMatchObject({ a: 'P', b: 'Q' })
+    expect(cells).toEqual([['current', { rowKey: 'r1', colKey: 'a' }], ['end', { rowKey: 'r1', colKey: 'b' }]])
+    expect(calls.map(x => x[0])).toEqual(['hook', 'afterPaste'])
+    stop()
+  })
+
+  it('deletes the selected values unless the delete switch is off or a cell is being edited', () => {
+    const off = setup({ delete: false })
+    expect(off.clipboard.deleteCellSelectionRangeValue()).toBe(false)
+    expect(off.props.tableData[1]).toMatchObject({ a: 'y', b: 2 })
+    off.stop()
+
+    const editing = setup({}, true)
+    expect(editing.clipboard.deleteCellSelectionRangeValue()).toBe(false)
+    editing.stop()
+
+    const { props, clipboard, calls, stop } = setup()
+    clipboard.deleteCellSelectionRangeValue()
+    expect(props.tableData[1]).toMatchObject({ a: '', b: '' })
+    expect(calls.map(x => x[0])).toEqual(['hook', 'afterDelete'])
+    stop()
+  })
+
+  it('leaves the native copy alone without a valid selection (CLIP-01)', () => {
+    const { clipboard, stop } = setup()
+    const event = { preventDefault: vi.fn(), clipboardData: { setData: vi.fn() } } as any
+    // 没有 rowKeyFieldName 时剪贴板关闭
+    const noKey = setup()
+    noKey.props.rowKeyFieldName = ''
+    expect(noKey.clipboard.editorCopy(event)).toBe(false)
+    expect(event.preventDefault).not.toHaveBeenCalled()
+    noKey.stop()
+
+    clipboard.editorCopy(event)
+    expect(event.preventDefault).toHaveBeenCalled()
+    expect(event.clipboardData.setData).toHaveBeenCalledWith('text/plain', 'y\t2\n')
+    stop()
   })
 })

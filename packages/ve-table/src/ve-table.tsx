@@ -25,6 +25,7 @@ import { useAutofill } from './features/cell-selection/useAutofill'
 import { useCellSelection } from './features/cell-selection/useCellSelection'
 import { useCellSelectionState } from './features/cell-selection/useCellSelectionState'
 import { useSelectionDrag } from './features/cell-selection/useSelectionDrag'
+import { useClipboard } from './features/clipboard/useClipboard'
 import { useColumnMeasure } from './features/columns/useColumnMeasure'
 import { useColumns } from './features/columns/useColumns'
 import { useEditing } from './features/editing/useEditing'
@@ -36,7 +37,6 @@ import { createTableContext, provideTableContext, useTableContext } from './feat
 import { useVirtualScroll } from './features/virtual-scroll/useVirtualScroll'
 import Footer from './footer'
 import Header from './header'
-import { clipboardMethods } from './methods/clipboard'
 import { contextmenuMethods } from './methods/contextmenu'
 import { keyboardMethods } from './methods/keyboard'
 import RowInsertIndicator from './row-insert-indicator'
@@ -193,6 +193,18 @@ export default defineComponent({
       tableContext,
     })
 
+    // 剪贴板：复制、粘贴、剪切、Delete
+    const clipboard = useClipboard({
+      props,
+      colgroups: columns.colgroups,
+      allRowKeys,
+      cellSelectionRangeData: selectionState.cellSelectionRangeData,
+      cellSelectionCurrentCellChange: selectionState.cellSelectionCurrentCellChange,
+      cellSelectionNormalEndCellChange: selectionState.cellSelectionNormalEndCellChange,
+      isCellEditing: editing.isCellEditing,
+      tableContext,
+    })
+
     function refreshScrollBarStatusAfterRender() {
       nextTick(() => scrolling.setScrollBarStatus())
     }
@@ -212,6 +224,7 @@ export default defineComponent({
       ...selection,
       ...selectionDrag,
       ...autofill,
+      ...clipboard,
       tableRootRef,
       tableContainerWrapperRef,
       tableContainerRef,
@@ -369,10 +382,6 @@ export default defineComponent({
 
       else
         return CONTEXTMENU_TYPES.BODY_CONTEXTMENU
-    },
-    // enable clipboard
-    enableClipboard() {
-      return this.rowKeyFieldName
     },
     // row insert indicator props
     rowInsertIndicatorProps() {
@@ -1034,7 +1043,6 @@ export default defineComponent({
     },
 
     // ── Extracted method modules (override any inline stubs above) ──
-    ...clipboardMethods,
     ...contextmenuMethods,
     ...keyboardMethods,
   },
