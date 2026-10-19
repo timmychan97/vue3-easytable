@@ -559,6 +559,55 @@ describe('vePagination', () => {
     })
   })
 
+  describe('pagingCount is clamped to an integer >= 1 (PAG-05)', () => {
+    function jumpButtons(wrapper: any) {
+      return {
+        prev: wrapper.find('.ve-pagination-jump-prev'),
+        next: wrapper.find('.ve-pagination-jump-next'),
+      }
+    }
+
+    it.each([0, -3])('pagingCount = %s behaves like 1', async (pagingCount) => {
+      const wrapper = mount(vePagination, {
+        props: { total: 600, pageIndex: 10, pagingCount },
+      })
+      const { prev, next } = jumpButtons(wrapper)
+
+      // 当前页两侧的跳转按钮每次至少移动 1 页，并且当前页始终显示
+      expect(wrapper.find('.ve-pagination-li-active').text()).toBe('10')
+      expect(next.find('button').attributes('aria-label')).toBe('向后 1 页')
+      expect(prev.find('button').attributes('aria-label')).toBe('向前 1 页')
+
+      await next.trigger('click')
+      expect(wrapper.emitted('on-page-number-change')).toEqual([[11]])
+      await jumpButtons(wrapper).prev.trigger('click')
+      expect(wrapper.emitted('on-page-number-change')).toEqual([[11], [10]])
+    })
+
+    it('a non-integer pagingCount is floored', async () => {
+      const wrapper = mount(vePagination, {
+        props: { total: 600, pageIndex: 10, pagingCount: 3.7 },
+      })
+
+      // 3 个数字按钮 + 首页、尾页、两个跳转按钮
+      expect(wrapper.findAll('.ve-pagination-pager .ve-pagination-li')).toHaveLength(7)
+      expect(jumpButtons(wrapper).next.attributes('title')).toBe('向后 3 页')
+
+      // 不会跳到 13.7 这样的非整数页码
+      await jumpButtons(wrapper).next.trigger('click')
+      expect(wrapper.emitted('on-page-number-change')).toEqual([[13]])
+    })
+
+    it('a NaN pagingCount falls back to the default 5', () => {
+      const wrapper = mount(vePagination, {
+        props: { total: 600, pageIndex: 10, pagingCount: Number.NaN },
+      })
+
+      expect(wrapper.findAll('.ve-pagination-pager .ve-pagination-li')).toHaveLength(9)
+      expect(jumpButtons(wrapper).next.attributes('title')).toBe('向后 5 页')
+    })
+  })
+
   it('two paginations get distinct element ids (PAG-02)', () => {
     const wrapper = mount({
       render() {

@@ -1,3 +1,4 @@
+import type { VNode } from 'vue'
 import type { VeDropdownItem } from './type'
 import clickoutside from '@vue3-easytable/common/directives/clickoutside'
 import { usePopper } from '@vue3-easytable/common/popper'
@@ -410,7 +411,8 @@ export default defineComponent({
       dropdownItemsClass,
     } = this
 
-    let content = []
+    // 下拉选项列表（DD-10：显式标注类型，否则 [] 被推断为 never[]）
+    let content: VNode[] = []
 
     if (isMultiple) {
       content = internalOptions.map((item, index) => {

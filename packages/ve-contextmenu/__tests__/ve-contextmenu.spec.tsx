@@ -877,7 +877,7 @@ describe('veContextmenu', () => {
       document.body.append(elA, elB)
 
       const wrapper = mountDetached(veContextmenu, {
-        props: { options: cloneDeep(OPTIONS) as any, eventTarget: elA },
+        props: { options: cloneDeep(OPTIONS), eventTarget: elA },
       })
       await later()
       expect(rightClick(elA)).toBe(true)
@@ -976,7 +976,7 @@ describe('veContextmenu', () => {
     async function openMenu(clientX: number, clientY: number) {
       const wrapper = mountDetached(veContextmenu, {
         props: {
-          options: cloneDeep(OPTIONS) as any,
+          options: cloneDeep(OPTIONS),
           eventTarget: document.querySelector('#contextmenu-target') as HTMLElement,
         },
       })
@@ -1064,7 +1064,7 @@ describe('veContextmenu', () => {
     function mountMenu() {
       return mountDetached(veContextmenu, {
         props: {
-          options: cloneDeep(OPTIONS) as any,
+          options: cloneDeep(OPTIONS),
           eventTarget: document.querySelector('#contextmenu-target') as HTMLElement,
         },
       })
@@ -1118,7 +1118,7 @@ describe('veContextmenu', () => {
 
       // ve-table 每次右键都会替换 options（id 会重新生成）
       for (let i = 0; i < 5; i++) {
-        await wrapper.setProps({ options: cloneDeep(OPTIONS) as any })
+        await wrapper.setProps({ options: cloneDeep(OPTIONS) })
         await openSubmenuThenRightClickAgain()
       }
 
@@ -1138,7 +1138,7 @@ describe('veContextmenu', () => {
     function mountMenu() {
       return mountDetached(veContextmenu, {
         props: {
-          options: cloneDeep(OPTIONS) as any,
+          options: cloneDeep(OPTIONS),
           eventTarget: document.querySelector('#contextmenu-target') as HTMLElement,
         },
       })

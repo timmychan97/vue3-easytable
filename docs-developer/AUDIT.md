@@ -899,6 +899,12 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
   - **Done:** `Option.id` is optional. `InternalOption` redeclares `id: string | number` as required, because internal options always have a generated id, so the component's own code still type-checks without non-null assertions.
   - **Verified:** `ve-contextmenu.spec.tsx` › "accepts typed options without id and generates distinct ids (MENU-09)" passes options without `id` and without `as any`. Before the fix vue-tsc reported 3 TS2741 errors on it (`Property 'id' is missing ... required in type 'Option'`; 255 errors in total), now none (252). At runtime it checks that the 4 menus get distinct non-empty string ids.
 
+- [x] ✅ 2026-10-19 · fix/audit-wave3-small-types · **MENU-10** 🟢 The public contextmenu `Option` type lacks `type` and requires `label` (found in wave 3)
+  - **Where:** `ve-contextmenu/src/index.tsx` `export interface Option`. `type` was only declared on the internal `InternalOption`, although the component reads it from the caller's options: `'SEPARATOR'` renders a separator, and any other value is the payload of `on-node-click`.
+  - **Trigger:** typed code that passes `{ label: 'Copy', type: 'copy' }` or a separator `{ type: 'SEPARATOR' }` gets TS2353 / TS2322. `ve-contextmenu.spec.tsx` worked around it with `as any` on five `options` props.
+  - **Done:** `Option` now declares `type?: string`, and `label` is optional, because a separator has none. A flat type rather than a menu-item / separator union: ve-table's own `ContextmenuOption` (`ve-table-types.ts`) has the same optional `type` and `label`, and a union would reject an item whose `type` is a plain `string`. `InternalOption` no longer redeclares `type`. The five `as any` casts are gone.
+  - **Verified:** new `ve-contextmenu-types.spec.ts` › "contextmenu Option type (MENU-10)": a typed `Option[]` with typed items and separators (also nested), `expectTypeOf` on `Option['type']` / `Option['label']`, and `@ts-expect-error` for a non-string `type`, a non-string `label` and a bad nested item. At runtime it renders 2 nodes and 1 separator. Before the fix vue-tsc reported 11 new errors (6 in the new spec, 5 TS2322 in `ve-contextmenu.spec.tsx` once the casts were removed; 263 in total), now none (252).
+
 ---
 
 ## DD — dropdown and select
@@ -967,6 +973,12 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
   - **Done:** `reset()` always clears the options and emits `update:modelValue` and `on-filter-reset`, then hides. The dropdown can't reliably know the caller's confirmed state (a caller may not bind `update:modelValue`), so it no longer guesses. The reset button now looks disabled only when neither the pending options nor `modelValue` have a selection. ve-table's header filter needed no change: its `filterReset` already stores the emitted (empty) list as `confirmedFilterList`. Behaviour change: reset with no selection at all now also calls `filterReset` (with an all-unselected list).
   - **Verified:** `ve-dropdown.spec.tsx` › "reset with nothing ticked (DD-08)": "reset after unticking the confirmed item still emits the reset" (failed before: no `on-filter-reset`), "reset is not shown as disabled while a confirmed selection exists" (failed before: the class was set after the untick), "reset with no selection at all still emits and closes" (failed before: no `on-filter-reset`). `ve-table-header-filter.spec.tsx` › "reset with nothing ticked (DD-08)" › "reset after unticking the applied filter calls filterReset and clears the ticks" (failed before: `filterReset` called 0 times).
 
+- [x] ✅ 2026-10-19 · fix/audit-wave3-small-types · **DD-10** 🟢 Two TS2322 errors in the dropdown render (found in wave 3)
+  - **Where:** `ve-dropdown/src/index.tsx` `render()`: `let content = []` is inferred as `never[]`, so both `content = internalOptions.map(...)` assignments (multiple and single select) fail.
+  - **Trigger:** `pnpm vue-tsc --noEmit` reports `TS2322: Type 'Element[]' is not assignable to type 'never[]'` twice. No runtime effect.
+  - **Done:** `content` is declared as `VNode[]` (type-only import from `vue`, as in ve-table's body `rows`). No runtime change.
+  - **Verified:** vue-tsc 252 → 250, with no errors left in `packages/ve-dropdown`. The ve-dropdown, ve-select and ve-pagination specs pass unchanged (no snapshot written).
+
 ---
 
 ## PAG — pagination
@@ -1008,6 +1020,19 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
   - **Trigger:** none in practice. The button only renders when `pageIndex > pagingCount`, so with the default (or any positive) `pagingCount` it is never on page 1. It could only apply with `pagingCount <= 0`, and even then nothing styles an unprefixed `disabled` class (the theme uses `ve-pagination-disabled`).
   - **Done:** the class is removed; the `li` keeps `ve-pagination-li ve-pagination-jump-prev`.
   - **Verified:** the rendered HTML is unchanged: Vue already dropped the empty string, and every snapshot shows `class="ve-pagination-li ve-pagination-jump-prev"`. The ve-pagination and ve-locale specs pass without `-u` (67 tests, no snapshot written).
+
+- [x] ✅ 2026-10-19 · fix/audit-wave3-small-types · **PAG-05** 🟢 `pagingCount` is never validated (found in wave 3)
+  - **Where:** `ve-pagination/src/index.tsx` (the `pagingCount` prop, default 5, was passed to the pager as is) and `ve-pagination/src/pager.tsx` (`numOffset`, `showJumpPrev` / `showJumpNext`, the jump targets `pageIndex ± pagingCount`, and the `向前N页` / `向后N页` locale functions, legacy `prev5` / `next5`).
+  - **Trigger:** with more than two pages:
+    - `pagingCount = 0`: both jump buttons render, jump by 0 pages, and are labelled "向后 0 页".
+    - `pagingCount < 0`: the jump buttons move the wrong way, and the number range is empty, so not even the current page is shown.
+    - A non-integer such as `3.7`: the jump buttons emit `on-page-number-change(13.7)` and the labels say "3.7".
+    - `NaN`: both jump buttons are hidden and every page gets a number button.
+  - **Done:** new `toValidPagingCount()` in `ve-pagination/src/util` floors the value and clamps it to at least 1; `NaN` falls back to the default (new `DEFAULT_PAGING_COUNT`, also used as the prop default). The pagination computes `validPagingCount` from it and passes that to the pager, so the pager, the jump targets and the locale functions only ever see an integer ≥ 1. `Infinity` is kept: it hides the jump buttons and shows every page, which is a meaningful "show all". The pager itself still trusts its prop (it is internal).
+  - **Verified:** `ve-pagination.spec.tsx` › "pagingCount is clamped to an integer >= 1 (PAG-05)", all four failed before the fix:
+    - "pagingCount = 0 behaves like 1" (before: `'向后 0 页'`), "pagingCount = -3 behaves like 1" (before: no active page). Both now jump to 11 and back to 10.
+    - "a non-integer pagingCount is floored" (before: `'向后 3.7 页'`); now 3 number buttons and a jump to 13.
+    - "a NaN pagingCount falls back to the default 5" (before: 60 buttons instead of 9).
 
 ---
 

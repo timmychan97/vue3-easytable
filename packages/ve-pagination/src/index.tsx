@@ -3,8 +3,8 @@ import type { PageSizeOption } from './parts'
 import { useI18N } from '@vue3-easytable/common/locale'
 import Pager from './pager'
 import { Jumper, Next, Prev, Sizer, Total } from './parts'
-import { clampPageIndex, clsName, toValidPageIndex } from './util'
-import { COMPS_NAME, EMIT_EVENTS, LOCALE_COMP_NAME } from './util/constant'
+import { clampPageIndex, clsName, toValidPageIndex, toValidPagingCount } from './util'
+import { COMPS_NAME, DEFAULT_PAGING_COUNT, EMIT_EVENTS, LOCALE_COMP_NAME } from './util/constant'
 
 type LayoutItem = 'total' | 'prev' | 'pager' | 'next' | 'sizer' | 'jumper'
 
@@ -33,7 +33,7 @@ export default defineComponent({
     // 最多显示几个数字按钮
     pagingCount: {
       type: Number,
-      default: 5,
+      default: DEFAULT_PAGING_COUNT,
     },
 
     // 每页大小
@@ -75,6 +75,9 @@ export default defineComponent({
       const size = Number(newPageSize.value) >= 1 ? Number(newPageSize.value) : 1
       return Math.max(1, Math.ceil(total / size))
     })
+
+    // 传给页码按钮的数字按钮个数（规范化为不小于 1 的整数，PAG-05）
+    const validPagingCount = computed(() => toValidPagingCount(props.pagingCount))
 
     const newPageSizeOption = computed<PageSizeOption[]>(() => {
       return props.pageSizeOption.map(x => ({
@@ -145,6 +148,7 @@ export default defineComponent({
       newPageIndex,
       newPageSize,
       pageCount,
+      validPagingCount,
       newPageSizeOption,
       getValidNum,
       jumpPageHandler,
@@ -169,7 +173,7 @@ export default defineComponent({
         <Pager
           pageCount={this.pageCount}
           pageIndex={this.newPageIndex}
-          pagingCount={this.pagingCount}
+          pagingCount={this.validPagingCount}
           onJump={this.jumpPageHandler}
         />
       ),

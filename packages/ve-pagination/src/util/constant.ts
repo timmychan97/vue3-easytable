@@ -11,3 +11,6 @@ export const EMIT_EVENTS = {
 export const COMPS_NAME = {
   VE_PAGINATION: 'VePagination',
 }
+
+// 默认最多显示的数字按钮个数
+export const DEFAULT_PAGING_COUNT = 5
