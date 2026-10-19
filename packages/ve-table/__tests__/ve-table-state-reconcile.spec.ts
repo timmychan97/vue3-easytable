@@ -457,8 +457,7 @@ describe('veTable state reconcile', () => {
     async function autofillDown(vm: any) {
       vm.setCellSelection({ rowKey: 'r1', colKey: 'name' })
       await later()
-      // jsdom 没有布局，选区层不会计算方向，这里直接模拟一次向下拖动填充
-      vm.autofillingDirectionChange('down')
+      // 模拟一次向下拖动填充（方向由结束单元格的行列位置计算，FILL-01）
       vm.cellSelectionAutofillCellChange({ rowKey: 'r3', colKey: 'name' })
       vm.isAutofillStarting = true
       await later()

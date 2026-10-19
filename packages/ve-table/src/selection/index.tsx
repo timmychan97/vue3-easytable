@@ -1,3 +1,5 @@
+import type { PropType } from 'vue'
+import type { AutofillingDirection, SelectionBorders } from './geometry'
 import emitter from '@vue3-easytable/common/mixins/emitter'
 import { isBoolean, isEmptyValue } from '@vue3-easytable/common/utils/index'
 import { debounce } from 'lodash'
@@ -8,7 +10,6 @@ import {
   getLeftmostColKey,
   getNextColKey,
   getPreviewColKey,
-  getRightmostColKey,
   getTotalWidthByColKeys,
   isExistGivenFixedColKey,
   isExistNotFixedColKey,
@@ -25,6 +26,7 @@ import {
   HOOKS_NAME,
 } from '../util/constant'
 import { INSTANCE_METHODS } from './constant'
+import { adjustSelectionBorders, getAreaLayerRect } from './geometry'
 
 export default defineComponent({
   name: COMPS_NAME.VE_TABLE_SELECTION,
@@ -68,6 +70,11 @@ export default defineComponent({
     isAutofillStarting: {
       type: Boolean,
       required: true,
+    },
+    // 填充方向，由表格根据行列位置计算（FILL-01），为 null 时不显示填充预览
+    autofillingDirection: {
+      type: String as PropType<AutofillingDirection | null>,
+      default: null,
     },
     currentCellSelectionType: {
       type: String,
@@ -903,19 +910,23 @@ export default defineComponent({
 
     // get selection auto fill
     getSelectionAutofillArea({ areaPostions, fixedType }) {
-      let result = null
+      const result = null
 
       const {
-        cellAutofillOption,
         cellSelectionRangeData,
         cellSelectionRect,
         cellSelectionData,
         isAutofillStarting,
+        autofillingDirection,
         currentCellSelectionType,
         colgroups,
       } = this
 
-      if (!isAutofillStarting)
+      /*
+      填充方向由表格根据选区与结束单元格的行列位置计算（FILL-01），这里只负责绘制预览；
+      方向为 null（在选区内或方向不被允许）时不显示预览
+      */
+      if (!isAutofillStarting || !autofillingDirection)
         return result
 
       const { currentCellRect, autoFillEndCellRect } = cellSelectionRect
@@ -975,32 +986,11 @@ export default defineComponent({
         rightColKey = currentCell.colKey
       }
 
-      let leftmostColKey
-      if (leftColKey !== autoFillEndCell.colKey) {
-        leftmostColKey = getLeftmostColKey({
-          colgroups,
-          colKeys: [leftColKey, autoFillEndCell.colKey],
-        })
-      }
-
-      let rightmostColKey
-      if (rightColKey !== autoFillEndCell.colKey) {
-        rightmostColKey = getRightmostColKey({
-          colgroups,
-          colKeys: [rightColKey, autoFillEndCell.colKey],
-        })
-      }
-
-      // autofilling direction
-      let autofillingDirection
-
       let rangeColKey1
       let rangeColKey2
 
       // auto fill end cell below
-      if (autoFillEndCellRect.top > areaPostions.bottomBorder.top) {
-        autofillingDirection = AUTOFILLING_DIRECTION.DOWN
-
+      if (autofillingDirection === AUTOFILLING_DIRECTION.DOWN) {
         rangeColKey1 = leftColKey
         rangeColKey2 = rightColKey
 
@@ -1029,9 +1019,7 @@ export default defineComponent({
         borders.bottomBorder.left = areaPostions.bottomBorder.left
       }
       // end cell above
-      else if (autoFillEndCellRect.top < areaPostions.topBorder.top) {
-        autofillingDirection = AUTOFILLING_DIRECTION.UP
-
+      else if (autofillingDirection === AUTOFILLING_DIRECTION.UP) {
         rangeColKey1 = leftColKey
         rangeColKey2 = rightColKey
 
@@ -1057,12 +1045,7 @@ export default defineComponent({
         borders.leftBorder.left = areaPostions.leftBorder.left
       }
       // auto fill end cell right
-      else if (
-        rightmostColKey === autoFillEndCell.colKey
-        && !isEmptyValue(rightmostColKey)
-      ) {
-        autofillingDirection = AUTOFILLING_DIRECTION.RIGHT
-
+      else if (autofillingDirection === AUTOFILLING_DIRECTION.RIGHT) {
         rangeColKey1 = getNextColKey({
           colgroups,
           currentColKey: rightColKey,
@@ -1089,12 +1072,7 @@ export default defineComponent({
         borders.bottomBorder.left = areaPostions.rightBorder.left - 1
       }
       // auto fill end cell left
-      else if (
-        leftmostColKey === autoFillEndCell.colKey
-        && !isEmptyValue(leftmostColKey)
-      ) {
-        autofillingDirection = AUTOFILLING_DIRECTION.LEFT
-
+      else if (autofillingDirection === AUTOFILLING_DIRECTION.LEFT) {
         rangeColKey1 = getPreviewColKey({
           colgroups,
           currentColKey: leftColKey,
@@ -1122,25 +1100,6 @@ export default defineComponent({
         return result
       }
 
-      const { directionX, directionY } = cellAutofillOption
-      if (isBoolean(directionX) && !directionX) {
-        if (
-          autofillingDirection === AUTOFILLING_DIRECTION.LEFT
-          || autofillingDirection === AUTOFILLING_DIRECTION.RIGHT
-        ) {
-          return false
-        }
-      }
-
-      if (isBoolean(directionY) && !directionY) {
-        if (
-          autofillingDirection === AUTOFILLING_DIRECTION.UP
-          || autofillingDirection === AUTOFILLING_DIRECTION.DOWN
-        ) {
-          return false
-        }
-      }
-
       const totalColKeys = getColKeysByRangeColKeys({
         colKey1: rangeColKey1,
         colKey2: rangeColKey2,
@@ -1153,27 +1112,21 @@ export default defineComponent({
         colgroups,
       })
 
-      result = this.getBorders({
+      // 渲染函数中不再派发方向变化事件（FILL-01）
+      return this.getBorders({
         className: 'selection-autofill-area',
         ...borders,
         fixedType,
         totalColKeys,
         fixedColKeys,
       })
-
-      if (result) {
-        this.dispatch(
-          COMPS_NAME.VE_TABLE,
-          EMIT_EVENTS.AUTOFILLING_DIRECTION_CHANGE,
-          autofillingDirection,
-        )
-      }
-
-      return result
     },
 
-    // get borders
-    getBorders({
+    /*
+        resolve borders
+        判断当前区域（左固定 / 中间 / 右固定）是否需要渲染，并返回修正后的边框（新对象，不修改入参，SEL-07）
+        */
+    resolveBorders({
       borderWidth,
       borderHeight,
       topBorder,
@@ -1181,11 +1134,10 @@ export default defineComponent({
       bottomBorder,
       leftBorder,
       corner,
-      className,
       fixedType,
       totalColKeys,
       fixedColKeys,
-    }) {
+    }): SelectionBorders | null {
       const { colgroups } = this
 
       let isRender = true
@@ -1210,7 +1162,6 @@ export default defineComponent({
 
       // 在 isRender 判断之后再读取这些计算属性，不渲染时不必计算（SEL-01）
       const {
-        cornerCellInfo,
         isFirstSelectionRow,
         isFirstSelectionCol,
         isFirstNotFixedSelectionCol,
@@ -1226,36 +1177,46 @@ export default defineComponent({
         })
       }
 
-      if (fixedType) {
-        borderWidth = fixedColsTotalWidth
-        if (fixedType === COLUMN_FIXED_TYPE.LEFT)
-          borderWidth += 1
-      }
+      return adjustSelectionBorders(
+        {
+          borderWidth,
+          borderHeight,
+          topBorder,
+          rightBorder,
+          bottomBorder,
+          leftBorder,
+          corner,
+        },
+        {
+          fixedType,
+          fixedColsTotalWidth,
+          isAllColsFixed: totalColKeys.length === fixedColKeys.length,
+          isFirstSelectionRow,
+          isFirstSelectionCol,
+          isFirstNotFixedSelectionCol,
+          showCorner,
+        },
+      )
+    },
 
-      if (fixedType === COLUMN_FIXED_TYPE.LEFT) {
-        if (totalColKeys.length !== fixedColKeys.length) {
-          rightBorder.show = false
-          corner.show = false
-        }
-      }
+    // get borders
+    getBorders({ className, ...params }) {
+      const resolved = this.resolveBorders(params)
 
-      if (fixedType === COLUMN_FIXED_TYPE.RIGHT) {
-        if (totalColKeys.length !== fixedColKeys.length)
-          leftBorder.show = false
+      if (!resolved)
+        return null
 
-        topBorder.left = rightBorder.left - borderWidth + 1
-        bottomBorder.left = rightBorder.left - borderWidth + 1
-      }
+      const {
+        borderWidth,
+        borderHeight,
+        topBorder,
+        rightBorder,
+        bottomBorder,
+        leftBorder,
+        corner,
+      } = resolved
 
-      // solved first row、first column、first not fixed column selection border hidden
-      if (isFirstSelectionRow)
-        topBorder.top += 1
-
-      if (isFirstSelectionCol)
-        leftBorder.left += 1
-
-      if (isFirstNotFixedSelectionCol)
-        leftBorder.left += 1
+      const { cornerCellInfo } = this
 
       let cornerTop = corner.top
       let cornerLeft = corner.left
@@ -1271,9 +1232,6 @@ export default defineComponent({
         cornerLeft -= 3
         cornerBorderRightWidth = '0px'
       }
-
-      if (!showCorner)
-        corner.show = false
 
       // corner props
       const cornerProps = {
@@ -1360,61 +1318,23 @@ export default defineComponent({
       )
     },
 
-    // get area rect
-    getAreaLayer({
-      borderWidth,
-      borderHeight,
-      topBorder,
-      className,
-      fixedType,
-      totalColKeys,
-      fixedColKeys,
-    }) {
-      const { colgroups } = this
+    // get area layer：与边框围成的矩形一致（SEL-07）
+    getAreaLayer({ className, ...params }) {
+      const resolved = this.resolveBorders(params)
 
-      let isRender = true
-
-      if (fixedType) {
-        isRender = isExistGivenFixedColKey({
-          fixedType,
-          colKeys: totalColKeys,
-          colgroups,
-        })
-      }
-      // middle normal area
-      else {
-        isRender = isExistNotFixedColKey({
-          colKeys: totalColKeys,
-          colgroups,
-        })
-      }
-
-      if (!isRender)
+      if (!resolved)
         return null
 
-      // fixed columns total width
-      let fixedColsTotalWidth = 0
-      if (fixedColKeys.length) {
-        fixedColsTotalWidth = getTotalWidthByColKeys({
-          colKeys: fixedColKeys,
-          colgroups,
-        })
-      }
-
-      if (fixedType) {
-        borderWidth = fixedColsTotalWidth
-        if (fixedType === COLUMN_FIXED_TYPE.LEFT)
-          borderWidth += 1
-      }
+      const { top, left, width, height } = getAreaLayerRect(resolved)
 
       return (
         <div
           class={clsName(className)}
           style={{
-            top: `${topBorder.top}px`,
-            left: `${topBorder.left}px`,
-            width: `${borderWidth}px`,
-            height: `${borderHeight}px`,
+            top: `${top}px`,
+            left: `${left}px`,
+            width: `${width}px`,
+            height: `${height}px`,
           }}
         >
         </div>

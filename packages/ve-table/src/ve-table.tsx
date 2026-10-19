@@ -1,3 +1,4 @@
+import type { AutofillingDirection } from './selection/geometry'
 import type { KeyboardMode } from './util/constant.js'
 import type {
   BodyIndicatorRowKeys,
@@ -49,12 +50,14 @@ import { keyboardMethods } from './methods/keyboard'
 import { scrollingMethods } from './methods/scrolling'
 import RowInsertIndicator from './row-insert-indicator'
 import Selection from './selection'
+import { getAutofillDirection } from './selection/geometry'
 import { queryBodyRow } from './util/cell-dom'
 // Clipboard utils moved to methods/clipboard.ts
 import {
   COLUMN_FIXED_TYPE,
   COMPS_NAME,
   CONTEXTMENU_TYPES,
+  CURRENT_CELL_SELECTION_TYPES,
   EMIT_EVENTS,
   HOOKS_NAME,
   INSTANCE_METHODS,
@@ -369,7 +372,6 @@ export default defineComponent({
       isBodyCellMousedown: false,
       isBodyOperationColumnMousedown: false,
       isAutofillStarting: false,
-      autofillingDirection: null as string | null,
       currentCellSelectionType: '',
       // 键盘模式（SEL-08）：单元格导航 / 表格（焦点在根元素上，Tab 交给浏览器）
       keyboardMode: KEYBOARD_MODE.TABLE as KeyboardMode,
@@ -407,6 +409,54 @@ export default defineComponent({
     }
   },
   computed: {
+    /*
+    填充方向（FILL-01）：由选区与 autofill 结束单元格的行列位置计算，不再由选区层在渲染时派发。
+    结束单元格为空（拖动开始前 / 结束后）、在选区内或方向不被允许时为 null
+    */
+    autofillingDirection(): AutofillingDirection | null {
+      const {
+        cellAutofillOption,
+        cellSelectionData,
+        cellSelectionRangeData,
+        currentCellSelectionType,
+        colgroups,
+        allRowKeys,
+      } = this
+
+      if (!cellAutofillOption)
+        return null
+
+      const { currentCell, autoFillEndCell } = cellSelectionData
+      if (isEmptyValue(autoFillEndCell.rowKey) || isEmptyValue(autoFillEndCell.colKey))
+        return null
+
+      let { leftColKey, rightColKey, topRowKey, bottomRowKey } = cellSelectionRangeData
+      if (currentCellSelectionType === CURRENT_CELL_SELECTION_TYPES.SINGLE) {
+        leftColKey = currentCell.colKey
+        rightColKey = currentCell.colKey
+        topRowKey = currentCell.rowKey
+        bottomRowKey = currentCell.rowKey
+      }
+      else if (currentCellSelectionType !== CURRENT_CELL_SELECTION_TYPES.RANGE) {
+        return null
+      }
+
+      const colIndexOf = (colKey: unknown) => colgroups.findIndex((x: ColgroupData) => x.key === colKey)
+      const { directionX, directionY } = isBoolean(cellAutofillOption) ? {} as Record<string, never> : cellAutofillOption
+
+      return getAutofillDirection({
+        range: {
+          top: allRowKeys.indexOf(topRowKey),
+          bottom: allRowKeys.indexOf(bottomRowKey),
+          left: colIndexOf(leftColKey),
+          right: colIndexOf(rightColKey),
+        },
+        endRowIndex: allRowKeys.indexOf(autoFillEndCell.rowKey),
+        endColIndex: colIndexOf(autoFillEndCell.colKey),
+        directionX,
+        directionY,
+      })
+    },
     // actual render table data
     actualRenderTableData() {
       if (this.isVirtualScroll)
@@ -918,6 +968,8 @@ export default defineComponent({
           }
           finally {
             this.clearCellSelectionAutofillEndCell()
+            // 拖动已结束，移除 window 上的 mouseup / blur 监听（FILL-02）
+            this.removeAutofillWindowListeners()
           }
         }
       },
@@ -1035,11 +1087,6 @@ export default defineComponent({
       this.cellSelectionCornerMouseup(params)
     })
 
-    // autofilling direction change
-    this.on(EMIT_EVENTS.AUTOFILLING_DIRECTION_CHANGE, (params) => {
-      this.autofillingDirectionChange(params)
-    })
-
     // recieve body cell contextmenu(right click)
     this.on(EMIT_EVENTS.BODY_CELL_CONTEXTMENU, (params) => {
       this.bodyCellContextmenu(params)
@@ -1098,6 +1145,8 @@ export default defineComponent({
     document.removeEventListener('keydown', this.dealKeydownEvent)
     // Clean up TanStack virtual scroll instance
     this.destroyTanStackVirtualScroll()
+    // 拖动填充中卸载：移除 window 上的监听（FILL-02）
+    this.removeAutofillWindowListeners()
   },
 
   methods: {
@@ -1371,7 +1420,8 @@ export default defineComponent({
       this.isHeaderCellMousedown = false
       this.isBodyCellMousedown = false
       this.isBodyOperationColumnMousedown = false
-      this.isAutofillStarting = false
+      // 在表格外点击：取消正在进行的填充，而不是提交（FILL-02）
+      this.cancelAutofill()
       this.setIsColumnResizing(false)
 
       // clear cell selection
@@ -1576,7 +1626,7 @@ export default defineComponent({
          * @param {object} rowData - row data
          * @param {object} column - column data
          */
-    bodyCellMouseover({ event: _event, rowData, column }) {
+    bodyCellMouseover({ event, rowData, column }) {
       const {
         rowKeyFieldName,
         isBodyCellMousedown,
@@ -1615,6 +1665,15 @@ export default defineComponent({
       }
 
       if (isAutofillStarting) {
+        /*
+        经过单元格时没有按住左键：说明 mouseup 已丢失（例如在窗口外释放且浏览器没有派发），
+        取消填充，避免下一次在表格内的 mouseup 提交（FILL-02）
+        */
+        if (event instanceof MouseEvent && (event.buttons & 1) === 0) {
+          this.cancelAutofill()
+          return false
+        }
+
         // 操作列不能autofilling 效果
         if (isOperationColumn(colKey, this.colgroups))
           return false
@@ -2410,6 +2469,7 @@ export default defineComponent({
       hooks: this.hooks,
       cellSelectionData,
       isAutofillStarting: this.isAutofillStarting,
+      autofillingDirection: this.autofillingDirection,
       cellSelectionRangeData,
       currentCellSelectionType: this.currentCellSelectionType,
       isVirtualScroll,
