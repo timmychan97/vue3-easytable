@@ -983,6 +983,12 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
   - **Done:** both components bind `disabled` on the native `<input>`. The FORM-02 reset in the change handler stays as a fallback.
   - **Verified:** `ve-checkbox.spec.ts` › "disabled attribute (FORM-05)": "a disabled checkbox renders a disabled native input" (also checks that the attribute goes away when `disabled` becomes `false`) and "a disabled checkbox in a group renders a disabled native input". `ve-radio.spec.tsx` › "a disabled radio renders a disabled native input". All three failed before. Three snapshots changed, each only by `disabled=""` on the disabled inputs: `veCheckbox > render with checkbox group`, `veCheckbox > render with indeterminate` (the disabled one; the two checkbox snapshot names are swapped in the spec) and `veRadio > render`. No ve-table snapshot has a disabled checkbox or radio.
 
+- [x] ✅ 2026-10-19 · fix/audit-small-nontable · **FORM-06** 🟢 A checkbox group whose model becomes `null` crashes its checkboxes (found in wave 2)
+  - **Where:** `ve-checkbox/src/index.tsx` `updateModelByGroup`, called by the `ve-checkbox-group` `modelValue` watcher. Also `ve-checkbox-group/src/index.tsx` `onCheckboxUpdate` (`[...props.modelValue]`).
+  - **Trigger:** `<ve-checkbox-group v-model="x">` with `x` later set to `null`: the watcher passes `null` to every checkbox and `checkBoxGroup.includes` throws. A click on a checkbox while the group model is `null` threw `props.modelValue is not iterable` in the group.
+  - **Done:** both places treat a non-array model as `[]`. A `null` model unchecks every checkbox, and a click on one starts a new array with that label. `initModel` and `syncAfterChange` already had this guard.
+  - **Verified:** `ve-checkbox.spec.ts` › "checkbox-group model set to null (FORM-06)": "a group model set to null unchecks every checkbox" (failed before: `Cannot read properties of null (reading 'includes')`) and "clicking a checkbox in a group whose model is null selects it" (failed before: the model stayed `null` and the click threw `props.modelValue is not iterable`).
+
 ---
 
 ## I18N — locale and ConfigProvider

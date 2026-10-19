@@ -541,4 +541,40 @@ describe('veCheckbox', () => {
       expect(inputs).toEqual([false, true])
     })
   })
+
+  describe('checkbox-group model set to null (FORM-06)', () => {
+    const template = `
+                <ve-checkbox-group v-model="value">
+                    <ve-checkbox label="a" />
+                    <ve-checkbox label="b" />
+                </ve-checkbox-group>
+            `
+
+    it('a group model set to null unchecks every checkbox', async () => {
+      const wrapper = mount({
+        template,
+        data() {
+          return { value: ['a'] as string[] | null }
+        },
+      })
+      expect(wrapper.findAll('.ve-checkbox-checked').length).toBe(1)
+
+      await wrapper.setData({ value: null })
+
+      expect(wrapper.findAll('.ve-checkbox-checked').length).toBe(0)
+    })
+
+    it('clicking a checkbox in a group whose model is null selects it', async () => {
+      const wrapper = mount({
+        template,
+        data() {
+          return { value: null as string[] | null }
+        },
+      })
+
+      await wrapper.findAll('.ve-checkbox')[1].trigger('click')
+
+      expect((wrapper.vm as any).value).toEqual(['b'])
+    })
+  })
 })
