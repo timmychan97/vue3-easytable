@@ -286,18 +286,32 @@ export default defineComponent({
 
     showRootContextmenuPanel(event: MouseEvent) {
       event.preventDefault()
-      const { rootContextmenuId } = this
 
-      if (rootContextmenuId) {
-        // refresh contextmenu
-        this.resetContextmenu()
-        this.showContextmenuPanel({
-          event,
-          contextmenuId: rootContextmenuId,
-          isRootContextmenu: true,
-        })
-        this.isPanelsEmptyed = false
-      }
+      /*
+            等待挂起的更新完成后再显示（MENU-06）
+            ve-table 在单元格的 contextmenu 处理函数中同步替换 options，事件随后才冒泡到 eventTarget。
+            若立即显示，会用旧的根菜单容器显示，随后 options 的 watcher 会移除该容器并重建，菜单随即消失。
+            真实的用户右键在两个监听器之间有微任务检查点，所以只在脚本派发的事件（测试工具、dispatchEvent）中出现。
+            $nextTick 会等待当前的刷新（watcher + 重新渲染）完成；没有挂起的更新时只延后一个微任务，仍在绘制前完成。
+            */
+      this.$nextTick(() => {
+        // 组件可能已在等待期间卸载
+        if (this.$.isUnmounted)
+          return
+
+        const { rootContextmenuId } = this
+
+        if (rootContextmenuId) {
+          // refresh contextmenu
+          this.resetContextmenu()
+          this.showContextmenuPanel({
+            event,
+            contextmenuId: rootContextmenuId,
+            isRootContextmenu: true,
+          })
+          this.isPanelsEmptyed = false
+        }
+      })
     },
 
     showContextmenuPanel({ event, contextmenuId, isRootContextmenu }: { event: MouseEvent, contextmenuId: string | number, isRootContextmenu?: boolean }) {

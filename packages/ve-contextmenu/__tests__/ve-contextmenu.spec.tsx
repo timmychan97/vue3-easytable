@@ -734,6 +734,8 @@ describe('veContextmenu', () => {
     })
 
     contextmenuTargetEl!.dispatchEvent(event1)
+    // 菜单在挂起的更新完成后显示（MENU-06）
+    await later()
 
     const veContextmenuComp = wrapper.findComponent(veContextmenu)
 
@@ -791,6 +793,8 @@ describe('veContextmenu', () => {
     })
 
     contextmenuTargetEl!.dispatchEvent(event1)
+    // 菜单在挂起的更新完成后显示（MENU-06）
+    await later()
 
     const veContextmenuComp = wrapper.findComponent(veContextmenu)
 
@@ -804,6 +808,58 @@ describe('veContextmenu', () => {
     await later()
 
     expect(veContextmenuComp.vm.isPanelsEmptyed).toBe(true)
+
+    wrapper.unmount()
+  })
+
+  // 与 ve-table 相同的用法：目标内部的元素在同一个 contextmenu 事件中（冒泡到 eventTarget 之前）同步替换 options
+  it('options replaced while the contextmenu event bubbles still open the new menu (MENU-06)', async () => {
+    const wrapper = mount({
+      render() {
+        return (
+          <div>
+            <div class="menu06-target">
+              <span
+                class="menu06-cell"
+                onContextmenu={() => {
+                  this.count++
+                  this.options = [{ label: `item${this.count}`, type: 'x' }]
+                }}
+              >
+                cell
+              </span>
+            </div>
+            <ve-contextmenu eventTarget={this.eventTarget} options={this.options} />
+          </div>
+        )
+      },
+      data() {
+        return { options: [], count: 0, eventTarget: '' as string | HTMLElement }
+      },
+      mounted() {
+        this.eventTarget = this.$el.querySelector('.menu06-target')
+      },
+    })
+    await later()
+
+    const visibleLabels = () => [...document.querySelectorAll(
+      '.ve-contextmenu-popper .ve-contextmenu-node-label',
+    )].map(x => x.textContent)
+    const rightClickCell = async () => {
+      document.querySelector('.menu06-cell')!.dispatchEvent(
+        new MouseEvent('contextmenu', { bubbles: true, cancelable: true }),
+      )
+      await later()
+    }
+
+    // 第一次右键：options 从空数组变为 1 项
+    await rightClickCell()
+    expect(visibleLabels()).toEqual(['item1'])
+
+    // 再次右键：options 被替换为新数组
+    await rightClickCell()
+    expect(visibleLabels()).toEqual(['item2'])
+    expect(document.querySelectorAll('.ve-contextmenu-popper')).toHaveLength(1)
 
     wrapper.unmount()
   })
