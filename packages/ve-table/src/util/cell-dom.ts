@@ -9,7 +9,7 @@
  * - 只返回本表格的行：展开行里嵌套的表格中的行会被排除。
  */
 import { COMPS_CUSTOM_ATTRS } from './constant'
-import { clsName } from './index'
+import { clsName } from './core'
 
 type Root = ParentNode & Node
 

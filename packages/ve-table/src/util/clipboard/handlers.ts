@@ -1,5 +1,5 @@
 import type { CellSelectionRangeData } from '../../ve-table-types.js'
-import { getSelectionRangeIndexes, getSelectionRangeKeys } from '../index.js'
+import { getSelectionRangeIndexes, getSelectionRangeKeys } from '../selection-range/range.js'
 import { decodeSpreadsheetStr, encodeToSpreadsheetStr } from './tsv-codec.js'
 
 type RowKey = string | number

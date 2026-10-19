@@ -1004,13 +1004,23 @@ These are structural changes. Several of them remove whole bug classes above (no
   | columns (hide/show, group, resize, fixed) | ve-table.tsx 1040-1165, 1933-1963; watch 756-782 | COL-* |
   | scroll shadow / scrollbar status | `methods/scrolling.ts` | Container ref only |
   | event wiring | ve-table.tsx 879-987 | 21 near-identical `this.on(...)` calls → an `[event, method]` table |
-- [ ] **MOD-03** Split `util/index.ts` (1.5k lines) into:
+- [x] ✅ 2026-10-19 · refactor/audit-wave2-util · **MOD-03** Split `util/index.ts` (1.5k lines) into:
   - `columns/`: init-group-columns, column-fixed, col-keys
   - `selection-range/range.ts`: this also removes the four copies of the index/keys logic in the clipboard `onBefore*` functions
     - *Progress (`fix/audit-batch5-clipboard-codec`):* the three identical copies in `onBeforeCopy` / `onBeforeCut` / `onBeforeDelete` are now one `getRangeResponse` in `util/clipboard/handlers.ts`, built on `getSelectionRangeIndexes` / `getSelectionRangeKeys`. `onBeforePaste` keeps its own anchor-based logic.
   - `autofill/cell-autofill.ts`
   - `contextmenu/options.ts`
   - `core.ts`: `clsName`, `getRowKey`, `getEmitEventName` …
+  - **Done:** `util/index.ts` is now a barrel that re-exports every function under the same name, so no import site outside `util/` changed. The modules, all under `util/`:
+    - `core.ts`: `clsName`, `getRowKey`, `isLastRowByRowKey`, `getDomResizeObserverCompKey`, `getEmitEventName`.
+    - `columns/col-keys.ts`: column lookups by key (`getColumnByColkey`, `isLastColumnByColKey`, `isOperationColumn`, `getColKeysBy*`, `isExist*ColKey`, `getLeftmostColKey` / `getRightmostColKey`, `getPreviewColKey` / `getNextColKey`).
+    - `columns/init-group-columns.ts`: `initGroupColumns`, `recursiveRemoveColumnByKey`.
+    - `columns/column-fixed.ts`: fixed-column widths (`getFixedTotalWidthByColumnKey`, `getNotFixedTotalWidthByColumnKey`, `getTotalWidthByColKeys`), `setColumnFixed`, `cancelColumnFixed`, `restoreColumnsState`. `columns/index.ts` re-exports the three.
+    - `selection-range/range.ts`: `getRowKeysByRangeRowKeys`, `isCellInSelectionRange`, `isClearSelectionByBodyCellRightClick`, `getSelectionRangeKeys` / `Indexes` / `Data`.
+    - `autofill/cell-autofill.ts`: `cellAutofill`.
+    - `contextmenu/options.ts`: the header / body option collections, `setHeaderContextmenuOptions`, `setBodyContextmenuOptions`, `createEmptyRowData`, `isContextmenuPanelClicked`.
+    - Inside `util/`, `cell-dom.ts` imports `clsName` from `core.ts` and `clipboard/handlers.ts` imports from `selection-range/range.ts` instead of going through the barrel. The move was its own commit (every line of the old file landed in exactly one module, checked by script).
+  - **Verified:** after the move commit the suite passed unchanged (66 files, 704 tests, 1 todo, including `ve-table-util.spec.ts`, which imports through the barrel), eslint clean, tsc 426 (unchanged).
 - [x] ✅ 2026-10-16 · fix/audit-batch5-clipboard-codec · **MOD-04** Split `clipboard.ts` into `tsv-codec.ts` (pure encode/decode with round-trip unit tests) and `handlers.ts` (`onBefore*`/`onAfter*`). [CLIP-02 … CLIP-05]
   - **Done:** `util/clipboard/` now holds `tsv-codec.ts` (pure `decodeSpreadsheetStr` / `encodeToSpreadsheetStr`), `handlers.ts` (`onBefore*` / `onAfter*`, plus the private `getRangeResponse`, `clearRangeValues` and clipboard read/write helpers) and `index.ts` (re-exports both). The move was its own commit with no behaviour change; `methods/clipboard.ts` imports from `../util/clipboard/index.js`.
   - **Verified:** the full suite passed unchanged after the move commit; the codec is covered by `ve-table-tsv-codec.spec.ts` (CLIP-03, CLIP-04).
