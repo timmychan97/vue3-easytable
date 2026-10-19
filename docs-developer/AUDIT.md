@@ -368,10 +368,12 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
   - **Effect:** none at runtime, but the code suggests that the corner depends on the caller.
   - **Fix:** drop the argument during MOD-05.
 
-- [ ] **SEL-14** 🟢 `getColumnByColkey` treats colKey `0` as "no column" (found in batch 7)
+- [x] ✅ 2026-10-19 · refactor/audit-wave2-util · **SEL-14** 🟢 `getColumnByColkey` treats colKey `0` as "no column" (found in batch 7)
   - **Where:** `util/index.ts` `getColumnByColkey`: `if (colKey)`.
   - **Trigger:** a column with `key: 0`. Every caller gets `null` for that column. SEL-06 avoided the helper for this reason (`colgroups.find`).
   - **Fix:** check with `isEmptyValue(colKey)` instead.
+  - **Done:** `getColumnByColkey` (`util/columns/col-keys.ts`) checks `isEmptyValue(colKey)`. Worse than described: a table with **any numeric column key** (including `0`) did not render at all. `initGroupColumns` stored a leaf's `_keys` as the raw key, and the header's `isLastCloumn` (`header-th.tsx`) calls `_keys.split('|')`, which throws for a number. `initGroupColumns` now stores `_keys` as a string (keyless columns unchanged), and `getColKeysByHeaderColumn` uses `String(_keys)`, so `setColumnFixed` no longer throws when a column with a numeric key comes before the target. The `colgroups.find` workaround from SEL-06 in `setCellSelection` (`ve-table.tsx`) is left as is (outside this branch's scope); it can use the helper again.
+  - **Verified:** `ve-table-instance-methods.spec.ts` › "scrollToColKey method accepts colKey 0 (SEL-14)" (failed before with `column._keys.split is not a function` while rendering the header; with only the `_keys` fix it still failed because `getColumnByColkey` returned `null`: `scrollLeft` stayed 300). `ve-table-util.spec.ts` › "colKey 0 (SEL-14)": "getColumnByColkey finds the column with key 0" (failed: `null`), "getColKeysByHeaderColumn accepts a numeric key" and "setColumnFixed works when a column before the target has key 0" (both failed: `_keys.split is not a function`); "getColumnByColkey still returns null for an empty key" and "setColumnFixed left-fixes up to the column with key 0" guard the rest.
 
 - [ ] **SEL-15** 🟢 Right-clicking inside a row or column indicator selection that was dragged up or left resets it (found in batch 7)
   - **Where:** `ve-table.tsx` `bodyCellMousedown` / `headerCellMousedown`, the right-click "inside the selection" checks on the indexes from `getIndicatorIndexes()`.

@@ -10,7 +10,8 @@ import { isEmptyArray, isEmptyValue } from '@vue3-easytable/common/utils'
  * @param {string} colKey - column key
  */
 export function getColumnByColkey(colKey: ColKey, colgroups: ColgroupsParam) {
-  if (colKey)
+  // 0 也是有效的列 key（SEL-14）
+  if (!isEmptyValue(colKey))
     return colgroups.find(x => x.key === colKey)
 
   return null
@@ -53,7 +54,8 @@ export function getColKeysByHeaderColumn({ headerColumnItem }: { headerColumnIte
 
   const { _keys } = headerColumnItem
 
-  result = (_keys as string).split('|')
+  // 数字 key 的 _keys 也按字符串处理（SEL-14）
+  result = String(_keys).split('|')
   if (result.length > 1)
     result = result.slice(0, result.length - 1)
 

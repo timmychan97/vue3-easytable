@@ -76,7 +76,8 @@ export function initGroupColumns(cloneColumns: ColumnOption[]): {
       column._rowspan = 1
     }
     else {
-      column._keys = column.key
+      // _keys 是以 | 分隔的字符串（表头会对它 split）；数字 key（包括 0）也转为字符串（SEL-14）
+      column._keys = isEmptyValue(column.key) ? column.key : String(column.key)
       column._colspan = 1
       column._rowspan = maxLevel - column._level + 1
     }
