@@ -293,4 +293,85 @@ describe('veCheckbox', () => {
     expect(groupCallbackCalls).toBe(3)
     expect(wrapper.findAll('.ve-checkbox-checked').length).toBe(1)
   })
+
+  describe('disabled and uncontrolled state (FORM-02)', () => {
+    it('a disabled checkbox follows modelValue changes', async () => {
+      const wrapper = mount(veCheckbox, {
+        props: { modelValue: false, disabled: true, label: 'orange' },
+      })
+
+      await wrapper.setProps({ modelValue: true })
+      expect(wrapper.find('.ve-checkbox-checked').exists()).toBe(true)
+
+      await wrapper.setProps({ modelValue: false })
+      expect(wrapper.find('.ve-checkbox-checked').exists()).toBe(false)
+    })
+
+    it('a disabled checkbox in a group follows the group value', async () => {
+      const wrapper = mount({
+        template: `
+                <ve-checkbox-group v-model="checkboxValue">
+                    <ve-checkbox label="a" />
+                    <ve-checkbox disabled label="b" />
+                </ve-checkbox-group>
+            `,
+        data() {
+          return { checkboxValue: ['a'] }
+        },
+      })
+      const disabledBox = () => wrapper.findAll('.ve-checkbox')[1]
+
+      expect(disabledBox().find('.ve-checkbox-checked').exists()).toBe(false)
+
+      await wrapper.setData({ checkboxValue: ['a', 'b'] })
+      expect(disabledBox().find('.ve-checkbox-checked').exists()).toBe(true)
+
+      await wrapper.setData({ checkboxValue: [] })
+      expect(disabledBox().find('.ve-checkbox-checked').exists()).toBe(false)
+    })
+
+    it('a disabled checkbox ignores clicks and keeps the native input in sync', async () => {
+      const wrapper = mount(veCheckbox, {
+        props: { modelValue: true, disabled: true, label: 'orange' },
+      })
+
+      await wrapper.find('.ve-checkbox').trigger('click')
+
+      expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+      expect(wrapper.emitted('on-checked-change')).toBeUndefined()
+      expect(wrapper.find('.ve-checkbox-checked').exists()).toBe(true)
+      expect((wrapper.find('input').element as HTMLInputElement).checked).toBe(true)
+    })
+
+    it('an uncontrolled checkbox without v-model shows its own checked state', async () => {
+      const wrapper = mount(veCheckbox, {
+        props: { label: 'orange' },
+      })
+
+      await wrapper.find('.ve-checkbox').trigger('click')
+      expect(wrapper.find('.ve-checkbox-checked').exists()).toBe(true)
+      expect(wrapper.emitted('update:modelValue')).toEqual([[true]])
+
+      await wrapper.find('.ve-checkbox').trigger('click')
+      expect(wrapper.find('.ve-checkbox-checked').exists()).toBe(false)
+      expect(wrapper.emitted('on-checked-change')).toEqual([[true], [false]])
+    })
+
+    it('a checkbox in a group without v-model shows its own checked state', async () => {
+      const wrapper = mount({
+        template: `
+                <ve-checkbox-group>
+                    <ve-checkbox label="a" />
+                    <ve-checkbox label="b" />
+                </ve-checkbox-group>
+            `,
+      })
+
+      await wrapper.findAll('.ve-checkbox')[1].trigger('click')
+
+      const checked = wrapper.findAll('.ve-checkbox-checked')
+      expect(checked).toHaveLength(1)
+      expect(wrapper.findAll('.ve-checkbox')[1].find('.ve-checkbox-checked').exists()).toBe(true)
+    })
+  })
 })

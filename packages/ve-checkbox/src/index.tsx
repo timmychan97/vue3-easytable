@@ -70,14 +70,22 @@ export default defineComponent({
 
     // checkbox change
     function checkboxChange(event: Event) {
-      if (props.disabled)
-        return
-
       const target = event.target as HTMLInputElement
+
+      // 禁用时只阻止用户操作：浏览器已经切换了原生 input，需要恢复为当前状态
+      if (props.disabled) {
+        target.checked = !!internalIsSelected.value
+        return
+      }
+
       const isChecked = target.checked
 
-      if (!props.isControlled)
+      if (!props.isControlled) {
+        // 非受控：先更新本地状态，没有绑定 v-model 时也能显示选中样式；
+        // 绑定了 v-model 时，父组件回传的 modelValue 与本地状态一致
+        model.value = isChecked
         emit('update:modelValue', isChecked)
+      }
 
       emit(EMIT_EVENTS.ON_CHECKED_CHANGE, isChecked)
 
@@ -112,22 +120,14 @@ export default defineComponent({
       }
     }
 
-    // 通过单选更新 model
+    // 通过单选更新 model（disabled 只阻止用户操作，不阻止 v-model 同步）
     function updateModelBySingle() {
-      if (!props.disabled)
-        model.value = props.modelValue
+      model.value = props.modelValue
     }
 
-    // 父组件调用更新 model
+    // 父组件调用更新 model（disabled 时同样要与 checkbox-group 的值保持一致）
     function updateModelByGroup(checkBoxGroup: string[]) {
-      if (checkBoxGroup.includes(props.label)) {
-        if (!props.disabled)
-          model.value = true
-      }
-      else {
-        if (!props.disabled)
-          model.value = false
-      }
+      model.value = checkBoxGroup.includes(props.label)
     }
 
     initModel()

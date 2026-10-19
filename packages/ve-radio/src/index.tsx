@@ -57,14 +57,21 @@ export default defineComponent({
 
   methods: {
     checkedChange(event: Event) {
-      if (this.disabled)
-        return false
-
       const target = event.target as HTMLInputElement
+
+      // 禁用时只阻止用户操作：浏览器已经切换了原生 input，需要恢复为当前状态
+      if (this.disabled) {
+        target.checked = !!this.internalIsSelected
+        return false
+      }
+
       const isChecked = target.checked
 
-      if (!this.isControlled)
+      if (!this.isControlled) {
+        // 非受控：先更新本地状态，没有绑定 v-model 时也能显示选中样式
+        this.model = isChecked
         this.$emit('update:modelValue', isChecked)
+      }
 
       this.$emit(EMIT_EVENTS.ON_RADIO_CHANGE, isChecked)
     },
@@ -79,10 +86,9 @@ export default defineComponent({
       this.model = this.modelValue
     },
 
-    // 通过单选更新 model
+    // 通过单选更新 model（disabled 只阻止用户操作，不阻止 v-model 同步）
     updateModelBySingle() {
-      if (!this.disabled)
-        this.model = this.modelValue
+      this.model = this.modelValue
     },
   },
 
