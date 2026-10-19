@@ -358,10 +358,12 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
   - **Trigger:** start a range selection or an autofill drag in the table, and release the mouse outside the table but inside the page. The browser fires a trailing `click` on the nearest common ancestor of the mousedown and mouseup targets, which is outside the table, so `tableClickOutside` clears the whole selection. FILL-02 makes the autofill release cancel the fill, but the selection is still lost. Confirmed in headless Chromium.
   - **Fix:** record the `mousedown` target in the directive and ignore a click whose mousedown started inside the element.
 
-- [ ] **SEL-12** 🟢 `setCellSelection()` after a range keeps the old `normalEndCell` (found in batch 7)
+- [x] ✅ 2026-10-19 · refactor/audit-wave2-selection · **SEL-12** 🟢 `setCellSelection()` after a range keeps the old `normalEndCell` (found in batch 7)
   - **Where:** `ve-table.tsx` `[INSTANCE_METHODS.SET_CELL_SELECTION]`. It changes the current cell, but does not call `clearCellSelectionNormalEndCell()`.
   - **Trigger:** select a range (by drag or `setRangeCellSelection`), then call `setCellSelection({ rowKey, colKey })`. The selection is still a range, from the new cell to the old end cell, instead of the single cell asked for.
   - **Fix:** call `clearCellSelectionNormalEndCell()` there.
+  - **Done:** `[INSTANCE_METHODS.SET_CELL_SELECTION]` calls `clearCellSelectionNormalEndCell()` right after changing the current cell. The other internal callers (cell click, keyboard navigation, `resumeCellKeyboardMode`) already cleared the end cell themselves or had none, so only the public API changes: it now always gives a single-cell selection.
+  - **Verified:** `ve-table-cell-selection.spec.ts` › "setCellSelection after a range selects a single cell (SEL-12)" (failed before: `normalEndCell` stayed on `4/c`, so the selection stayed a range). It also checks `currentCellSelectionType`, `cellSelectionRangeData` and `getRangeCellSelection()`.
 
 - [ ] **SEL-13** 🟢 `getSelectionCurrent` passes a `showCorner` argument that `getBorders` ignores (found in batch 7)
   - **Where:** `selection/index.tsx` `getSelectionCurrent` passes `showCorner: !normalEndCellRect.width` to `getBorders`, which uses the `showCorner` computed instead.
@@ -373,10 +375,12 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
   - **Trigger:** a column with `key: 0`. Every caller gets `null` for that column. SEL-06 avoided the helper for this reason (`colgroups.find`).
   - **Fix:** check with `isEmptyValue(colKey)` instead.
 
-- [ ] **SEL-15** 🟢 Right-clicking inside a row or column indicator selection that was dragged up or left resets it (found in batch 7)
+- [x] ✅ 2026-10-19 · refactor/audit-wave2-selection · **SEL-15** 🟢 Right-clicking inside a row or column indicator selection that was dragged up or left resets it (found in batch 7)
   - **Where:** `ve-table.tsx` `bodyCellMousedown` / `headerCellMousedown`, the right-click "inside the selection" checks on the indexes from `getIndicatorIndexes()`.
   - **Trigger:** drag over the row indicators from bottom to top (or over the column headers from right to left), then right-click a cell inside the selection. The check assumes `start <= end`, so the click counts as outside and the selection is reset to the clicked row or column.
   - **Fix:** compare against the `min` / `max` of the start and end indexes.
+  - **Done:** both checks compare against `Math.min` / `Math.max` of the indicator's start and end indexes. In `headerCellMousedown` the two local index names were also swapped back (`currentCellStartColIndex` held the end column's index and vice versa); the check tests both, so that part had no effect. An indicator that is not set still gives `-1 / -1`, so a right-click then still resets, as before.
+  - **Verified:** `ve-table-cell-selection-indicator.spec.ts` › "right-clicking inside a row selection dragged upwards keeps it (SEL-15)" and "right-clicking inside a column selection dragged leftwards keeps it (SEL-15)" (both failed before: the selection was reset to row 3 / column `b`). Each also checks that a right-click outside the selection still resets it.
 
 ---
 

@@ -583,6 +583,47 @@ describe('veTable cell selection', () => {
     })
   })
 
+  // SEL-12：区域选择之后调用 setCellSelection 应该得到单个单元格，而不是从新单元格到旧结束单元格的区域
+  it('setCellSelection after a range selects a single cell (SEL-12)', async () => {
+    const wrapper = mount(veTable, {
+      propsData: {
+        columns: COLUMNS,
+        tableData: TABLE_DATA,
+        rowKeyFieldName: 'rowKey',
+      },
+    })
+    const vm = wrapper.vm as any
+
+    vm.setRangeCellSelection({
+      startRowKey: '2',
+      startColKey: 'a',
+      endRowKey: '4',
+      endColKey: 'c',
+    })
+    await later()
+    expect(vm.currentCellSelectionType).toBe('range')
+
+    vm.setCellSelection({ rowKey: '1', colKey: 'b' })
+    await later()
+
+    expect(vm.cellSelectionData.currentCell).toMatchObject({ rowKey: '1', colKey: 'b' })
+    expect(vm.cellSelectionData.normalEndCell).toMatchObject({ rowKey: '', colKey: '', rowIndex: -1 })
+    expect(vm.currentCellSelectionType).toBe('single')
+    expect(vm.cellSelectionRangeData).toEqual({
+      leftColKey: 'b',
+      rightColKey: 'b',
+      topRowKey: '1',
+      bottomRowKey: '1',
+    })
+    expect(vm.getRangeCellSelection().selectionRangeKeys).toEqual({
+      startColKey: 'b',
+      endColKey: 'b',
+      startRowKey: '1',
+      endRowKey: '1',
+    })
+    wrapper.unmount()
+  })
+
   // SEL-06：公开的选区 API 收到未知的 rowKey / colKey 时不抛错，也不改变选区
   describe('unknown keys in the selection API (SEL-06)', () => {
     function mountWithXScrollBar() {
