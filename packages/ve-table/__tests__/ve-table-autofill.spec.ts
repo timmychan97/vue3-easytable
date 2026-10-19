@@ -692,6 +692,102 @@ describe('veTable cell autofill', () => {
     })
   })
 
+  /*
+  FILL-05：没有任何可写入的单元格时（目标列都不能写入，或横向填充的源列都没有数据）不执行填充：
+  不调用 beforeAutofill / afterAutofill，选区保持不变（与粘贴的 CLIP-11 相同）
+  */
+  describe('an autofill with nothing to write (FILL-05)', () => {
+    // x 没有 field；设置了 editOption 时只有 name、hobby 可写入
+    const COLUMNS_WITHOUT_DATA: Record<string, any>[] = [
+      { field: 'name', key: 'name', title: 'Name', width: COL_WIDTH, edit: true },
+      { key: 'x', title: 'Actions', width: COL_WIDTH },
+      { field: 'date', key: 'date', title: 'Date', width: COL_WIDTH },
+      { field: 'hobby', key: 'hobby', title: 'Hobby', width: COL_WIDTH, edit: true },
+    ]
+
+    function mountColumns(props: Record<string, any> = {}) {
+      mockTableLayout(COLUMNS_WITHOUT_DATA.map(x => x.key))
+      const callbacks = { beforeAutofill: vi.fn(), afterAutofill: vi.fn() }
+      mountTable({
+        columns: cloneDeep(COLUMNS_WITHOUT_DATA),
+        cellAutofillOption: callbacks,
+        ...props,
+      })
+      return callbacks
+    }
+
+    function expectSelection(currentCell: Record<string, any>, normalEndCell: Record<string, any>) {
+      expect(wrapper.vm.cellSelectionData.currentCell).toMatchObject(currentCell)
+      expect(wrapper.vm.cellSelectionData.normalEndCell).toMatchObject(normalEndCell)
+      expect(wrapper.vm.cellSelectionData.autoFillEndCell).toMatchObject({ rowKey: '', colKey: '' })
+    }
+
+    it('a fill into a column without field runs no autofill flow', async () => {
+      const { beforeAutofill, afterAutofill } = mountColumns()
+
+      await fill(['r1', 'name'], ['r1', 'x'])
+
+      expect(vueErrors).toEqual([])
+      expect(beforeAutofill).not.toHaveBeenCalled()
+      expect(afterAutofill).not.toHaveBeenCalled()
+      expectSelection({ rowKey: 'r1', colKey: 'name' }, { rowKey: '', colKey: '' })
+      expect(rowOf('r1')).toEqual(TABLE_DATA[0])
+    })
+
+    it('a horizontal fill whose source columns hold no data runs no autofill flow', async () => {
+      const { beforeAutofill, afterAutofill } = mountColumns()
+
+      // 源：x（没有数据）；目标：date
+      await fill(['r2', 'x'], ['r2', 'date'])
+
+      expect(beforeAutofill).not.toHaveBeenCalled()
+      expect(afterAutofill).not.toHaveBeenCalled()
+      expectSelection({ rowKey: 'r2', colKey: 'x' }, { rowKey: '', colKey: '' })
+      expect(rowOf('r2')).toEqual(TABLE_DATA[1])
+    })
+
+    it('with editOption, a fill that only covers non-editable columns runs no autofill flow', async () => {
+      const editOption = { beforeCellValueChange: vi.fn(), afterCellValueChange: vi.fn() }
+      const { beforeAutofill, afterAutofill } = mountColumns({ editOption })
+
+      // date 不可编辑：向下填充只覆盖 date
+      await selectRange('r1', 'date', 'r2', 'date')
+      await dragCorner(['r3', 'date'], ['r4', 'date'])
+      await releaseInTable('r4', 'date')
+
+      expect(beforeAutofill).not.toHaveBeenCalled()
+      expect(afterAutofill).not.toHaveBeenCalled()
+      expect(editOption.beforeCellValueChange).not.toHaveBeenCalled()
+      // 区域选择保持不变，没有扩展到 r4
+      expectSelection({ rowKey: 'r1', colKey: 'date' }, { rowKey: 'r2', colKey: 'date' })
+      expect([rowOf('r3').date, rowOf('r4').date]).toEqual(['d3', 'd4'])
+    })
+
+    it('a fill that covers one writable column still runs', async () => {
+      const editOption = { beforeCellValueChange: vi.fn(), afterCellValueChange: vi.fn() }
+      const { beforeAutofill, afterAutofill } = mountColumns({ editOption })
+
+      // 目标 date（不可编辑）、hobby（可编辑）
+      await fill(['r1', 'name'], ['r1', 'x'], ['r1', 'date'], ['r1', 'hobby'])
+
+      expect(beforeAutofill).toHaveBeenCalledTimes(1)
+      expect(afterAutofill).toHaveBeenCalledTimes(1)
+      expect(rowOf('r1')).toMatchObject({ date: 'd1', hobby: 'n1' })
+      expectSelection({ rowKey: 'r1', colKey: 'name' }, { rowKey: 'r1', colKey: 'hobby' })
+    })
+
+    it('a fill whose values are already in place still runs', async () => {
+      const { beforeAutofill, afterAutofill } = mountColumns()
+      rowOf('r2').name = 'n1'
+
+      await fill(['r1', 'name'], ['r2', 'name'])
+
+      expect(beforeAutofill).toHaveBeenCalledTimes(1)
+      expect(afterAutofill).toHaveBeenCalledTimes(1)
+      expectSelection({ rowKey: 'r1', colKey: 'name' }, { rowKey: 'r2', colKey: 'name' })
+    })
+  })
+
   describe('selection border geometry (SEL-07)', () => {
     function makeBorders() {
       const line = (width: number, height: number) => ({ show: true, width, height, top: 10, left: 20 })

@@ -14,6 +14,7 @@ import {
 } from '../util/constant.js'
 import {
   cellAutofill,
+  getAutofillChanges,
   getRowKey,
   isCellInSelectionRange,
 } from '../util/index.js'
@@ -285,6 +286,9 @@ export const cellSelectionMethods = {
       → 逐单元格 cellValueChange、afterCellValueChange（只针对实际写入的单元格）
       → afterAutofill（最后）
     操作列、没有 field 的列始终不写入（FILL-04）。
+    没有任何可写入的单元格时（目标列都不能写入，或横向填充的源列都没有数据）不执行填充：
+    不调用 beforeAutofill / afterAutofill，选区保持不变（FILL-05，与粘贴的 CLIP-11 相同）。
+    值已经相同的单元格仍算可写入（只是写入时跳过），这样的填充照常执行。
     */
     let autofillResponse: any = null
     let appliedChanges: AppliedCellChange[] = []
@@ -293,12 +297,24 @@ export const cellSelectionMethods = {
     if (cellAutofillOption) {
       const { beforeAutofill } = cellAutofillOption
 
+      // 源区域、目标区域（也是 beforeAutofill 的参数）
+      const { response: beforeAutofillResponse } = cellAutofill({
+        isReplaceData: false,
+        ...cellAutofillParams,
+      })
+
+      const changes = getAutofillChanges({
+        tableData: this.tableData,
+        colgroups,
+        direction: autofillingDirection,
+        sourceSelectionRangeIndexes: beforeAutofillResponse.sourceSelectionRangeIndexes,
+        targetSelectionRangeIndexes: beforeAutofillResponse.targetSelectionRangeIndexes,
+        editableOnly: cellValueCallbacks.editableOnly,
+      })
+      if (!changes.length)
+        return false
+
       if (isFunction(beforeAutofill)) {
-        // before autofill
-        const { response: beforeAutofillResponse } = cellAutofill({
-          isReplaceData: false,
-          ...cellAutofillParams,
-        })
         // beforeAutofill 抛出异常时视为“取消填充”（INFRA-07）
         const { value: callback, threw } = safeCall(
           'beforeAutofill',
