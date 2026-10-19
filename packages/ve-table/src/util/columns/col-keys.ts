@@ -64,6 +64,23 @@ export function getColKeysByHeaderColumn({ headerColumnItem }: { headerColumnIte
 }
 
 /**
+ * @getColgroupKeysByHeaderColumn
+ * @desc 表头列覆盖的叶子列 key（COL-13）：与 getColKeysByHeaderColumn 相同，但返回 colgroups 中真实的列 key，
+ *       数字 key（包括 0）不会变成字符串，可直接用于选区等按 === 比较的代码。colgroups 中找不到的 key 被忽略
+ * @return Array<colKeys>
+ */
+export function getColgroupKeysByHeaderColumn({ headerColumnItem, colgroups }: {
+  headerColumnItem: { _keys?: unknown, [key: string]: unknown }
+  colgroups: ColgroupsParam
+}): ColKey[] {
+  const keyMap = new Map(colgroups.map(x => [String(x.key), x.key]))
+
+  return getColKeysByHeaderColumn({ headerColumnItem })
+    .filter(x => keyMap.has(x))
+    .map(x => keyMap.get(x) as ColKey)
+}
+
+/**
  * @getColKeysByRangeColKeys
  * @desc  get col keys by range col keys
  * @return Array<colKeys>

@@ -66,7 +66,7 @@ import {
 } from './util/constant.js'
 import {
   clsName,
-  getColKeysByHeaderColumn,
+  getColgroupKeysByHeaderColumn,
   getColumnByColkey,
   getDomResizeObserverCompKey,
   getEmitEventName,
@@ -1700,8 +1700,10 @@ export default defineComponent({
 
       let colKeys
       if (isGroupHeader) {
-        colKeys = getColKeysByHeaderColumn({
+        // 使用 colgroups 中真实的列 key，数字 key 才能匹配（COL-13）
+        colKeys = getColgroupKeysByHeaderColumn({
           headerColumnItem: column,
+          colgroups,
         })
       }
       else {
@@ -1828,8 +1830,10 @@ export default defineComponent({
       ) {
         let colKeys
         if (isGroupHeader) {
-          colKeys = getColKeysByHeaderColumn({
+          // 使用 colgroups 中真实的列 key，数字 key 才能匹配（COL-13）
+          colKeys = getColgroupKeysByHeaderColumn({
             headerColumnItem: column,
+            colgroups,
           })
         }
         else {
