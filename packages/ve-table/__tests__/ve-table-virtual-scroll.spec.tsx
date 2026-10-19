@@ -1302,8 +1302,8 @@ describe('veTable virtual scroll', () => {
   describe('missing maxHeight warning (VS-08)', () => {
     const MESSAGE = 'maxHeight prop is required when \'virtualScrollOption.enable = true\''
 
-    function countWarnings(spy: ReturnType<typeof vi.spyOn>) {
-      return spy.mock.calls.filter((args: unknown[]) => args[0] === MESSAGE).length
+    function countWarnings(spy: { mock: { calls: unknown[][] } }) {
+      return spy.mock.calls.filter(args => args[0] === MESSAGE).length
     }
 
     it('is logged once, not again on re-renders, layout changes or another empty maxHeight', async () => {
