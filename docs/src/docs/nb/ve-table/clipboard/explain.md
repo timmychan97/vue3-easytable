@@ -1,6 +1,7 @@
 :::tip
 1. Du kan velge celler og utfore massekopering, innliming, klipping og sletting, akkurat som i Excel<br>
 2. **Kopier** og **Klipp ut** i høyreklikkmenyen skriver med Clipboard API (`navigator.clipboard`) og faller tilbake til `document.execCommand("copy")` når det ikke er tilgjengelig (for eksempel utenfor en sikker kontekst). Hvis begge feiler, kalles `clipboardOption.writeError({ type, error, text, data, selectionRangeIndexes, selectionRangeKeys })` (uten den logges en advarsel), og en mislykket klipping lar cellene være uendret<br>
-3. Innliming, klipping og sletting hopper over operasjonskolonner og kolonner uten `field`, og de andre kolonnene beholder plasseringen sin
+3. Innliming, klipping og sletting hopper over operasjonskolonner og kolonner uten `field`, og de andre kolonnene beholder plasseringen sin<br>
+4. Når `editOption` er satt, skriver innliming, klipping og sletting (også **Klipp ut** og «tøm»-handlingene i høyreklikkmenyen) bare til kolonner med `edit: true`, og kaller `editOption.beforeCellValueChange` / `afterCellValueChange` (og den utfasede `cellValueChange`) for hver celle der verdien endres, med samme `{ row, column, changeValue }` som ved celleredigering. Hvis `beforeCellValueChange` returnerer `false` (eller kaster en feil), hoppes bare den cellen over. Rekkefølge: `before*` (`beforePaste` osv.) → `beforeCellValueChange` og skriving, per celle → `afterCellValueChange`, per skrevet celle → `after*`. `beforePaste` får `data` uten kolonnene som ikke kan redigeres; klipping kopierer fortsatt hele utvalget. Uten `editOption` skrives alle datakolonner, og celleverdi-tilbakekallene kalles ikke
 
 :::

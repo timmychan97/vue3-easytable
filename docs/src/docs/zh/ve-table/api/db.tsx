@@ -970,14 +970,14 @@ export const db = {
       },
       {
         param: 'beforeCellValueChange',
-        desc: '单元格内容改变前的回调方法。<code>row</code>当前行数据，<code>column</code>当前列信息，<code>changeValue</code>单元格改变的值。如果返回false，将会阻止编辑，单元格还原为编辑前状态',
+        desc: '单元格内容改变前的回调方法。<code>row</code>当前行数据，<code>column</code>当前列信息，<code>changeValue</code>单元格改变的值。如果返回false，将会阻止编辑，单元格还原为编辑前状态。粘贴、剪切、删除（含右键菜单）也会对每个值发生变化的单元格调用，返回false只跳过该单元格；此时只写入 <code>edit: true</code> 的列',
         type: '<code>Function({ row, column,changeValue })</code>',
         optionalVal: '-',
         default: '-',
       },
       {
         param: 'afterCellValueChange',
-        desc: '单元格内容改变后的回调方法。<code>row</code>当前行数据，<code>column</code>当前列信息，<code>changeValue</code>单元格改变的值',
+        desc: '单元格内容改变后的回调方法。<code>row</code>当前行数据，<code>column</code>当前列信息，<code>changeValue</code>单元格改变的值。粘贴、剪切、删除（含右键菜单）对每个实际写入的单元格调用，在 <code>afterPaste</code> / <code>afterCut</code> / <code>afterDelete</code> 之前',
         type: '<code>Function({ row, column,changeValue })</code>',
         optionalVal: '-',
         default: '-',
@@ -1161,7 +1161,7 @@ export const db = {
       },
       {
         param: 'beforePaste',
-        desc: '单元格粘贴前的回调方法,返回false 则取消粘贴。参数说明：\r1、<code>data</code>粘贴的数据\r2、<code>selectionRangeIndexes</code>粘贴区域的索引信息\r3、<code>selectionRangeKeys</code>粘贴区域的key信息',
+        desc: '单元格粘贴前的回调方法,返回false 则取消粘贴。参数说明：\r1、<code>data</code>粘贴的数据（设置了 <code>editOption</code> 时不含不可编辑的列）\r2、<code>selectionRangeIndexes</code>粘贴区域的索引信息\r3、<code>selectionRangeKeys</code>粘贴区域的key信息',
         type: `<code>Function({
                     data, selectionRangeIndexes, selectionRangeKeys
 })</code>`,
