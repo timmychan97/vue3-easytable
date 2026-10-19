@@ -613,6 +613,12 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
   - **Done:** `setCellSelectionByAutofill` calls `this.hooks.triggerHook(HOOKS_NAME.CLIPBOARD_CELL_VALUE_CHANGE)` after the selection update and before the per-cell `cellValueChange` / `afterCellValueChange` and `afterAutofill`, the same place as paste (the order comment there is updated). A cancelled fill (`beforeAutofill` returning `false` or throwing) and a fill with nothing to write (FILL-05) return earlier and don't trigger it.
   - **Verified:** `ve-table-autofill.spec.ts` › "autofill refreshes the selection (FILL-06)": "triggers the cell value change hook after the selection update and before the after callbacks" (checks the selection end cell is already updated when the hook fires) and "triggers the hook once without editOption" (both failed before: the hook was never triggered); "a cancelled autofill or one with nothing to write does not trigger the hook" guards the other side.
 
+- [x] ✅ 2026-10-19 · fix/audit-pre-mod02 · **FILL-07** 🟢 A contextmenu item click during an autofill drag commits the fill (found in wave 3)
+  - **Where:** `methods/contextmenu.ts` `contextmenuItemClick` set `isAutofillStarting = false`, so the `isAutofillStarting` watcher committed the fill to the last hovered cell (`autoFillEndCell` was still set).
+  - **Trigger:** while dragging the fill handle, open the contextmenu (right button) and click an item: the data is filled, although FILL-02 cancels every other abnormal end of the drag (release outside the table or window, window blur, lost mouseup).
+  - **Done:** `contextmenuItemClick` calls `cancelAutofill()` when `isAutofillStarting` is set (clears `autoFillEndCell` before resetting the flag, and removes the FILL-02 window listeners). The `endSelectionDrag()` call (SEL-19) is unchanged.
+  - **Verified:** `ve-table-autofill.spec.ts` › "cancelling an autofill drag (FILL-02)" › "a contextmenu item click during the drag cancels the fill (FILL-07)" (emits `on-node-click` from the table's `VeContextmenu` mid-drag; failed before: `beforeAutofill` was called and the rows were filled). It also checks that the selection did not grow, that the autofill `mouseup` window listener is removed, and that a later release in the table commits nothing. `ve-table-contextmenu.spec.tsx` and `ve-table-cell-selection.spec.ts` (SEL-19) still pass.
+
 ---
 
 ## EDIT — cell editing
