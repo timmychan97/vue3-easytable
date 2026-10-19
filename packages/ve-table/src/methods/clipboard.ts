@@ -13,7 +13,8 @@
  *    （放行原生行为只会作用于隐藏的 textarea，并不是用户想要的结果）；
  * 4. 先完成内部状态更新（数据、选区、CLIPBOARD_CELL_VALUE_CHANGE hook），最后才调用
  *    after* 回调，after* 抛出异常只会被记录，不影响表格状态。粘贴、剪切、删除都会
- *    触发该 hook（CLIP-08），以便单元格内容变化后重新定位选区边框。
+ *    触发该 hook（CLIP-08），自动填充也会（FILL-06，见 setCellSelectionByAutofill），
+ *    以便单元格内容变化后重新定位选区边框。
  *
  * 设置了 editOption 时（CLIP-10，D12）：粘贴、剪切、删除（含右键菜单的剪切、清空）
  * 只写入 edit: true 的列，并对每个值有变化（!==）的单元格调用编辑回调，参数与单元格

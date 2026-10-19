@@ -1,4 +1,5 @@
-import type { ColumnOption } from '@/ve-table/src/ve-table-types'
+import type { Option as VeContextmenuOption } from '@/ve-contextmenu/src'
+import type { ColumnOption, ContextmenuOption } from '@/ve-table/src/ve-table-types'
 import { cancelColumnFixed, restoreColumnsState, setColumnFixed } from '@/ve-table/src/util'
 import { expectTypeOf } from 'vitest'
 import { h } from 'vue'
@@ -79,5 +80,24 @@ describe('column fixed type (COL-11)', () => {
     const columns: ColumnOption[] = [{ key: 'a', fixed: 'left' }, { key: 'b' }]
     const result = cancelColumnFixed({ cloneColumns: columns, colgroups: [], fixedType: 'left', enableColumnResize: false })
     expect(result.map(x => x.fixed)).toEqual(['', undefined])
+  })
+})
+
+/*
+ * MENU-11：ve-table 的右键菜单选项（ContextmenuOption）可以直接传给 VeContextmenu 的 options（Option[]），
+ * ve-table.tsx 不再需要 as any
+ */
+describe('table contextmenu options type (MENU-11)', () => {
+  it('contextmenuOption[] is assignable to the VeContextmenu Option[]', () => {
+    expectTypeOf<ContextmenuOption[]>().toMatchTypeOf<VeContextmenuOption[]>()
+
+    const tableOptions: ContextmenuOption[] = [
+      { type: 'CUT', label: 'Cut', icon: 'cut' },
+      { type: 'SEPARATOR' },
+      { label: 'More', children: [{ type: 'COPY', label: 'Copy' }] },
+    ]
+    const menuOptions: VeContextmenuOption[] = tableOptions
+
+    expect(menuOptions).toHaveLength(3)
   })
 })

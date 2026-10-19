@@ -1,12 +1,13 @@
 /*
 单元格自动填充（autofill）：
 - 填充方向由选区与结束单元格的位置计算，不再是渲染副作用（FILL-01）
-- 在表格外 / 窗口外释放鼠标、窗口失焦时取消填充（FILL-02）
+- 在表格外 / 窗口外释放鼠标、窗口失焦时取消填充（FILL-02）；拖动期间点击右键菜单项也取消（FILL-07）
 - 选区边框几何计算不修改共享对象，区域浮层与边框围成的矩形一致（SEL-07）
 - 设置了 editOption 时只填充 edit: true 的列，并逐单元格调用编辑回调（FILL-03，D12）
 - 操作列、没有 field 的列不被填充（FILL-04）
 */
 
+import veContextmenu from '@/ve-contextmenu'
 import veTable from '@/ve-table'
 import {
   adjustSelectionBorders,
@@ -433,6 +434,45 @@ describe('veTable cell autofill', () => {
       wrapper.unmount()
       wrapper = null
       expect(added().every(isRemoved)).toBe(true)
+    })
+
+    // FILL-07：拖动角标期间打开右键菜单并点击菜单项，取消填充，而不是提交到最后经过的单元格
+    it('a contextmenu item click during the drag cancels the fill (FILL-07)', async () => {
+      mockTableLayout()
+      const beforeAutofill = vi.fn()
+      const add = vi.spyOn(window, 'addEventListener')
+      const remove = vi.spyOn(window, 'removeEventListener')
+      mountTable({
+        cellAutofillOption: { beforeAutofill },
+        // 返回 false：只测试填充状态，不执行菜单动作
+        contextmenuBodyOption: { contextmenus: [{ type: 'CUSTOM' }], afterMenuClick: () => false },
+      })
+
+      await select('r1', 'name')
+      await dragCorner(['r2', 'name'], ['r3', 'name'])
+      expect(wrapper.vm.isAutofillStarting).toBe(true)
+
+      wrapper.findComponent(veContextmenu).vm.$emit('on-node-click', 'CUSTOM')
+      await later()
+
+      expect(vueErrors).toEqual([])
+      expect(beforeAutofill).not.toHaveBeenCalled()
+      expect([rowOf('r2').name, rowOf('r3').name]).toEqual(['n2', 'n3'])
+      expect(wrapper.vm.isAutofillStarting).toBe(false)
+      expect(wrapper.vm.cellSelectionData.autoFillEndCell).toEqual({ rowKey: '', colKey: '' })
+      // 选区没有扩大到填充区域
+      expect(wrapper.vm.cellSelectionData.normalEndCell).toMatchObject({ rowKey: '', colKey: '' })
+
+      // 填充的 window 监听也已移除
+      const autofillListeners = add.mock.calls.filter(([type, , options]) =>
+        type === 'mouseup' && (options as any)?.capture)
+      expect(autofillListeners.length).toBe(1)
+      expect(remove.mock.calls.some(([type, fn]) => type === 'mouseup' && fn === autofillListeners[0][1])).toBe(true)
+
+      // 之后在表格内释放也不会提交
+      await releaseInTable('r3', 'name')
+      expect(beforeAutofill).not.toHaveBeenCalled()
+      expect([rowOf('r2').name, rowOf('r3').name]).toEqual(['n2', 'n3'])
     })
   })
 

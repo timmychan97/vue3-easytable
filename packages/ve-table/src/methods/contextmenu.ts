@@ -66,7 +66,9 @@ export const contextmenuMethods = {
   contextmenuItemClick(this: any, type: any) {
     // 结束拖动选择，菜单操作后选区不再跟随鼠标；同时移除拖动期间的 mouseup / blur 监听（SEL-19）
     this.endSelectionDrag()
-    this.isAutofillStarting = false
+    // 拖动角标期间点击菜单项：取消填充，而不是提交到最后经过的单元格（FILL-07，与 FILL-02 一致）
+    if (this.isAutofillStarting)
+      this.cancelAutofill()
 
     // header contextmenu
     if (this.contextMenuType === CONTEXTMENU_TYPES.HEADER_CONTEXTMENU)

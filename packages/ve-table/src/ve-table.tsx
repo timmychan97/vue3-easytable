@@ -66,7 +66,7 @@ import {
 } from './util/constant.js'
 import {
   clsName,
-  getColKeysByHeaderColumn,
+  getColgroupKeysByHeaderColumn,
   getColumnByColkey,
   getDomResizeObserverCompKey,
   getEmitEventName,
@@ -1204,7 +1204,7 @@ export default defineComponent({
       cloneColumns = cloneColumns.map((col) => {
         // 操作列默认左固定
         if (col.operationColumn)
-          col.fixed = COLUMN_FIXED_TYPE.LEFT as 'left'
+          col.fixed = COLUMN_FIXED_TYPE.LEFT
 
         return col
       })
@@ -1363,9 +1363,8 @@ export default defineComponent({
       if (isContextmenuPanelClicked(e))
         return false
 
-      this.isHeaderCellMousedown = false
-      this.isBodyCellMousedown = false
-      this.isBodyOperationColumnMousedown = false
+      // 结束拖动选择，同时移除拖动期间的 mouseup / blur 监听（SEL-20）
+      this.endSelectionDrag()
       // 在表格外点击：取消正在进行的填充，而不是提交（FILL-02）
       this.cancelAutofill()
       this.setIsColumnResizing(false)
@@ -1700,8 +1699,10 @@ export default defineComponent({
 
       let colKeys
       if (isGroupHeader) {
-        colKeys = getColKeysByHeaderColumn({
+        // 使用 colgroups 中真实的列 key，数字 key 才能匹配（COL-13）
+        colKeys = getColgroupKeysByHeaderColumn({
           headerColumnItem: column,
+          colgroups,
         })
       }
       else {
@@ -1828,8 +1829,10 @@ export default defineComponent({
       ) {
         let colKeys
         if (isGroupHeader) {
-          colKeys = getColKeysByHeaderColumn({
+          // 使用 colgroups 中真实的列 key，数字 key 才能匹配（COL-13）
+          colKeys = getColgroupKeysByHeaderColumn({
             headerColumnItem: column,
+            colgroups,
           })
         }
         else {
@@ -1877,9 +1880,9 @@ export default defineComponent({
 
     // table container mouseup
     tableContainerMouseup() {
-      this.isHeaderCellMousedown = false
-      this.isBodyCellMousedown = false
-      this.isBodyOperationColumnMousedown = false
+      // 结束拖动选择，同时移除拖动期间的 mouseup / blur 监听（SEL-20）
+      this.endSelectionDrag()
+      // 在表格内释放：提交填充（通常 FILL-02 的 window 捕获监听已先处理）
       this.isAutofillStarting = false
     },
 
@@ -1957,11 +1960,12 @@ export default defineComponent({
 
       // 未知的行或列：不改变选区（SEL-06）
       const { allRowKeys, colgroups } = this
+      const startColumn = getColumnByColkey(startColKey, colgroups)
       if (
         !allRowKeys.includes(startRowKey)
         || !allRowKeys.includes(endRowKey)
-        || !colgroups.some(x => x.key === startColKey)
-        || !colgroups.some(x => x.key === endColKey)
+        || !startColumn
+        || !getColumnByColkey(endColKey, colgroups)
       ) {
         return false
       }
@@ -1981,9 +1985,8 @@ export default defineComponent({
 
       // row to visible
       if (isScrollToStartCell) {
-        const column = colgroups.find(x => x.key === startColKey)
         // column to visible
-        this.columnToVisible(column)
+        this.columnToVisible(startColumn)
         this[INSTANCE_METHODS.SCROLL_TO_ROW_KEY]({
           rowKey: startRowKey,
         })
@@ -2527,7 +2530,7 @@ export default defineComponent({
     const contextmenuProps = {
       ref: this.contextmenuRef,
       eventTarget: this.contextmenuEventTarget as string | HTMLElement,
-      options: contextmenuOptions as any,
+      options: contextmenuOptions,
       onOnNodeClick: (type: any) => {
         this.contextmenuItemClick(type)
       },

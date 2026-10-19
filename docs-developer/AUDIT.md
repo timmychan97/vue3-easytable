@@ -334,6 +334,18 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
   - **Proposed decision:** duplicate fields: the payload reports, per `field`, the first column (in column order) that has a sort order, otherwise `''`; in single-sort mode that is the column the user sorted. Columns without `field` sort normally but are left out of the payload (previously they appeared as `"undefined"`). The payload is a new plain object per call instead of the header's reactive state object. Documented in `header-sort/explain.md` (en, zh, nb).
   - **Verified:** `ve-table-header-sort.spec.tsx` › "sort state by column key (COL-12)": "two columns with the same field sort independently" (failed before: `['asc', 'asc']`), "the configured sortBy of columns with the same field is kept per column" (failed: `['', '']`), "columns without field sort independently" (failed: no sort icon rendered); "numeric column keys work" guards numeric keys and the payload. The existing single / multiple / sort-always tests, COL-08 (`ve-table-column-state.spec.ts`), INFRA-13 and INFRA-02 sort tests still pass.
 
+- [x] ✅ 2026-10-19 · fix/audit-pre-mod02 · **COL-13** 🟢 Clicking a group header over numeric columns selects nothing (found in wave 3)
+  - **Where:** `ve-table.tsx` `headerCellMousedown` / `headerCellMouseover`: with a grouped header they took the column keys from `getColKeysByHeaderColumn` (`util/columns/col-keys.ts`), which returns the strings split from `_keys`, and passed them to `getLeftmostColKey`, `headerIndicatorColKeysChange` and the index lookups, which compare with `===`. Reported by COL-10.
+  - **Trigger:** a table with a grouped header and numeric column keys (including `0`). Clicking a group header selects nothing, and so does clicking a numeric leaf header in that table (its `_keys` is a string too). Dragging or shift-clicking from or to such a header stores a string key (`'2'`) in the indicator, so the range does not follow.
+  - **Done:** new `getColgroupKeysByHeaderColumn({ headerColumnItem, colgroups })` in `util/columns/col-keys.ts`: the same split as `getColKeysByHeaderColumn`, mapped back to the real `colgroups` keys through a `String(key) → key` map (header order kept, unknown keys dropped). Both header handlers use it. `getColKeysByHeaderColumn` is unchanged for the header code that compares as strings (COL-10).
+  - **Verified:** `ve-table-numeric-col-keys.spec.ts` › "header column selection with numeric keys (COL-13)" (5 tests, all failed before): "clicking a group header over numeric columns selects them" and "clicking a leaf header with key 0 under a group header selects that column" (indicator stayed `{ '', '' }`), "dragging from a group header to a numeric column extends the selection" (`{ '', '2' }`), "dragging from a numeric column onto a group header to its left extends the selection" (`{ '', '0' }`), "shift-clicking a group header extends from the current cell" (`{ 2, '1' }`). `ve-table-util.spec.ts` › "getColgroupKeysByHeaderColumn (COL-13)" (3 unit tests). `ve-table-cell-selection-indicator.spec.ts` and `ve-table-header-group.spec.ts` still pass.
+
+- [x] ✅ 2026-10-19 · fix/audit-pre-mod02 · **COL-14** 🟢 Leftover cast `COLUMN_FIXED_TYPE.LEFT as 'left'` (found in wave 3)
+  - **Where:** `ve-table.tsx`, the operation-column default (`col.fixed = COLUMN_FIXED_TYPE.LEFT as 'left'`). It sits in `showOrHideColumns` (called from `initColumns`), left over from COL-11.
+  - **Effect:** none; the cast is redundant since COL-11 made `COLUMN_FIXED_TYPE` `as const`.
+  - **Done:** the cast is removed.
+  - **Verified:** `vue-tsc` total unchanged at 238. New guard `ve-table-operation-column.spec.ts` › "the operation column is fixed left by default" (`colgroups[].fixed` is `['left', undefined, …]`, and the `columns` prop is not mutated).
+
 ---
 
 ## SEL — cell selection and keyboard
@@ -485,6 +497,18 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
   - **Done:** `contextmenuItemClick` calls `endSelectionDrag()`, which resets the same three flags and removes the listeners. `isAutofillStarting = false` is unchanged.
   - **Verified:** `ve-table-cell-selection.spec.ts` › "a contextmenu item click ends the drag and removes its document listener (SEL-19)" (failed before: the flag was reset but the `mouseup` listener was not removed).
 
+- [x] ✅ 2026-10-19 · fix/audit-pre-mod02 · **SEL-20** 🟢 `tableContainerMouseup` and `tableClickOutside` reset the drag flags themselves (found in wave 3)
+  - **Where:** `ve-table.tsx` `tableContainerMouseup` and `tableClickOutside` set `isHeaderCellMousedown` / `isBodyCellMousedown` / `isBodyOperationColumnMousedown` to `false` directly instead of calling `endSelectionDrag()` (`methods/cell-selection.ts`); the same duplication as SEL-19.
+  - **Effect:** mostly harmless, because on a real release the SEL-11 `document` capture `mouseup` listener runs first and removes itself. A click outside without a mouseup (a script or keyboard click, `detail: 0`, which `clickoutside` does not ignore) ended the drag but left the `document` `mouseup` and `window` `blur` listeners registered until the next mouseup.
+  - **Done:** both call `endSelectionDrag()`. `tableContainerMouseup` still sets `isAutofillStarting = false` (a release inside the table commits the fill), and `tableClickOutside` still calls `cancelAutofill()` (FILL-02).
+  - **Verified:** `ve-table-cell-selection.spec.ts` › "other paths that end a drag remove its listeners (SEL-20)": "a click outside the table during a drag (no mouseup, e.g. a script click)" and "the table container mouseup handler" (both failed before: the flag was reset but the drag's `mouseup` / `blur` listeners were not removed). `ve-table-autofill.spec.ts`, `ve-table-cell-selection-indicator.spec.ts`, `ve-table-column-resize.spec.ts` and `ve-table-keyboard.spec.ts` still pass.
+
+- [x] ✅ 2026-10-19 · fix/audit-pre-mod02 · **SEL-21** 🟢 Cleanups: `setRangeCellSelection` column lookup and the clipboard order comment (found in wave 3)
+  - **Where:** `ve-table.tsx` `[INSTANCE_METHODS.SET_RANGE_CELL_SELECTION]` validated the column keys with `colgroups.some` and looked the start column up again with `colgroups.find`, although `getColumnByColkey` accepts key `0` since SEL-14 (SEL-16 did the same cleanup for `setCellSelection`). The order comment at the top of `methods/clipboard.ts` said only paste, cut and delete trigger `CLIPBOARD_CELL_VALUE_CHANGE`; autofill does too since FILL-06.
+  - **Effect:** none (cleanup).
+  - **Done:** `setRangeCellSelection` looks both columns up with `getColumnByColkey` and passes the start column it found to `columnToVisible`, so the second lookup is gone. The unknown-key check (SEL-06) is unchanged. The clipboard comment now mentions autofill (FILL-06, `setCellSelectionByAutofill`).
+  - **Verified:** `ve-table-cell-selection.spec.ts` › "unknown keys in the selection API (SEL-06)" › "setRangeCellSelection accepts colKey 0 and scrolls that column into view" (new guard; passes before and after: range `0`–`1`, `columnToVisible` gets the key-`0` column, and the string `'0'` or an unknown key still returns `false` without changing the range), plus the existing SEL-06 tests and `ve-table-instance-methods.spec.ts`.
+
 ---
 
 ## CLIP — clipboard
@@ -612,6 +636,12 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
   - **Effect:** if the filled cells change row heights, the selection borders aren't repositioned.
   - **Done:** `setCellSelectionByAutofill` calls `this.hooks.triggerHook(HOOKS_NAME.CLIPBOARD_CELL_VALUE_CHANGE)` after the selection update and before the per-cell `cellValueChange` / `afterCellValueChange` and `afterAutofill`, the same place as paste (the order comment there is updated). A cancelled fill (`beforeAutofill` returning `false` or throwing) and a fill with nothing to write (FILL-05) return earlier and don't trigger it.
   - **Verified:** `ve-table-autofill.spec.ts` › "autofill refreshes the selection (FILL-06)": "triggers the cell value change hook after the selection update and before the after callbacks" (checks the selection end cell is already updated when the hook fires) and "triggers the hook once without editOption" (both failed before: the hook was never triggered); "a cancelled autofill or one with nothing to write does not trigger the hook" guards the other side.
+
+- [x] ✅ 2026-10-19 · fix/audit-pre-mod02 · **FILL-07** 🟢 A contextmenu item click during an autofill drag commits the fill (found in wave 3)
+  - **Where:** `methods/contextmenu.ts` `contextmenuItemClick` set `isAutofillStarting = false`, so the `isAutofillStarting` watcher committed the fill to the last hovered cell (`autoFillEndCell` was still set).
+  - **Trigger:** while dragging the fill handle, open the contextmenu (right button) and click an item: the data is filled, although FILL-02 cancels every other abnormal end of the drag (release outside the table or window, window blur, lost mouseup).
+  - **Done:** `contextmenuItemClick` calls `cancelAutofill()` when `isAutofillStarting` is set (clears `autoFillEndCell` before resetting the flag, and removes the FILL-02 window listeners). The `endSelectionDrag()` call (SEL-19) is unchanged.
+  - **Verified:** `ve-table-autofill.spec.ts` › "cancelling an autofill drag (FILL-02)" › "a contextmenu item click during the drag cancels the fill (FILL-07)" (emits `on-node-click` from the table's `VeContextmenu` mid-drag; failed before: `beforeAutofill` was called and the rows were filled). It also checks that the selection did not grow, that the autofill `mouseup` window listener is removed, and that a later release in the table commits nothing. `ve-table-contextmenu.spec.tsx` and `ve-table-cell-selection.spec.ts` (SEL-19) still pass.
 
 ---
 
@@ -977,6 +1007,12 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
   - **Trigger:** typed code that passes `{ label: 'Copy', type: 'copy' }` or a separator `{ type: 'SEPARATOR' }` gets TS2353 / TS2322. `ve-contextmenu.spec.tsx` worked around it with `as any` on five `options` props.
   - **Done:** `Option` now declares `type?: string`, and `label` is optional, because a separator has none. A flat type rather than a menu-item / separator union: ve-table's own `ContextmenuOption` (`ve-table-types.ts`) has the same optional `type` and `label`, and a union would reject an item whose `type` is a plain `string`. `InternalOption` no longer redeclares `type`. The five `as any` casts are gone.
   - **Verified:** new `ve-contextmenu-types.spec.ts` › "contextmenu Option type (MENU-10)": a typed `Option[]` with typed items and separators (also nested), `expectTypeOf` on `Option['type']` / `Option['label']`, and `@ts-expect-error` for a non-string `type`, a non-string `label` and a bad nested item. At runtime it renders 2 nodes and 1 separator. Before the fix vue-tsc reported 11 new errors (6 in the new spec, 5 TS2322 in `ve-contextmenu.spec.tsx` once the casts were removed; 263 in total), now none (252).
+
+- [x] ✅ 2026-10-19 · fix/audit-pre-mod02 · **MENU-11** 🟢 ve-table casts the menu options to `any` for VeContextmenu (found in wave 3)
+  - **Where:** `ve-table.tsx` `render()`, `contextmenuProps`: `options: contextmenuOptions as any`.
+  - **Effect:** none at runtime; the cast hid any mismatch between ve-table's `ContextmenuOption` (`ve-table-types.ts`) and the `VeContextmenu` `Option` type.
+  - **Done:** the cast is removed. No type change was needed: since MENU-10 made `Option.type` and `label` optional, `ContextmenuOption[]` (optional `type` / `label` / `children`, plus an index signature that covers `id` and `disabled`) is assignable to `Option[]`.
+  - **Verified:** `vue-tsc` total unchanged at 238 with the cast removed (no new error in `ve-table.tsx`). New guard `ve-table-types.spec.ts` › "table contextmenu options type (MENU-11)": `expectTypeOf<ContextmenuOption[]>().toMatchTypeOf<Option[]>()` and a typed `ContextmenuOption[]` (item with `icon`, separator without `label`, nested `children`) assigned to `Option[]` without a cast. `ve-table-contextmenu.spec.tsx` still passes.
 
 ---
 

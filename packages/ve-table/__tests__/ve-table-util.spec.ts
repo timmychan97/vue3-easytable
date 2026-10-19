@@ -3,6 +3,7 @@
 */
 
 import {
+  getColgroupKeysByHeaderColumn,
   getColKeysByHeaderColumn,
   getColKeysByRangeColKeys,
   getColumnByColkey,
@@ -167,6 +168,28 @@ describe('veTable util', () => {
       })
 
       expect(result.map(x => x.fixed || '')).toEqual(['left', 'left', ''])
+    })
+  })
+
+  // COL-13：表头列覆盖的列 key 按 colgroups 还原为真实的 key
+  describe('getColgroupKeysByHeaderColumn (COL-13)', () => {
+    const mixedColgroups: any[] = [{ key: 'a' }, { key: 0 }, { key: 1 }, { key: '2' }]
+
+    it('returns the real keys of a group header, including 0', () => {
+      expect(
+        getColgroupKeysByHeaderColumn({ headerColumnItem: { _keys: '0|1|' }, colgroups: mixedColgroups }),
+      ).toEqual([0, 1])
+    })
+
+    it('keeps string keys and the order of the header', () => {
+      expect(
+        getColgroupKeysByHeaderColumn({ headerColumnItem: { _keys: 'a|0|2|' }, colgroups: mixedColgroups }),
+      ).toEqual(['a', 0, '2'])
+    })
+
+    it('handles a leaf header and ignores unknown keys', () => {
+      expect(getColgroupKeysByHeaderColumn({ headerColumnItem: { _keys: '1' }, colgroups: mixedColgroups })).toEqual([1])
+      expect(getColgroupKeysByHeaderColumn({ headerColumnItem: { _keys: 'x|0|' }, colgroups: mixedColgroups })).toEqual([0])
     })
   })
 

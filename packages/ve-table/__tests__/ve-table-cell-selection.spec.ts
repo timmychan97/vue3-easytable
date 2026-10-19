@@ -860,6 +860,66 @@ describe('veTable cell selection', () => {
       add.mockRestore()
       remove.mockRestore()
     })
+
+    // SEL-20：tableClickOutside / tableContainerMouseup 通过 endSelectionDrag 结束拖动，同时移除 mouseup / blur 监听
+    describe('other paths that end a drag remove its listeners (SEL-20)', () => {
+      function spyListeners() {
+        const docAdd = vi.spyOn(document, 'addEventListener')
+        const docRemove = vi.spyOn(document, 'removeEventListener')
+        const winAdd = vi.spyOn(window, 'addEventListener')
+        const winRemove = vi.spyOn(window, 'removeEventListener')
+        const isRemoved = (removeSpy: any) => ([type, fn]: any[]) =>
+          removeSpy.mock.calls.some(([t, f]: any[]) => t === type && f === fn)
+        return {
+          // 拖动选择的 document mouseup 与 window blur
+          added: () => [
+            ...docAdd.mock.calls.filter(([type]) => type === 'mouseup'),
+            ...winAdd.mock.calls.filter(([type]) => type === 'blur'),
+          ],
+          allRemoved: () =>
+            docAdd.mock.calls.filter(([type]) => type === 'mouseup').every(isRemoved(docRemove))
+            && winAdd.mock.calls.filter(([type]) => type === 'blur').every(isRemoved(winRemove)),
+          restore: () => {
+            docAdd.mockRestore()
+            docRemove.mockRestore()
+            winAdd.mockRestore()
+            winRemove.mockRestore()
+          },
+        }
+      }
+
+      it('a click outside the table during a drag (no mouseup, e.g. a script click)', async () => {
+        const vm = mountInPage()
+        const spies = spyListeners()
+
+        mouse('mousedown', td(1, 1))
+        expect(vm.isBodyCellMousedown).toBe(true)
+        expect(spies.added().length).toBe(2)
+
+        // 没有 mousedown 的 click（detail 为 0），clickoutside 不会忽略它
+        ;(wrapper.find('.outside').element as HTMLElement).click()
+        await later()
+
+        expect(vm.isBodyCellMousedown).toBe(false)
+        expect(spies.allRemoved()).toBe(true)
+        spies.restore()
+      })
+
+      it('the table container mouseup handler', async () => {
+        const vm = mountInPage()
+        const spies = spyListeners()
+
+        mouse('mousedown', td(1, 1))
+        expect(spies.added().length).toBe(2)
+
+        // 直接调用容器的 mouseup 处理（真实事件中 document 捕获监听先执行）
+        vm.tableContainerMouseup()
+
+        expect(vm.isBodyCellMousedown).toBe(false)
+        expect(spies.allRemoved()).toBe(true)
+        spies.restore()
+      })
+    })
   })
 
   // SEL-12：区域选择之后调用 setCellSelection 应该得到单个单元格，而不是从新单元格到旧结束单元格的区域
@@ -993,6 +1053,37 @@ describe('veTable cell selection', () => {
 
       expect(vm.cellSelectionData.currentCell).toMatchObject({ rowKey: '2', colKey: 0 })
       expect(columnToVisible).toHaveBeenCalledWith(expect.objectContaining({ key: 0, field: 'date' }))
+      wrapper.unmount()
+    })
+
+    // SEL-21：setRangeCellSelection 也使用 getColumnByColkey 检查 / 查找列，0 是有效的列 key
+    it('setRangeCellSelection accepts colKey 0 and scrolls that column into view', async () => {
+      const wrapper = mount(veTable, {
+        propsData: {
+          columns: [
+            { field: 'name', key: 'a', title: 'Name', width: 100 },
+            { field: 'date', key: 0, title: 'Date', width: 100 },
+            { field: 'hobby', key: 1, title: 'Hobby', width: 100 },
+          ],
+          tableData: TABLE_DATA,
+          rowKeyFieldName: 'rowKey',
+        },
+      })
+      const vm = wrapper.vm as any
+      vm.hasXScrollBar = true
+      const columnToVisible = vi.spyOn(vm, 'columnToVisible')
+
+      vm.setRangeCellSelection({ startRowKey: '2', startColKey: 0, endRowKey: '3', endColKey: 1, isScrollToStartCell: true })
+      await later()
+
+      expect(vm.cellSelectionRangeData).toEqual({ leftColKey: 0, rightColKey: 1, topRowKey: '2', bottomRowKey: '3' })
+      expect(columnToVisible).toHaveBeenCalledWith(expect.objectContaining({ key: 0, field: 'date' }))
+
+      // 未知的列 key（包括与数字 key 同名的字符串）仍不改变选区
+      expect(vm.setRangeCellSelection({ startRowKey: '2', startColKey: '0', endRowKey: '3', endColKey: 1 })).toBe(false)
+      expect(vm.setRangeCellSelection({ startRowKey: '2', startColKey: 0, endRowKey: '3', endColKey: 'x' })).toBe(false)
+      await later()
+      expect(vm.cellSelectionRangeData).toEqual({ leftColKey: 0, rightColKey: 1, topRowKey: '2', bottomRowKey: '3' })
       wrapper.unmount()
     })
   })

@@ -122,3 +122,115 @@ describe('numeric column keys in the header (COL-10)', () => {
     expect(result.map(x => x.fixed)).toEqual(['left', undefined, undefined])
   })
 })
+
+/*
+ * COL-13：分组表头的列选择（mousedown / mouseover）要使用 colgroups 中真实的列 key，
+ * 不能直接使用 _keys 拆出来的字符串，否则数字列 key（包括 0）匹配不到任何列
+ */
+describe('header column selection with numeric keys (COL-13)', () => {
+  const TABLE_DATA = [
+    { rowKey: 'r1', a: 'a1', b: 'b1', c: 'c1', d: 'd1' },
+    { rowKey: 'r2', a: 'a2', b: 'b2', c: 'c2', d: 'd2' },
+  ]
+
+  const COLUMNS = [
+    { field: 'a', key: 'a', title: 'A' },
+    {
+      key: 'g',
+      title: 'G',
+      children: [
+        { field: 'b', key: 0, title: 'B' },
+        { field: 'c', key: 1, title: 'C' },
+      ],
+    },
+    { field: 'd', key: 2, title: 'D' },
+  ]
+
+  let wrapper: any = null
+
+  afterEach(() => {
+    wrapper?.unmount()
+    wrapper = null
+  })
+
+  function mountTable() {
+    wrapper = mount(veTable, {
+      props: {
+        columns: COLUMNS,
+        tableData: TABLE_DATA,
+        rowKeyFieldName: 'rowKey',
+      },
+    })
+    return wrapper.vm as any
+  }
+
+  const headerTh = (title: string) =>
+    wrapper.findAll('.ve-table-header-th').find((x: any) => x.text() === title)
+
+  const mouseup = () => wrapper.find('.ve-table-container').trigger('mouseup')
+
+  it('clicking a group header over numeric columns selects them', async () => {
+    const vm = mountTable()
+
+    await headerTh('G').trigger('mousedown')
+    await mouseup()
+    await later()
+
+    expect(vm.headerIndicatorColKeys).toMatchObject({ startColKey: 0, endColKey: 1 })
+    expect(vm.cellSelectionRangeData).toMatchObject({
+      leftColKey: 0,
+      rightColKey: 1,
+      topRowKey: 'r1',
+      bottomRowKey: 'r2',
+    })
+  })
+
+  it('clicking a leaf header with key 0 under a group header selects that column', async () => {
+    const vm = mountTable()
+
+    await headerTh('B').trigger('mousedown')
+    await mouseup()
+    await later()
+
+    expect(vm.headerIndicatorColKeys).toMatchObject({ startColKey: 0, endColKey: 0 })
+    expect(vm.cellSelectionRangeData).toMatchObject({ leftColKey: 0, rightColKey: 0 })
+  })
+
+  it('dragging from a group header to a numeric column extends the selection', async () => {
+    const vm = mountTable()
+
+    await headerTh('G').trigger('mousedown')
+    await headerTh('D').trigger('mouseover', { buttons: 1 })
+    await mouseup()
+    await later()
+
+    expect(vm.headerIndicatorColKeys).toMatchObject({ startColKey: 0, endColKey: 2 })
+    expect(vm.cellSelectionRangeData).toMatchObject({ leftColKey: 0, rightColKey: 2 })
+  })
+
+  it('dragging from a numeric column onto a group header to its left extends the selection', async () => {
+    const vm = mountTable()
+
+    await headerTh('D').trigger('mousedown')
+    await headerTh('G').trigger('mouseover', { buttons: 1 })
+    await mouseup()
+    await later()
+
+    expect(vm.headerIndicatorColKeys).toMatchObject({ startColKey: 2, endColKey: 0 })
+    expect(vm.cellSelectionRangeData).toMatchObject({ leftColKey: 0, rightColKey: 2 })
+  })
+
+  it('shift-clicking a group header extends from the current cell', async () => {
+    const vm = mountTable()
+
+    vm.setCellSelection({ rowKey: 'r1', colKey: 2 })
+    await later()
+
+    await headerTh('G').trigger('mousedown', { shiftKey: true })
+    await mouseup()
+    await later()
+
+    expect(vm.headerIndicatorColKeys).toMatchObject({ startColKey: 2, endColKey: 0 })
+    expect(vm.cellSelectionRangeData).toMatchObject({ leftColKey: 0, rightColKey: 2 })
+  })
+})
