@@ -4,7 +4,6 @@ import type { KeyboardMode } from './util/constant.js'
 import type {
   ColgroupData,
   ContextmenuOption,
-  EditingCell,
   EditorInstance,
   SelectionInstance,
 } from './ve-table-types'
@@ -14,15 +13,12 @@ import { globalLocale, LocaleInjectionKey } from '@vue3-easytable/common/locale'
 import {
   getValByUnit,
   isBoolean,
-  isDefined,
   isEmptyValue,
-  isFunction,
 } from '@vue3-easytable/common/utils'
 import { MOUSE_EVENT_CLICK_TYPE } from '@vue3-easytable/common/utils/constant'
 // isInputKeyCode moved to methods/keyboard.ts
 import { getMouseEventClickType } from '@vue3-easytable/common/utils/mouse-event'
 import VeContextmenu from '@vue3-easytable/ve-contextmenu'
-import { cloneDeep } from 'lodash'
 import { computed, defineComponent, inject, markRaw, nextTick, provide, shallowRef } from 'vue'
 import Body from './body'
 import Colgroup from './colgroup'
@@ -31,6 +27,7 @@ import EditInput from './editor'
 import { useCellSelectionState } from './features/cell-selection/useCellSelectionState'
 import { useColumnMeasure } from './features/columns/useColumnMeasure'
 import { useColumns } from './features/columns/useColumns'
+import { useEditing } from './features/editing/useEditing'
 import { FIXED_COLUMNS_KEY, useFixedColumns } from './features/fixed-columns/useFixedColumns'
 import { useTableLayout } from './features/layout/useTableLayout'
 import { createRowState, ROW_STATE_KEY } from './features/row-state'
@@ -42,7 +39,6 @@ import Header from './header'
 import { cellSelectionMethods } from './methods/cell-selection'
 import { clipboardMethods } from './methods/clipboard'
 import { contextmenuMethods } from './methods/contextmenu'
-import { editingMethods } from './methods/editing'
 import { keyboardMethods } from './methods/keyboard'
 import RowInsertIndicator from './row-insert-indicator'
 import Selection from './selection'
@@ -70,7 +66,6 @@ import {
   isContextmenuPanelClicked,
   isOperationColumn,
 } from './util/index.js'
-import { safeCall } from './util/safe-call.js'
 import { veTableProps } from './ve-table-props'
 
 export default defineComponent({
@@ -173,6 +168,15 @@ export default defineComponent({
       cellSelectionCurrentCellChange: selectionState.cellSelectionCurrentCellChange,
     })
 
+    // 单元格编辑
+    const editing = useEditing({
+      props,
+      colgroups: columns.colgroups,
+      cellSelectionData: selectionState.cellSelectionData,
+      cellSelectionCurrentCellChange: selectionState.cellSelectionCurrentCellChange,
+      tableContext,
+    })
+
     function refreshScrollBarStatusAfterRender() {
       nextTick(() => scrolling.setScrollBarStatus())
     }
@@ -188,6 +192,7 @@ export default defineComponent({
       ...virtualScroll,
       ...selectionState,
       ...scrolling,
+      ...editing,
       tableRootRef,
       tableContainerWrapperRef,
       tableContainerRef,
@@ -214,16 +219,6 @@ export default defineComponent({
 
       // Highlight
       highlightRowKey: '' as string | number,
-
-      // Editing
-      editingCell: {
-        rowKey: '',
-        colKey: '',
-        row: null,
-        column: null,
-      } as EditingCell,
-      editorInputStartValue: '' as string | number,
-      enableStopEditing: true,
 
       // Context menu
       contextmenuEventTarget: '' as string | EventTarget,
@@ -378,19 +373,6 @@ export default defineComponent({
       }
 
       return result
-    },
-    // is editing cell
-    isCellEditing() {
-      const { editingCell } = this
-
-      return (
-        !isEmptyValue(editingCell.rowKey)
-        && !isEmptyValue(editingCell.colKey)
-      )
-    },
-    // has edit column
-    hasEditColumn() {
-      return this.colgroups.some(x => x.edit)
     },
     // enable header contextmenu
     enableHeaderContextmenu() {
@@ -599,8 +581,6 @@ export default defineComponent({
       // stop editing cell
       this[INSTANCE_METHODS.STOP_EDITING_CELL]()
     },
-
-    // saveCellWhenStopEditing → extracted to methods/editing.ts
 
     /*
          * @bodyCellContextmenu
@@ -1265,117 +1245,6 @@ export default defineComponent({
       }
     },
 
-    // start editing cell
-    [INSTANCE_METHODS.START_EDITING_CELL]({
-      rowKey,
-      colKey,
-      defaultValue,
-    }) {
-      const {
-        editOption,
-        colgroups,
-        rowKeyFieldName,
-        editingCell,
-        cellSelectionData,
-      } = this
-
-      if (!editOption)
-        return false
-
-      // 已经在编辑该单元格
-      if (
-        editingCell.rowKey === rowKey
-        && editingCell.colKey === colKey
-      ) {
-        return false
-      }
-
-      const sourceRow = this.tableData.find(
-        x => x[rowKeyFieldName] === rowKey,
-      )
-      const currentColumn = colgroups.find(x => x.key === colKey)
-
-      // 未知的 rowKey / colKey 直接忽略，当前编辑保持不变（EDIT-04、SEL-01）
-      if (!sourceRow || !currentColumn)
-        return false
-
-      // 当前列是否可编辑
-      if (!currentColumn.edit)
-        return false
-
-      /*
-            调用API编辑的情况，需要先关闭（并保存）之前编辑的单元格（EDIT-04）
-            */
-      if (this.isCellEditing) {
-        // 停止编辑会重置 enableStopEditing，这里保留调用方（如 F2）设置的值
-        const { enableStopEditing } = this
-        this[INSTANCE_METHODS.STOP_EDITING_CELL]()
-        this.enableStopEditing = enableStopEditing
-      }
-
-      // 在保存之后再拷贝，拿到上一个单元格保存后的行数据
-      const currentRow = cloneDeep(sourceRow)
-
-      const { beforeStartCellEditing } = editOption
-
-      // INFRA-11：通过 safeCall 调用；与其他 before* 回调一致，抛出异常等同于返回 false（取消编辑）
-      if (isFunction(beforeStartCellEditing)) {
-        const { value: allowContinue, threw } = safeCall(
-          'beforeStartCellEditing',
-          beforeStartCellEditing,
-          {
-            row: cloneDeep(currentRow),
-            column: currentColumn,
-            cellValue: isDefined(defaultValue)
-              ? defaultValue
-              : currentRow[currentColumn.field],
-          },
-        )
-        if (threw || (isBoolean(allowContinue) && !allowContinue))
-          return false
-      }
-
-      // 给当前列赋默认值
-      if (isDefined(defaultValue)) {
-        this.editorInputStartValue = defaultValue
-        // doesn't change cell original value
-        currentRow[currentColumn.field] = defaultValue
-      }
-      else {
-        this.editorInputStartValue = currentRow[currentColumn.field]
-      }
-
-      if (
-        cellSelectionData.currentCell.colKey !== colKey
-        || cellSelectionData.currentCell.rowKey !== rowKey
-      ) {
-        this.cellSelectionCurrentCellChange({
-          rowKey,
-          colKey,
-        })
-      }
-
-      // set editing cell
-      this.setEditingCell({
-        rowKey,
-        colKey,
-        column: currentColumn,
-        row: cloneDeep(currentRow),
-      })
-    },
-    // stop editing cell
-    [INSTANCE_METHODS.STOP_EDITING_CELL]() {
-      const { editOption, isCellEditing } = this
-
-      if (!editOption)
-        return false
-
-      // clear editor input start value
-      this.editorInputStartValue = ''
-
-      if (isCellEditing)
-        this.saveCellWhenStopEditing()
-    },
     // set highlight row
     [INSTANCE_METHODS.SET_HIGHLIGHT_ROW]({ rowKey }) {
       this.highlightRowKey = rowKey
@@ -1396,7 +1265,6 @@ export default defineComponent({
     ...cellSelectionMethods,
     ...clipboardMethods,
     ...contextmenuMethods,
-    ...editingMethods,
     ...keyboardMethods,
   },
   render() {

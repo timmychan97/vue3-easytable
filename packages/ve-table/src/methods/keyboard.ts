@@ -386,23 +386,6 @@ export const keyboardMethods = {
     return true
   },
 
-  /*
-   * @discardEditingCell
-   * @desc 放弃编辑（D6）：关闭编辑框但不保存，单元格保持原值，
-   * 不触发 beforeCellValueChange / afterCellValueChange
-   */
-  discardEditingCell(this: any) {
-    if (!this.isCellEditing)
-      return false
-
-    // 与 stopEditingCell 一致：清空编辑框初始值
-    this.editorInputStartValue = ''
-    // editingCell.row 是行数据的副本，清空即丢弃未提交的值
-    this.clearEditingCell()
-    // reset status
-    this.enableStopEditing = true
-  },
-
   selectCellByDirection(this: any, { direction }: { direction: string }) {
     const { colgroups, allRowKeys, cellSelectionData } = this
 

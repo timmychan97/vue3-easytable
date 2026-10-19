@@ -1,6 +1,7 @@
 import type { ColumnOption } from '@/ve-table/src/ve-table-types'
 import { useCellSelectionState } from '@/ve-table/src/features/cell-selection/useCellSelectionState'
 import { useColumns } from '@/ve-table/src/features/columns/useColumns'
+import { useEditing } from '@/ve-table/src/features/editing/useEditing'
 import { useTableLayout } from '@/ve-table/src/features/layout/useTableLayout'
 import { useScrolling } from '@/ve-table/src/features/scrolling/useScrolling'
 import { createTableContext } from '@/ve-table/src/features/table-context'
@@ -359,5 +360,95 @@ describe('useScrolling', () => {
     expect(scrolling.scrollToRowKey({ rowKey: '' })).toBe(false)
     expect(warn).toHaveBeenCalled()
     warn.mockRestore()
+  })
+})
+
+describe('useEditing', () => {
+  function setup(editOption: Record<string, any> = {}) {
+    const calls: any[] = []
+    const props = reactive({
+      editOption: {
+        beforeCellValueChange: ({ changeValue }: any) => calls.push(['before', changeValue]),
+        afterCellValueChange: ({ row, changeValue }: any) => calls.push(['after', row.name, changeValue]),
+        ...editOption,
+      },
+      tableData: [{ id: 1, name: 'a', age: 1 }, { id: 2, name: 'b', age: 2 }],
+      rowKeyFieldName: 'id',
+    }) as any
+    const colgroups = ref<any[]>([
+      { key: 'name', field: 'name', edit: true },
+      { key: 'age', field: 'age' },
+    ])
+    const cellSelectionData = ref<any>({ currentCell: { rowKey: '', colKey: '', rowIndex: -1 } })
+    const tableContext = createTableContext()
+    const { result, stop } = runInScope(() => useEditing({
+      props,
+      colgroups,
+      cellSelectionData,
+      cellSelectionCurrentCellChange: ({ rowKey, colKey }) => {
+        Object.assign(cellSelectionData.value.currentCell, { rowKey, colKey })
+      },
+      tableContext,
+    }))
+    return { props, editing: result, cellSelectionData, calls, stop }
+  }
+
+  it('edits a copy of the row and writes it back on stop, calling before then after', () => {
+    const { props, editing, cellSelectionData, calls, stop } = setup()
+
+    editing.startEditingCell({ rowKey: 2, colKey: 'name' })
+    expect(editing.isCellEditing.value).toBe(true)
+    expect(editing.editorInputStartValue.value).toBe('b')
+    expect(cellSelectionData.value.currentCell).toMatchObject({ rowKey: 2, colKey: 'name' })
+
+    editing.updateEditingCellValue('B!')
+    expect(props.tableData[1].name).toBe('b')
+
+    editing.stopEditingCell()
+    expect(props.tableData[1].name).toBe('B!')
+    expect(editing.isCellEditing.value).toBe(false)
+    expect(calls).toEqual([['before', 'B!'], ['after', 'B!', 'B!']])
+    stop()
+  })
+
+  it('ignores unknown cells and columns without edit: true', () => {
+    const { editing, stop } = setup()
+    expect(editing.startEditingCell({ rowKey: 9, colKey: 'name' })).toBe(false)
+    expect(editing.startEditingCell({ rowKey: 1, colKey: 'age' })).toBe(false)
+    expect(editing.isCellEditing.value).toBe(false)
+    stop()
+  })
+
+  it('cancels the start when beforeStartCellEditing returns false', () => {
+    const { editing, stop } = setup({ beforeStartCellEditing: () => false })
+    expect(editing.startEditingCell({ rowKey: 1, colKey: 'name' })).toBe(false)
+    expect(editing.isCellEditing.value).toBe(false)
+    stop()
+  })
+
+  it('discards the uncommitted value (D6)', () => {
+    const { props, editing, calls, stop } = setup()
+    editing.startEditingCell({ rowKey: 1, colKey: 'name', defaultValue: 'x' })
+    expect(editing.editingCell.value.row.name).toBe('x')
+
+    editing.discardEditingCell()
+    expect(editing.isCellEditing.value).toBe(false)
+    expect(props.tableData[0].name).toBe('a')
+    expect(calls).toEqual([])
+    stop()
+  })
+
+  it('starts editing on a double click on an editable column only', () => {
+    const { editing, stop } = setup()
+
+    editing.editCellByClick({ isDblclick: true, rowKey: 1, colKey: 'age' })
+    expect(editing.isCellEditing.value).toBe(false)
+    expect(editing.enableStopEditing.value).toBe(true)
+
+    editing.editCellByClick({ isDblclick: true, rowKey: 1, colKey: 'name' })
+    expect(editing.isCellEditing.value).toBe(true)
+    // 双击开始的编辑：方向键不结束编辑
+    expect(editing.enableStopEditing.value).toBe(false)
+    stop()
   })
 })
