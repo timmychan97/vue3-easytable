@@ -142,7 +142,8 @@ export function setColumnFixed({
       const colKeys = getColKeysByHeaderColumn({
         headerColumnItem: colItem,
       })
-      if (colKeys.includes(colKey as string))
+      // colKeys 是字符串，数字列 key 也按字符串比较（COL-10）
+      if (!isEmptyValue(colKey) && colKeys.includes(String(colKey)))
         return true
     }
     return false

@@ -118,25 +118,13 @@ export default defineComponent({
     },
     // is last column
     isLastCloumn() {
-      let result = false
-
       const { colgroups, groupColumnItem: column } = this
 
-      const lastColumnKey = colgroups[colgroups.length - 1].key
+      // _keys 中的列 key 都是字符串，数字列 key 也按字符串比较（COL-10）
+      const lastColumnKey = String(colgroups[colgroups.length - 1].key)
+      const keys = getColKeysByHeaderColumn({ headerColumnItem: column })
 
-      const keys = column._keys.split('|')
-
-      if (keys.length) {
-        if (keys.length === 1) {
-          if (keys[0] === lastColumnKey)
-            result = true
-        }
-        else if (keys[keys.length - 2] === lastColumnKey) {
-          result = true
-        }
-      }
-
-      return result
+      return keys[keys.length - 1] === lastColumnKey
     },
     // is sortable column
     isSortableCloumn() {
@@ -203,8 +191,9 @@ export default defineComponent({
             const colKeys = getColKeysByHeaderColumn({
               headerColumnItem: column,
             })
+            // colKeys 是字符串，数字列 key 也按字符串比较（COL-10）
             showIndicator = colKeys.every((colKey) => {
-              return indicatorColKeys.includes(colKey)
+              return indicatorColKeys.some(x => String(x) === colKey)
             })
           }
           if (showIndicator) {
