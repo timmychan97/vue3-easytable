@@ -1,5 +1,7 @@
 import type { ColumnOption } from '@/ve-table/src/ve-table-types'
+import { useCellSelection } from '@/ve-table/src/features/cell-selection/useCellSelection'
 import { useCellSelectionState } from '@/ve-table/src/features/cell-selection/useCellSelectionState'
+import { useSelectionDrag } from '@/ve-table/src/features/cell-selection/useSelectionDrag'
 import { useColumns } from '@/ve-table/src/features/columns/useColumns'
 import { useEditing } from '@/ve-table/src/features/editing/useEditing'
 import { useTableLayout } from '@/ve-table/src/features/layout/useTableLayout'
@@ -450,5 +452,113 @@ describe('useEditing', () => {
     // 双击开始的编辑：方向键不结束编辑
     expect(editing.enableStopEditing.value).toBe(false)
     stop()
+  })
+})
+
+describe('useCellSelection', () => {
+  function setup() {
+    const props = reactive({ cellSelectionOption: null, rowKeyFieldName: 'id' }) as any
+    const colgroups = ref<any[]>([{ key: 'op', operationColumn: true }, { key: 'a' }, { key: 0 }])
+    const rowKeys = ref<any[]>(['r0', 'r1', 'r2'])
+    const allRowKeys = computed(() => rowKeys.value)
+    const scrolled: any[] = []
+    const editingCell = ref<any>({ rowKey: '', colKey: '', row: null, column: null })
+    const { result, stop } = runInScope(() => {
+      const state = useCellSelectionState({ props, colgroups, allRowKeys })
+      const selection = useCellSelection({
+        props,
+        colgroups,
+        allRowKeys,
+        state,
+        scrolling: {
+          columnToVisible: (column: any) => { scrolled.push(['col', column.key]) },
+          rowToVisible: (_keyCode: number, rowKey: any) => { scrolled.push(['row', rowKey]) },
+          scrollToRowKey: ({ rowKey }: any) => { scrolled.push(['toRow', rowKey]) },
+        },
+        editing: {
+          isCellEditing: computed(() => editingCell.value.rowKey !== ''),
+          editingCell,
+          clearEditingCell: () => { editingCell.value = { rowKey: '', colKey: '', row: null, column: null } },
+          editorInputStartValue: ref(''),
+          enableStopEditing: ref(true),
+        },
+        tableContext: createTableContext(),
+      })
+      return { state, selection }
+    })
+    return { ...result, rowKeys, colgroups, scrolled, editingCell, stop }
+  }
+
+  it('selects a cell, scrolls it into view and rejects unknown keys (SEL-06)', () => {
+    const { state, selection, scrolled, stop } = setup()
+
+    expect(selection.setCellSelection({ rowKey: 'r1', colKey: 0 })).toBeUndefined()
+    expect(state.cellSelectionData.value.currentCell).toEqual({ rowKey: 'r1', colKey: 0, rowIndex: 1 })
+    expect(scrolled).toEqual([['col', 0], ['toRow', 'r1']])
+
+    expect(selection.setCellSelection({ rowKey: 'x', colKey: 'a' })).toBe(false)
+    expect(selection.setRangeCellSelection({ startRowKey: 'r0', startColKey: '0', endRowKey: 'r1', endColKey: 'a' })).toBe(false)
+    expect(state.cellSelectionData.value.currentCell.rowKey).toBe('r1')
+    stop()
+  })
+
+  it('selects everything through the indicators and reports the range', async () => {
+    const { state, selection, stop } = setup()
+
+    selection.setAllCellSelection()
+    expect(state.headerIndicatorColKeys.value).toEqual({ startColKey: 'a', endColKey: 0 })
+    expect(state.bodyIndicatorRowKeys.value).toEqual({ startRowKey: 'r0', endRowKey: 'r2' })
+
+    // 选区边界由选区层回传
+    state.cellSelectionRangeDataChange({ leftColKey: 'a', rightColKey: 0, topRowKey: 'r0', bottomRowKey: 'r2' })
+    await nextTick()
+    expect(selection.getRangeCellSelection()).toEqual({
+      selectionRangeKeys: { startColKey: 'a', endColKey: 0, startRowKey: 'r0', endRowKey: 'r2' },
+      selectionRangeIndexes: { startColIndex: 1, endColIndex: 2, startRowIndex: 0, endRowIndex: 2 },
+    })
+    stop()
+  })
+
+  it('reconciles the selection and the editing cell after rows change (SEL-01)', async () => {
+    const { state, selection, rowKeys, editingCell, stop } = setup()
+
+    selection.setRangeCellSelection({ startRowKey: 'r1', startColKey: 'a', endRowKey: 'r2', endColKey: 0 })
+    editingCell.value = { rowKey: 'r2', colKey: 'a', row: {}, column: {} }
+
+    // 上方插入一行、删除 r2
+    rowKeys.value = ['new', 'r0', 'r1']
+    await nextTick()
+
+    expect(state.cellSelectionData.value.currentCell).toEqual({ rowKey: 'r1', colKey: 'a', rowIndex: 2 })
+    expect(state.cellSelectionData.value.normalEndCell).toEqual({ rowKey: '', colKey: '', rowIndex: -1 })
+    expect(editingCell.value.rowKey).toBe('')
+    stop()
+  })
+})
+
+describe('useSelectionDrag', () => {
+  it('ends the drag on a document mouseup or a lost mouseup, and removes its listeners', () => {
+    const { result: drag, wrapper } = withSetup(() => useSelectionDrag())
+    const removeSpy = vi.spyOn(document, 'removeEventListener')
+
+    drag.isBodyCellMousedown.value = true
+    drag.addSelectionDragListener()
+    document.dispatchEvent(new MouseEvent('mouseup'))
+    expect(drag.isBodyCellMousedown.value).toBe(false)
+    expect(removeSpy).toHaveBeenCalledWith('mouseup', expect.any(Function), true)
+
+    // 经过单元格时没有按住左键：mouseup 已丢失（SEL-18）
+    drag.isHeaderCellMousedown.value = true
+    drag.endLostSelectionDrag(new MouseEvent('mouseover', { buttons: 1 }))
+    expect(drag.isHeaderCellMousedown.value).toBe(true)
+    drag.endLostSelectionDrag(new MouseEvent('mouseover', { buttons: 0 }))
+    expect(drag.isHeaderCellMousedown.value).toBe(false)
+
+    // 拖动中卸载：移除监听
+    drag.addSelectionDragListener()
+    removeSpy.mockClear()
+    wrapper.unmount()
+    expect(removeSpy).toHaveBeenCalledWith('mouseup', expect.any(Function), true)
+    removeSpy.mockRestore()
   })
 })

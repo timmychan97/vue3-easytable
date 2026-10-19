@@ -24,7 +24,9 @@ import Body from './body'
 import Colgroup from './colgroup'
 import ColumnResizer from './column-resizer'
 import EditInput from './editor'
+import { useCellSelection } from './features/cell-selection/useCellSelection'
 import { useCellSelectionState } from './features/cell-selection/useCellSelectionState'
+import { useSelectionDrag } from './features/cell-selection/useSelectionDrag'
 import { useColumnMeasure } from './features/columns/useColumnMeasure'
 import { useColumns } from './features/columns/useColumns'
 import { useEditing } from './features/editing/useEditing'
@@ -56,12 +58,9 @@ import {
 import {
   clsName,
   getColgroupKeysByHeaderColumn,
-  getColumnByColkey,
   getEmitEventName,
   getLeftmostColKey,
   getRowKey,
-  getSelectionRangeIndexes,
-  getSelectionRangeKeys,
   isClearSelectionByBodyCellRightClick,
   isContextmenuPanelClicked,
   isOperationColumn,
@@ -177,6 +176,19 @@ export default defineComponent({
       tableContext,
     })
 
+    // 选区的实例方法、点击选择，行列变化后同步选区与编辑状态（SEL-01）
+    const selection = useCellSelection({
+      props,
+      colgroups: columns.colgroups,
+      allRowKeys,
+      state: selectionState,
+      scrolling,
+      editing,
+      tableContext,
+    })
+    // 拖动选择（单元格区域、整行、整列）
+    const selectionDrag = useSelectionDrag()
+
     function refreshScrollBarStatusAfterRender() {
       nextTick(() => scrolling.setScrollBarStatus())
     }
@@ -193,6 +205,8 @@ export default defineComponent({
       ...selectionState,
       ...scrolling,
       ...editing,
+      ...selection,
+      ...selectionDrag,
       tableRootRef,
       tableContainerWrapperRef,
       tableContainerRef,
@@ -210,9 +224,6 @@ export default defineComponent({
       parentRendered: false,
 
       // Mouse interaction state
-      isHeaderCellMousedown: false,
-      isBodyCellMousedown: false,
-      isBodyOperationColumnMousedown: false,
       isAutofillStarting: false,
       // 键盘模式（SEL-08）：单元格导航 / 表格（焦点在根元素上，Tab 交给浏览器）
       keyboardMode: KEYBOARD_MODE.TABLE as KeyboardMode,
@@ -273,10 +284,6 @@ export default defineComponent({
         directionX,
         directionY,
       })
-    },
-    // 选区 / 编辑状态依赖的行列 key（SEL-01，供同步 watcher 使用）
-    cellStateKeys(): [ColgroupData[], Array<string | number>] {
-      return [this.colgroups, this.allRowKeys]
     },
     // table container wrapper style
     tableContainerWrapperStyle() {
@@ -431,16 +438,6 @@ export default defineComponent({
     },
   },
   watch: {
-    /*
-        行或列变化后同步选区与编辑状态（SEL-01）
-        包括原来 allRowKeys watcher 对 currentCell 的处理（行被移除时清空、行位置变化时更新 rowIndex）
-        */
-    'cellStateKeys': {
-      handler() {
-        this.reconcileCellState()
-      },
-      immediate: false,
-    },
     // is auto fill starting
     'isAutofillStarting': {
       handler(val) {
@@ -508,8 +505,6 @@ export default defineComponent({
     document.removeEventListener('keydown', this.dealKeydownEvent)
     // 拖动填充中卸载：移除 window 上的监听（FILL-02）
     this.removeAutofillWindowListeners()
-    // 拖动选择中卸载：移除 document 上的监听（SEL-11）
-    this.removeSelectionDragListener()
   },
 
   methods: {
@@ -1083,166 +1078,6 @@ export default defineComponent({
       this.endSelectionDrag()
       // 在表格内释放：提交填充（通常 FILL-02 的 window 捕获监听已先处理）
       this.isAutofillStarting = false
-    },
-
-    /*
-        set cell selection and column to visible
-        */
-    [INSTANCE_METHODS.SET_CELL_SELECTION]({
-      rowKey,
-      colKey,
-      isScrollToRow = true,
-    }) {
-      const { enableCellSelection } = this
-
-      if (!enableCellSelection)
-        return false
-
-      if (!isEmptyValue(rowKey) && !isEmptyValue(colKey)) {
-        const column = getColumnByColkey(colKey, this.colgroups)
-
-        // 未知的行或列：不改变选区（SEL-06）
-        if (!column || !this.allRowKeys.includes(rowKey))
-          return false
-
-        // 普通单元格选择，不再是整列 / 整行选择（SEL-09）
-        this.clearIndicatorKeys()
-
-        this.cellSelectionCurrentCellChange({
-          rowKey,
-          colKey,
-        })
-        // 选中单个单元格：清除之前区域选择的结束单元格（SEL-12）
-        this.clearCellSelectionNormalEndCell()
-
-        // column to visible
-        this.columnToVisible(column)
-        // row to visible
-        if (isScrollToRow)
-          this[INSTANCE_METHODS.SCROLL_TO_ROW_KEY]({ rowKey })
-      }
-    },
-
-    /*
-        set range cell selection and column to visible
-        */
-    [INSTANCE_METHODS.SET_RANGE_CELL_SELECTION]({
-      startRowKey,
-      startColKey,
-      endRowKey,
-      endColKey,
-      isScrollToStartCell = false,
-    }) {
-      const { enableCellSelection } = this
-
-      if (!enableCellSelection)
-        return false
-
-      if (
-        isEmptyValue(startRowKey)
-        || isEmptyValue(startColKey)
-        || isEmptyValue(endRowKey)
-        || isEmptyValue(endColKey)
-      ) {
-        return false
-      }
-
-      // 未知的行或列：不改变选区（SEL-06）
-      const { allRowKeys, colgroups } = this
-      const startColumn = getColumnByColkey(startColKey, colgroups)
-      if (
-        !allRowKeys.includes(startRowKey)
-        || !allRowKeys.includes(endRowKey)
-        || !startColumn
-        || !getColumnByColkey(endColKey, colgroups)
-      ) {
-        return false
-      }
-
-      // 普通区域选择，不再是整列 / 整行选择（SEL-09）
-      this.clearIndicatorKeys()
-
-      this.cellSelectionCurrentCellChange({
-        rowKey: startRowKey,
-        colKey: startColKey,
-      })
-
-      this.cellSelectionNormalEndCellChange({
-        rowKey: endRowKey,
-        colKey: endColKey,
-      })
-
-      // row to visible
-      if (isScrollToStartCell) {
-        // column to visible
-        this.columnToVisible(startColumn)
-        this[INSTANCE_METHODS.SCROLL_TO_ROW_KEY]({
-          rowKey: startRowKey,
-        })
-      }
-    },
-
-    /*
-        get range cell selection
-        */
-    [INSTANCE_METHODS.GET_RANGE_CELL_SELECTION]() {
-      const {
-        cellSelectionData,
-        cellSelectionRangeData,
-        allRowKeys,
-        colgroups,
-      } = this
-
-      const { rowKey, colKey } = cellSelectionData.currentCell
-
-      if (!isEmptyValue(rowKey) && !isEmptyValue(colKey)) {
-        const selectionRangeKeys = getSelectionRangeKeys({
-          cellSelectionRangeData,
-        })
-
-        const selectionRangeIndexes = getSelectionRangeIndexes({
-          cellSelectionRangeData,
-          colgroups,
-          allRowKeys,
-        })
-
-        return {
-          selectionRangeKeys,
-          selectionRangeIndexes,
-        }
-      }
-    },
-
-    /*
-        set all cell selection and column to visible
-        */
-    [INSTANCE_METHODS.SET_ALL_CELL_SELECTION]() {
-      const { enableCellSelection } = this
-
-      if (!enableCellSelection)
-        return false
-
-      const { colgroups, allRowKeys } = this
-
-      if (colgroups.length) {
-        const colKeys = colgroups
-          .filter(x => !x.operationColumn)
-          .map(x => x.key)
-
-        if (colKeys.length) {
-          this.headerIndicatorColKeysChange({
-            startColKey: colKeys[0],
-            endColKey: colKeys[colKeys.length - 1],
-          })
-        }
-      }
-
-      if (allRowKeys.length) {
-        this.bodyIndicatorRowKeysChange({
-          startRowKey: allRowKeys[0],
-          endRowKey: allRowKeys[allRowKeys.length - 1],
-        })
-      }
     },
 
     // set highlight row
