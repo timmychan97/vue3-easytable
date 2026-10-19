@@ -644,6 +644,7 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
   - **Where:** `setCellSelectionByAutofill` in `methods/cell-selection.ts`. Paste, cut and delete trigger the hook (CLIP-08); autofill didn't.
   - **Effect:** if the filled cells change row heights, the selection borders aren't repositioned.
   - **Done:** `setCellSelectionByAutofill` calls `this.hooks.triggerHook(HOOKS_NAME.CLIPBOARD_CELL_VALUE_CHANGE)` after the selection update and before the per-cell `cellValueChange` / `afterCellValueChange` and `afterAutofill`, the same place as paste (the order comment there is updated). A cancelled fill (`beforeAutofill` returning `false` or throwing) and a fill with nothing to write (FILL-05) return earlier and don't trigger it.
+  - **Since MOD-01:** the call is `this.tableContext.emit(HOOKS_NAME.CLIPBOARD_CELL_VALUE_CHANGE)` (ported in the MOD-01 merge, `a39e6ec`); the spec spies on `tableContext.emit`.
   - **Verified:** `ve-table-autofill.spec.ts` › "autofill refreshes the selection (FILL-06)": "triggers the cell value change hook after the selection update and before the after callbacks" (checks the selection end cell is already updated when the hook fires) and "triggers the hook once without editOption" (both failed before: the hook was never triggered); "a cancelled autofill or one with nothing to write does not trigger the hook" guards the other side.
 
 - [x] ✅ 2026-10-19 · fix/audit-pre-mod02 · **FILL-07** 🟢 A contextmenu item click during an autofill drag commits the fill (found in wave 3)
