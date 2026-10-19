@@ -125,6 +125,27 @@ describe('veTable column resize (COL-05)', () => {
     wrapper.unmount()
   })
 
+  // SEL-11：在表格外松开时，浏览器在公共祖先（这里是 body）上触发 click，不应清除单元格选区
+  it('releasing the drag outside the table keeps the cell selection (SEL-11)', async () => {
+    const wrapper = mountTable()
+    await later()
+
+    ;(wrapper.vm as any).setCellSelection({ rowKey: '2', colKey: 'b' })
+    await later()
+
+    await startDrag(wrapper)
+    mousemove(150, 1)
+    document.body.dispatchEvent(new MouseEvent('mouseup', { clientX: 150, bubbles: true }))
+    document.body.dispatchEvent(new MouseEvent('click', { clientX: 150, bubbles: true, detail: 1 }))
+    await later()
+
+    expect(isResizing(wrapper)).toBe(false)
+    expect(widthOf(wrapper)).toBe(150)
+    expect((wrapper.vm as any).cellSelectionData.currentCell).toMatchObject({ rowKey: '2', colKey: 'b' })
+
+    wrapper.unmount()
+  })
+
   it('cancels the drag on Escape', async () => {
     const wrapper = mountTable()
     await later()

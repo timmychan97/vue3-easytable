@@ -92,6 +92,82 @@ describe('directives (INFRA-09)', () => {
 
       expect(callback).not.toHaveBeenCalled()
     })
+
+    /*
+    SEL-11：在元素内按下、在元素外松开（拖动选择、填充、调整列宽）时，
+    浏览器在两者的公共祖先上触发 click（detail 为 1），这不是一次“在外部的点击”
+    */
+    describe('a drag that starts inside (SEL-11)', () => {
+      function mouse(type: string, el: Element, init: MouseEventInit = {}) {
+        el.dispatchEvent(new MouseEvent(type, { bubbles: true, cancelable: true, detail: 1, ...init }))
+      }
+
+      it('ignores the click of a drag that starts inside and ends outside', () => {
+        const callback = vi.fn()
+        const wrapper = mountWithDirective(clickoutside, ref(callback))
+        const inside = wrapper.find('.inside').element
+        const outside = wrapper.find('.outside').element
+
+        mouse('mousedown', inside)
+        mouse('mouseup', outside)
+        // 公共祖先
+        mouse('click', wrapper.element)
+        expect(callback).not.toHaveBeenCalled()
+
+        // 之后在外部的普通点击照常触发
+        mouse('mousedown', outside)
+        mouse('mouseup', outside)
+        mouse('click', outside)
+        expect(callback).toHaveBeenCalledTimes(1)
+        wrapper.unmount()
+      })
+
+      it('still reacts to a drag that starts outside and ends outside', () => {
+        const callback = vi.fn()
+        const wrapper = mountWithDirective(clickoutside, ref(callback))
+
+        mouse('mousedown', wrapper.find('.outside').element)
+        mouse('click', wrapper.element)
+        expect(callback).toHaveBeenCalledTimes(1)
+        wrapper.unmount()
+      })
+
+      it('a keyboard click outside still counts after a drag whose click never came', () => {
+        const callback = vi.fn()
+        const wrapper = mountWithDirective(clickoutside, ref(callback))
+
+        // 在元素内按下、在窗口外松开：没有 click
+        mouse('mousedown', wrapper.find('.inside').element)
+        // 键盘触发的 click 没有 mousedown，detail 为 0
+        mouse('click', wrapper.find('.outside').element, { detail: 0 })
+        expect(callback).toHaveBeenCalledTimes(1)
+        wrapper.unmount()
+      })
+
+      it('only the click right after the mousedown is ignored', () => {
+        const callback = vi.fn()
+        const wrapper = mountWithDirective(clickoutside, ref(callback))
+
+        mouse('mousedown', wrapper.find('.inside').element)
+        mouse('click', wrapper.element)
+        // 没有新的 mousedown 的第二次 click（例如由代码派发）不再被忽略
+        mouse('click', wrapper.find('.outside').element)
+        expect(callback).toHaveBeenCalledTimes(1)
+        wrapper.unmount()
+      })
+
+      it('removes its mousedown listener on unmount', () => {
+        const remove = vi.spyOn(document, 'removeEventListener')
+        const add = vi.spyOn(document, 'addEventListener')
+        const wrapper = mountWithDirective(clickoutside, ref(vi.fn()))
+        const added = add.mock.calls.filter(([type]) => type === 'mousedown' || type === 'click')
+        expect(added.map(([type]) => type).sort()).toEqual(['click', 'mousedown'])
+
+        wrapper.unmount()
+        for (const [type, fn, options] of added)
+          expect(remove).toHaveBeenCalledWith(type, fn, options)
+      })
+    })
   })
 
   describe('events-outside', () => {

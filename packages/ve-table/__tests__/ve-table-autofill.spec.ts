@@ -314,6 +314,29 @@ describe('veTable cell autofill', () => {
       expect(wrapper.vm.cellSelectionData.autoFillEndCell).toEqual({ rowKey: '', colKey: '' })
     })
 
+    // SEL-11：取消填充，但选区保留（之前公共祖先上的 click 让 tableClickOutside 清除了整个选区）
+    it('releasing outside the table keeps the selection (SEL-11)', async () => {
+      mockTableLayout()
+      const beforeAutofill = vi.fn()
+      mountTable({ cellAutofillOption: { beforeAutofill } })
+
+      await selectRange('r1', 'name', 'r2', 'date')
+      await dragCorner(['r3', 'name'], ['r4', 'name'])
+
+      // 真实的鼠标 click（detail 为 1），在 mouseup 与 mousedown 目标的公共祖先上
+      const outside = { bubbles: true, clientX: 50, clientY: 900, detail: 1 }
+      document.body.dispatchEvent(new MouseEvent('mouseup', outside))
+      document.body.dispatchEvent(new MouseEvent('click', outside))
+      await later()
+
+      expect(beforeAutofill).not.toHaveBeenCalled()
+      expect([rowOf('r3').name, rowOf('r4').name]).toEqual(['n3', 'n4'])
+      expect(wrapper.vm.isAutofillStarting).toBe(false)
+      expect(wrapper.vm.cellSelectionData.currentCell).toMatchObject({ rowKey: 'r1', colKey: 'name' })
+      expect(wrapper.vm.cellSelectionData.normalEndCell).toMatchObject({ rowKey: 'r2', colKey: 'date' })
+      expect(wrapper.find('.ve-table-selection-normal-area').exists()).toBe(true)
+    })
+
     it('releasing outside the window cancels the fill', async () => {
       mockTableLayout()
       const beforeAutofill = vi.fn()

@@ -508,6 +508,41 @@ export const cellSelectionMethods = {
   },
 
   /*
+   * @addSelectionDragListener
+   * @desc 拖动选择（单元格区域、整行、整列）期间在 document 上监听 mouseup（捕获阶段），结束拖动（SEL-11）。
+   *       在表格外松开时，浏览器在公共祖先上触发的 click 不再清除选区（clickoutside 忽略从表格内开始的拖动），
+   *       所以拖动状态不能再依赖 tableClickOutside 重置
+   */
+  addSelectionDragListener(this: any) {
+    this.removeSelectionDragListener()
+
+    const onMouseup = () => {
+      this.endSelectionDrag()
+    }
+    document.addEventListener('mouseup', onMouseup, true)
+
+    this.selectionDragListenerDisposer = () => {
+      document.removeEventListener('mouseup', onMouseup, true)
+    }
+  },
+
+  // 移除拖动选择期间的 document 监听
+  removeSelectionDragListener(this: any) {
+    const dispose = this.selectionDragListenerDisposer
+    this.selectionDragListenerDisposer = null
+    if (isFunction(dispose))
+      dispose()
+  },
+
+  // 结束拖动选择：之后鼠标经过单元格 / 表头不再扩展选区（填充由 FILL-02 的 window 监听单独处理）
+  endSelectionDrag(this: any) {
+    this.removeSelectionDragListener()
+    this.isHeaderCellMousedown = false
+    this.isBodyCellMousedown = false
+    this.isBodyOperationColumnMousedown = false
+  },
+
+  /*
    * @reconcileCellState
    * @desc 列（colgroups）或行（allRowKeys）变化后，同步选区与编辑状态（SEL-01）
    *  - 正在编辑的单元格所在行 / 列已不存在：清除编辑状态（无处保存，直接丢弃）

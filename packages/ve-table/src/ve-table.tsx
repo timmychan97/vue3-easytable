@@ -1141,6 +1141,8 @@ export default defineComponent({
     this.destroyTanStackVirtualScroll()
     // 拖动填充中卸载：移除 window 上的监听（FILL-02）
     this.removeAutofillWindowListeners()
+    // 拖动选择中卸载：移除 document 上的监听（SEL-11）
+    this.removeSelectionDragListener()
   },
 
   methods: {
@@ -1547,6 +1549,8 @@ export default defineComponent({
 
         const { bodyIndicatorRowKeys } = this
         this.isBodyOperationColumnMousedown = true
+        // 在表格外松开时也要结束拖动（SEL-11）
+        this.addSelectionDragListener()
 
         const { startRowKey, endRowKey } = bodyIndicatorRowKeys
         // 下标按当前行顺序计算，插入行后不会过期（SEL-09）
@@ -1592,6 +1596,8 @@ export default defineComponent({
       else {
         // body cell mousedown（在输入框中拖动选择文字时不扩展单元格选区，SEL-10）
         this.isBodyCellMousedown = !isWidgetMousedown
+        if (this.isBodyCellMousedown)
+          this.addSelectionDragListener()
 
         const isClearByRightClick
                     = isClearSelectionByBodyCellRightClick({
@@ -1739,6 +1745,7 @@ export default defineComponent({
         return false
 
       this.isHeaderCellMousedown = true
+      this.addSelectionDragListener()
 
       const { shiftKey } = event
 
