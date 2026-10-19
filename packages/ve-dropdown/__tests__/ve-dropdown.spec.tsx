@@ -767,6 +767,72 @@ describe('veDropdown', () => {
     })
   })
 
+  // 重置必须清除已确认的筛选，即使未确认的勾选已经全部取消
+  describe('reset with nothing ticked (DD-08)', () => {
+    // Orange 是已确认（modelValue 中）的选中项
+    function createItems() {
+      return [
+        { value: 0, label: 'Apple', selected: false },
+        { value: 1, label: 'Orange', selected: true },
+        { value: 2, label: 'Banana', selected: false },
+      ]
+    }
+
+    async function openMultiple(items: any[]) {
+      const wrapper = mount(veDropdown, {
+        props: { modelValue: items, isMultiple: true, showOperation: true },
+        slots: { default: `<div class="btn">click me</div>` },
+      })
+      await later()
+      wrapper.find('.btn').trigger('click')
+      await later()
+      const root = document.getElementById((wrapper.vm as any).rootId)!
+      return { wrapper, root }
+    }
+
+    it('reset after unticking the confirmed item still emits the reset (DD-08)', async () => {
+      const { wrapper, root } = await openMultiple(createItems())
+
+      // 取消 Orange 的勾选，但不确认
+      ;(root.querySelectorAll('.ve-checkbox')[1] as HTMLElement).click()
+      await later()
+      ;(root.querySelectorAll('.ve-dropdown-operation-item')[0] as HTMLElement).click()
+      await later()
+
+      expect(wrapper.emitted('on-filter-reset')?.length).toBe(1)
+      expect((wrapper.emitted('on-filter-reset')![0][0] as any[]).some(x => x.selected)).toBe(false)
+      const models = wrapper.emitted('update:modelValue')!
+      expect((models[models.length - 1][0] as any[]).some(x => x.selected)).toBe(false)
+      expect((wrapper.vm as any).isDropdownVisible).toBe(false)
+      wrapper.unmount()
+    })
+
+    it('reset is not shown as disabled while a confirmed selection exists (DD-08)', async () => {
+      const { wrapper, root } = await openMultiple(createItems())
+
+      const resetButton = () => root.querySelectorAll('.ve-dropdown-operation-item')[0]
+      expect(resetButton().classList.contains('ve-dropdown-filter-disable')).toBe(false)
+      ;(root.querySelectorAll('.ve-checkbox')[1] as HTMLElement).click()
+      await later()
+      expect(resetButton().classList.contains('ve-dropdown-filter-disable')).toBe(false)
+      wrapper.unmount()
+    })
+
+    it('reset with no selection at all still emits and closes (DD-08)', async () => {
+      const items = createItems().map(x => ({ ...x, selected: false }))
+      const { wrapper, root } = await openMultiple(items)
+
+      const resetButton = root.querySelectorAll('.ve-dropdown-operation-item')[0] as HTMLElement
+      expect(resetButton.classList.contains('ve-dropdown-filter-disable')).toBe(true)
+      resetButton.click()
+      await later()
+
+      expect(wrapper.emitted('on-filter-reset')?.length).toBe(1)
+      expect((wrapper.vm as any).isDropdownVisible).toBe(false)
+      wrapper.unmount()
+    })
+  })
+
   // 弹出层只在打开后才进入目标元素（之前没有单独的容器），所以先打开再检查
   describe('popperAppendTo (DD-06, INFRA-05)', () => {
     async function open(wrapper: any) {

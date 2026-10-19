@@ -17,13 +17,16 @@ import {
 import { clsName } from './util/index'
 
 export interface Option {
-  id: string | number
+  // 可选：组件内部会为每个菜单生成 id（MENU-09）
+  id?: string | number
   label: string
   disabled?: boolean
   children?: Option[]
 }
 
 interface InternalOption extends Option {
+  // 内部选项的 id 总是已生成
+  id: string | number
   type?: string
   deep: number
   hasChildren: boolean

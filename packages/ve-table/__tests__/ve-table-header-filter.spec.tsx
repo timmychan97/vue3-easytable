@@ -477,4 +477,40 @@ describe('veTable header filter', () => {
       wrapper.unmount()
     })
   })
+
+  // DD-08：未确认地取消全部勾选后点击重置，仍需清除已生效的筛选
+  describe('reset with nothing ticked (DD-08)', () => {
+    const popper = () => document.querySelector('.ve-dropdown-popper')!
+    const checkedLabels = () => [...popper().querySelectorAll('.ve-checkbox')]
+      .filter(el => el.querySelector('.ve-checkbox-checked'))
+      .map(el => el.textContent)
+
+    it('reset after unticking the applied filter calls filterReset and clears the ticks', async () => {
+      const wrapper = mount(veTable, {
+        props: { columns: TABLE_COLUMNS_FILTER_MULTIPLE, tableData: TABLE_DATA, rowKeyFieldName: 'rowkey' },
+        attachTo: document.body,
+      })
+      await later()
+      const toggleFilter = async () => {
+        wrapper.find('.ve-table-filter-icon').trigger('click')
+        await later()
+      }
+
+      // John 是已生效的筛选；取消勾选（不确认）后点击重置
+      await toggleFilter()
+      expect(checkedLabels()).toEqual(['John'])
+      ;(popper().querySelectorAll('.ve-checkbox')[0] as HTMLElement).click()
+      await later()
+      ;(popper().querySelectorAll('.ve-dropdown-operation-item')[0] as HTMLElement).click()
+      await later()
+
+      expect(mockFilterFn).toHaveBeenCalledTimes(1)
+      expect((mockFilterFn.mock.calls[0][0] as FilterItem[]).some(x => x.selected)).toBe(false)
+
+      // 重新打开：旧的勾选不能回来
+      await toggleFilter()
+      expect(checkedLabels()).toEqual([])
+      wrapper.unmount()
+    })
+  })
 })

@@ -143,18 +143,15 @@ describe('veTable contextmenu', () => {
     },
   ]
 
-  afterEach(() => {
-    return new Promise((resolve) => {
-      const contextmenuNodes = document.querySelectorAll(
-        '.ve-contextmenu-node',
-      );
-
-      [].forEach.call(contextmenuNodes, (nodeEl: HTMLElement) => {
-        nodeEl.remove()
-      })
-
-      resolve()
-    })
+  // 弹出层由 <Teleport> 渲染，组件卸载时由 Vue 移除（MOD-09），用例结束后组件自动卸载（tests/utils/auto-unmount.ts），
+  // 所以不再手动删除节点（那样会删除 Vue 管理的 DOM）。这里检查 body 中没有遗留的节点
+  let bodyChildCount: number | undefined
+  beforeEach(() => {
+    bodyChildCount ??= document.body.children.length
+    expect(document.body.children.length).toBe(bodyChildCount)
+  })
+  afterAll(() => {
+    expect(document.body.children.length).toBe(bodyChildCount)
   })
 
   it('render', () => {
