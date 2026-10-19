@@ -658,17 +658,32 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
 
 ## PAG — pagination
 
-- [ ] **PAG-01** 🟠 Edge cases with `total = 0`, `pageSize = 0` and an out-of-range `pageIndex`
+- [x] ✅ 2026-10-19 · fix/audit-batch7-dropdown-pagination-ssr · **PAG-01** 🟠 Edge cases with `total = 0`, `pageSize = 0` and an out-of-range `pageIndex`
   - **Where:** `ve-pagination/src/index.tsx:54` (Next uses `=== pageCount`), `224-226` (the `pageIndex` watcher skips validation), `246-247` (`getValidNum` returns 0)
   - **Trigger:**
     - `total = 0`, then type "3" + Enter in the jumper: it emits `on-page-number-change(0)`.
     - Next looks enabled when `total` shrinks below the current page.
     - `pageSize = 0` displays "Infinity".
   - **Fix:** `pageCount = Math.max(1, Math.ceil(total / Math.max(1, size)))`, use `>=` for disabled, and clamp in the watchers.
+  - **Done:**
+    - `pageCount` uses the proposed formula. A negative or non-numeric `total` also counts as 0.
+    - Next is disabled with `>=`. Prev is also disabled when there is only one page.
+    - `prevPage` from a page beyond the last page goes to the last page.
+    - A shared `toValidPageIndex` turns the page index into a positive integer, or 1 if it isn't valid. The `pageIndex` watcher, `data` and `goBackPageIndex` all use it.
+  - **Decision:** the watchers do *not* clamp `pageIndex` to `pageCount`, and they do not emit. `total` often arrives after `pageIndex`, for example when the page number comes from the URL and the data is still loading. Clamping at that point would silently reset the page. Only user navigation clamps.
+  - **Verified:** six tests in `ve-pagination.spec.tsx` › "edge cases (PAG-01)", all of which failed before the fix:
+    - "jumping with total = 0 emits page 1, not 0" (it emitted `0` before)
+    - "total = 0 disables prev and next"
+    - "next is disabled when total shrinks below the current page"
+    - "prev from a page beyond the last page goes to the last page" (it emitted 7 before)
+    - "pageSize = 0 does not display Infinity"
+    - "an invalid pageIndex prop update falls back to page 1" (no page was active before)
 
-- [ ] **PAG-02** 🟢 Hard-coded element IDs collide when there are several paginations
+- [x] ✅ 2026-10-19 · fix/audit-batch7-dropdown-pagination-ssr · **PAG-02** 🟢 Hard-coded element IDs collide when there are several paginations
   - **Where:** `ve-pagination/src/index.tsx:82, 89, 123, 127` (`ve-pagination-size-label`, `ve-pagination-jumper`). (Re-checked at `0c5b732`: unchanged.) `aria-labelledby` points at the wrong instance.
   - **Fix:** per-instance ids (`useId()` or a random suffix).
+  - **Done:** the Sizer and Jumper sub-components each call `useId()` in `setup`, giving `ve-pagination-size-label-<id>` and `ve-pagination-jumper-<id>`. `useId` gives the same id on the server and the client, so SSR hydration works too. The pagination and locale snapshots changed only in these ids.
+  - **Verified:** `ve-pagination.spec.tsx` › "two paginations get distinct element ids (PAG-02)" checks that each `label[for]` and `aria-labelledby` points at its own instance. Before the fix, both instances used the same two ids. The existing "jump input has associated label element (WCAG 1.3.1)" still passes.
 
 - [x] ✅ 2026-10-19 · fix/audit-batch7-dropdown-pagination-ssr · **PAG-03** 🟢 `pageSizeChangeHandler` ignores its argument
   - **Where:** `ve-pagination/src/index.tsx:103` vs `277`. It works only because the dropdown mutates the cached option objects (DD-04). Fixing DD-04 alone will break page-size changes, so fix both together.
