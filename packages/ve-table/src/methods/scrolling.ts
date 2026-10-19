@@ -15,7 +15,7 @@ export const scrollingMethods = {
     if (!hasXScrollBar || !nextColumn)
       return false
 
-    const tableContainerRef = this.$refs[this.tableContainerRef] as HTMLElement
+    const tableContainerRef = this.tableContainerRef as HTMLElement
 
     const { scrollWidth, clientWidth, scrollLeft } = tableContainerRef
 
@@ -48,9 +48,9 @@ export const scrollingMethods = {
   },
 
   rowToVisible(this: any, keyCode: number, nextRowKey: any) {
-    const tableContainerRef = this.$refs[this.tableContainerRef] as HTMLElement
+    const tableContainerRef = this.tableContainerRef as HTMLElement
     const tableContentWrapperRef
-              = (this.$refs[this.tableContentWrapperRef] as any)?.$el as HTMLElement | undefined
+              = this.tableContentWrapperRef?.$el as HTMLElement | undefined
 
     const { isVirtualScroll, headerTotalHeight, footerTotalHeight }
               = this
@@ -61,7 +61,7 @@ export const scrollingMethods = {
     } = tableContainerRef
 
     // key 会被转义；未渲染的行返回 null
-    const nextRowEl = queryBodyRow(this.$el, nextRowKey) as HTMLElement | null
+    const nextRowEl = queryBodyRow(this.tableRootRef, nextRowKey) as HTMLElement | null
 
     if (nextRowEl) {
       const { offsetTop: trOffsetTop, clientHeight: trClientHeight }
@@ -147,7 +147,7 @@ export const scrollingMethods = {
   },
 
   setScrollBarStatus(this: any) {
-    const tableContainerRef = this.$refs[this.tableContainerRef] as HTMLElement | undefined
+    const tableContainerRef = this.tableContainerRef as HTMLElement | undefined
     if (tableContainerRef) {
       const { scrollWidth, clientWidth, scrollHeight, clientHeight }
                   = tableContainerRef
@@ -165,6 +165,6 @@ export const scrollingMethods = {
   },
 
   initScrolling(this: any) {
-    this.setScrolling(this.$refs[this.tableContainerRef] as HTMLElement)
+    this.setScrolling(this.tableContainerRef as HTMLElement)
   },
 }

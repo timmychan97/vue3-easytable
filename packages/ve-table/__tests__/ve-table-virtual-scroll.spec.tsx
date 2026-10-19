@@ -678,7 +678,7 @@ describe('veTable virtual scroll', () => {
     await settle()
 
     // minRowHeight 作为 TanStack 的预估行高
-    expect((wrapper.vm as any)._vs.virtualizer.options.estimateSize(0)).toBe(minRowHeight)
+    expect((wrapper.vm as any).virtualScroll.virtualizer.options.estimateSize(0)).toBe(minRowHeight)
 
     const rowCount = getExpectedRowCount({ rowHeight: () => minRowHeight })
     expect(wrapper.findAll('.ve-table-body-tr').length).toBe(rowCount)
@@ -1045,7 +1045,7 @@ describe('veTable virtual scroll', () => {
       await scrollTo(wrapper, 4000)
       await scrollTo(wrapper, 0)
 
-      const vs = (wrapper.vm as any)._vs
+      const vs = (wrapper.vm as any).virtualScroll
       const virtualizer = vs.virtualizer
       const measuredMiddleKeys = [...virtualizer.itemSizeCache.keys()].filter((key: number) => key > 50)
       expect(measuredMiddleKeys.length).toBeGreaterThan(0)
@@ -1078,7 +1078,7 @@ describe('veTable virtual scroll', () => {
       wrapper.triggerResizeObserver({ width: MAX_HEIGHT })
       await settle()
 
-      const vs = (wrapper.vm as any)._vs
+      const vs = (wrapper.vm as any).virtualScroll
       const totalSizeBefore = vs.getTotalSize()
       expect(vs.virtualizer.itemSizeCache.get(2)).toBe(TALL_ROW_HEIGHT)
 
@@ -1108,7 +1108,7 @@ describe('veTable virtual scroll', () => {
       wrapper.triggerResizeObserver({ width: MAX_HEIGHT })
       await settle()
 
-      const vs = (wrapper.vm as any)._vs
+      const vs = (wrapper.vm as any).virtualScroll
       expect(vs.virtualizer.options.count).toBe(1000)
 
       // 原地追加
@@ -1165,9 +1165,9 @@ describe('veTable virtual scroll', () => {
       await settle()
 
       const vm = wrapper.vm as any
-      expect(vm._vs).toBeTruthy()
-      expect(isProxy(vm._vs)).toBe(false)
-      expect(isProxy(vm._vs.virtualizer)).toBe(false)
+      expect(vm.virtualScroll).toBeTruthy()
+      expect(isProxy(vm.virtualScroll)).toBe(false)
+      expect(isProxy(vm.virtualScroll.virtualizer)).toBe(false)
       expect(isProxy(vm.measureColsWidths)).toBe(false)
 
       wrapper.unmount()
@@ -1178,7 +1178,7 @@ describe('veTable virtual scroll', () => {
       wrapper.triggerResizeObserver({ width: MAX_HEIGHT })
       await settle()
 
-      const virtualizer = (wrapper.vm as any)._vs.virtualizer
+      const virtualizer = (wrapper.vm as any).virtualScroll.virtualizer
       expect(virtualizer.options.overscan).toBe(getOverscan())
 
       const scrolling = vi.fn()
@@ -1213,7 +1213,7 @@ describe('veTable virtual scroll', () => {
       ;(wrapper.vm as any).headerRowHeightChange({ rowIndex: 0, height: HEADER_HEIGHT })
       await settle()
 
-      const virtualizer = (wrapper.vm as any)._vs.virtualizer
+      const virtualizer = (wrapper.vm as any).virtualScroll.virtualizer
       expect(virtualizer.options.scrollMargin).toBe(0)
       expect(virtualizer.getSize()).toBe(MAX_HEIGHT - HEADER_HEIGHT)
 
@@ -1248,7 +1248,7 @@ describe('veTable virtual scroll', () => {
       ;(wrapper.vm as any).headerRowHeightChange({ rowIndex: 0, height: HEADER_HEIGHT })
       await settle()
 
-      const virtualizer = (wrapper.vm as any)._vs.virtualizer
+      const virtualizer = (wrapper.vm as any).virtualScroll.virtualizer
       expect(virtualizer.options.scrollMargin).toBe(HEADER_HEIGHT)
       expect(virtualizer.getSize()).toBe(MAX_HEIGHT)
 
@@ -1280,7 +1280,7 @@ describe('veTable virtual scroll', () => {
       const wrapper = mountVirtual()
 
       // 虚拟滚动实例在 mounted 之后的 nextTick 才创建；首次渲染也应按预估行高渲染首屏
-      expect((wrapper.vm as any)._vs).toBeNull()
+      expect((wrapper.vm as any).virtualScroll).toBeNull()
       const firstRows = wrapper.findAll('tbody[data-index]')
       expect(firstRows.length).toBe(getExpectedRowCount())
       expect(getSpacerHeights(wrapper)).toEqual([(1000 - getExpectedRowCount()) * MIN_ROW_HEIGHT])
@@ -1289,7 +1289,7 @@ describe('veTable virtual scroll', () => {
       wrapper.triggerResizeObserver({ width: MAX_HEIGHT })
       await settle()
 
-      expect((wrapper.vm as any)._vs).toBeTruthy()
+      expect((wrapper.vm as any).virtualScroll).toBeTruthy()
       expect(wrapper.findAll('tbody[data-index]').length).toBe(getExpectedRowCount())
       // 同一个 key 的行不重新挂载
       expect(wrapper.find('tbody[data-index="0"]').element).toBe(firstRowEl)

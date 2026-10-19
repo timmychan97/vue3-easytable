@@ -52,7 +52,7 @@ export const keyboardMethods = {
    * @desc 本表格的编辑框（textarea），单元格导航时由它持有焦点
    */
   getEditorTextareaEl(this: any): HTMLTextAreaElement | null {
-    const editor = this.$refs[this.editInputRef] as any
+    const editor = this.editInputRef as any
     return editor?.$refs?.textareaInputRef ?? null
   },
 
@@ -63,7 +63,7 @@ export const keyboardMethods = {
    * @return {Element|null}
    */
   getCellWidgetElement(this: any, target: EventTarget | null): Element | null {
-    const rootEl = this.$refs[this.tableRootRef] as HTMLElement | undefined
+    const rootEl = this.tableRootRef as HTMLElement | undefined
     if (!rootEl || !(target instanceof Element))
       return null
 
@@ -93,7 +93,7 @@ export const keyboardMethods = {
       keyboardMode,
     } = this
 
-    const rootEl = this.$refs[this.tableRootRef] as HTMLElement | undefined
+    const rootEl = this.tableRootRef as HTMLElement | undefined
     const path = getEventPath(event)
 
     // SEL-02：忽略来自表格外部（其他输入框等）的按键
@@ -204,7 +204,7 @@ export const keyboardMethods = {
           // add new line
           if (altKey) {
             const editInputEditor
-                              = this.$refs[this.editInputRef]
+                              = this.editInputRef
 
             editInputEditor.textareaAddNewLine()
           }
@@ -350,7 +350,7 @@ export const keyboardMethods = {
   leaveCellKeyboardMode(this: any) {
     this.keyboardMode = KEYBOARD_MODE.TABLE
 
-    const rootEl = this.$refs[this.tableRootRef] as HTMLElement | undefined
+    const rootEl = this.tableRootRef as HTMLElement | undefined
     // 编辑框（tabindex=-1）持有焦点，必须显式把焦点移到根元素；避免滚动跳到表格顶部
     rootEl?.focus({ preventScroll: true })
   },

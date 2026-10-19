@@ -1,5 +1,4 @@
-import type { PropType } from 'vue'
-import type { TableEventScope } from './features/table-context'
+import type { ComponentPublicInstance } from 'vue'
 import type { AutofillingDirection } from './selection/geometry'
 import type { KeyboardMode } from './util/constant.js'
 import type {
@@ -10,8 +9,10 @@ import type {
   ColumnOption,
   ContextmenuOption,
   EditingCell,
+  EditorInstance,
   HeaderIndicatorColKeys,
   RowHeight,
+  SelectionInstance,
 } from './ve-table-types'
 import type { VirtualItem, VirtualScrollInstance } from './virtual-scroll'
 import VueDomResizeObserver from '@vue3-easytable/common/comps/resize-observer'
@@ -33,14 +34,14 @@ import { getMouseEventClickType } from '@vue3-easytable/common/utils/mouse-event
 import { getScrollbarWidth } from '@vue3-easytable/common/utils/scroll-bar'
 import VeContextmenu from '@vue3-easytable/ve-contextmenu'
 import { cloneDeep, debounce } from 'lodash'
-import { defineComponent, markRaw } from 'vue'
+import { computed, defineComponent, getCurrentInstance, inject, markRaw, provide, shallowRef } from 'vue'
 import Body from './body'
 import Colgroup from './colgroup'
 import ColumnResizer from './column-resizer'
 import EditInput from './editor'
 import { FIXED_COLUMNS_KEY, useFixedColumns } from './features/fixed-columns/useFixedColumns'
 import { createRowState, ROW_STATE_KEY } from './features/row-state'
-import { createTableContext, TABLE_CONTEXT_KEY, useTableContext } from './features/table-context'
+import { createTableContext, provideTableContext, useTableContext } from './features/table-context'
 import Footer from './footer'
 import Header from './header'
 import { cellSelectionMethods } from './methods/cell-selection'
@@ -81,6 +82,7 @@ import {
   restoreColumnsState,
 } from './util/index.js'
 import { safeCall } from './util/safe-call.js'
+import { veTableProps } from './ve-table-props'
 import { createVirtualScroll } from './virtual-scroll'
 
 export default defineComponent({
@@ -94,243 +96,74 @@ export default defineComponent({
    * - on-row-insert：行插入（rowInsertOption），参数 { insertRowIndex }
    */
   emits: [EMIT_EVENTS.ROW_INSERT],
-  inject: {
-    // 语言包：最近的 ConfigProvider，否则为全局语言包（右键菜单文案使用）。
-    // ve-table 仍是 Options API（MOD-02），这里用 inject 选项而不是 setup，保持实例结构不变
-    veLocale: { from: LocaleInjectionKey, default: () => globalLocale },
-  },
-  provide() {
-    // 行勾选 / 单选 / 展开状态（MOD-08）：表头和表体通过 inject 共享同一份派生状态。
-    // provide() 执行时组件实例的 effect scope 已激活，其中的 computed / watch 随组件卸载自动停止
-    return {
-      [ROW_STATE_KEY as symbol]: createRowState({
-        checkboxOption: () => this.checkboxOption,
-        radioOption: () => this.radioOption,
-        expandOption: () => this.expandOption,
-        tableData: () => this.tableData,
-        rowKeyFieldName: () => this.rowKeyFieldName,
-        allRowKeys: () => this.allRowKeys,
-      }),
-      // 固定列的样式与 class（MOD-06）：按 colgroups 计算一次，表头、表体、表尾共享
-      [FIXED_COLUMNS_KEY as symbol]: useFixedColumns(() => this.colgroups),
-      // 表格上下文（MOD-01）：子组件与表格之间的类型化事件，取代 emitter mixin 与 Hooks
-      [TABLE_CONTEXT_KEY as symbol]: this.tableContext,
-    }
-  },
-  props: {
-    tableData: {
-      required: true,
-      type: Array,
-    },
-    footerData: {
-      type: Array,
-      default() {
+  props: veTableProps,
+  setup(props) {
+    // 迁移过程中（MOD-02）尚未改为组合式函数的状态仍在 Options API 中，通过实例读取
+    const vm = getCurrentInstance()!.proxy as any
+
+    // 表格上下文（MOD-01）：子组件与表格之间的类型化事件，取代 emitter mixin 与 Hooks。非响应式
+    const tableContext = markRaw(createTableContext())
+    provideTableContext(tableContext)
+    // 表格自身的订阅，卸载时自动注销
+    const tableEvents = markRaw(useTableContext(tableContext))
+
+    // 语言包：最近的 ConfigProvider，否则为全局语言包（右键菜单文案使用）
+    const veLocale = inject(LocaleInjectionKey, globalLocale)
+
+    // 行 key（按 tableData 顺序）
+    const allRowKeys = computed<Array<string | number>>(() => {
+      const { tableData, rowKeyFieldName } = props
+      if (!rowKeyFieldName)
         return []
-      },
-    },
-    showHeader: {
-      type: Boolean,
-      default: true,
-    },
-    // INFRA-17：列配置的类型
-    columns: {
-      type: Array as PropType<ColumnOption[]>,
-      required: true,
-    },
-    // row key field for row expand、row selection
-    rowKeyFieldName: {
-      type: String,
-      default: null,
-    },
-    // table scroll width
-    scrollWidth: {
-      type: [Number, String],
-      default: null,
-    },
-    // table max height
-    maxHeight: {
-      type: [Number, String],
-      default: null,
-    },
-    // fixed header
-    fixedHeader: {
-      type: Boolean,
-      default: true,
-    },
-    // fixed footer
-    fixedFooter: {
-      type: Boolean,
-      default: true,
-    },
-    // border around
-    borderAround: {
-      type: Boolean,
-      default: true,
-    },
-    // border horizontal
-    borderX: {
-      type: Boolean,
-      default: true,
-    },
-    // border vertical
-    borderY: {
-      type: Boolean,
-      default: false,
-    },
-    // event custom option
-    eventCustomOption: {
-      type: Object,
-      default() {
-        return null
-      },
-    },
-    // cell style option
-    cellStyleOption: {
-      type: Object,
-      default() {
-        return null
-      },
-    },
-    // cell span option
-    cellSpanOption: {
-      type: Object,
-      default() {
-        return null
-      },
-    },
-    // row style option
-    rowStyleOption: {
-      type: Object,
-      default() {
-        return null
-      },
-    },
-    /*
-        virual scroll option
-        {
-            enable:true,
-            bufferCount:10, // 缓冲的数据
-            minRowHeight:40,
-            scrolling:(startRowIndex,visibleStartIndex,visibleEndIndex,visibleAboveCount,visibleBelowCount)=>{}
-        }
-        */
-    virtualScrollOption: {
-      type: Object,
-      default: null,
-    },
-    // sort option
-    sortOption: {
-      type: Object,
-      default() {
-        return null
-      },
-    },
-    // expand row option
-    expandOption: {
-      type: Object,
-      default() {
-        return null
-      },
-    },
-    // checkbox option
-    checkboxOption: {
-      type: Object,
-      default() {
-        return null
-      },
-    },
-    // radio option
-    radioOption: {
-      type: Object,
-      default() {
-        return null
-      },
-    },
-    // cell selection option
-    cellSelectionOption: {
-      type: Object,
-      default() {
-        return null
-      },
-    },
-    // cell autofill option
-    cellAutofillOption: {
-      type: [Object, Boolean],
-      default() {
-        return null
-      },
-    },
-    // edit option
-    editOption: {
-      type: Object,
-      default() {
-        return null
-      },
-    },
-    // column hidden option
-    columnHiddenOption: {
-      type: Object,
-      default() {
-        return null
-      },
-    },
-    // contextmenu header option
-    contextmenuHeaderOption: {
-      type: Object,
-      default() {
-        return null
-      },
-    },
-    // contextmenu body option
-    contextmenuBodyOption: {
-      type: Object,
-      default() {
-        return null
-      },
-    },
-    // clipboard option
-    clipboardOption: {
-      type: Object,
-      default() {
-        return null
-      },
-    },
-    // column width resize option
-    columnWidthResizeOption: {
-      type: Object,
-      default() {
-        return null
-      },
-    },
-    // row insert option
-    rowInsertOption: {
-      type: Object,
-      default() {
-        return null
-      },
-    },
+      return (tableData as any[]).map(x => x[rowKeyFieldName])
+    })
+
+    // 行勾选 / 单选 / 展开状态（MOD-08）：表头和表体通过 inject 共享同一份派生状态
+    provide(ROW_STATE_KEY, createRowState({
+      checkboxOption: () => props.checkboxOption,
+      radioOption: () => props.radioOption,
+      expandOption: () => props.expandOption,
+      tableData: () => props.tableData,
+      rowKeyFieldName: () => props.rowKeyFieldName,
+      allRowKeys,
+    }))
+    // 固定列的样式与 class（MOD-06）：按 colgroups 计算一次，表头、表体、表尾共享
+    provide(FIXED_COLUMNS_KEY, useFixedColumns(() => vm.colgroups))
+
+    // 模板 ref（render 中以同名字符串引用）
+    const tableRootRef = shallowRef<HTMLElement | null>(null)
+    const tableContainerWrapperRef = shallowRef<ComponentPublicInstance | null>(null)
+    const tableContainerRef = shallowRef<HTMLElement | null>(null)
+    const tableRef = shallowRef<HTMLTableElement | null>(null)
+    const tableBodyRef = shallowRef<ComponentPublicInstance | null>(null)
+    const tableContentWrapperRef = shallowRef<ComponentPublicInstance | null>(null)
+    const virtualPhantomRef = shallowRef<HTMLElement | null>(null)
+    const editInputRef = shallowRef<EditorInstance | null>(null)
+    const cellSelectionRef = shallowRef<SelectionInstance | null>(null)
+    const contextmenuRef = shallowRef<ComponentPublicInstance | null>(null)
+
+    return {
+      tableContext,
+      tableEvents,
+      veLocale,
+      allRowKeys,
+      tableRootRef,
+      tableContainerWrapperRef,
+      tableContainerRef,
+      tableRef,
+      tableBodyRef,
+      tableContentWrapperRef,
+      virtualPhantomRef,
+      editInputRef,
+      cellSelectionRef,
+      contextmenuRef,
+    }
   },
   data() {
     return {
-      // 表格上下文（MOD-01）：非响应式，由 provide() 提供给子组件
-      tableContext: markRaw(createTableContext()),
-      // 表格自身的订阅（created 中创建，卸载时自动注销）
-      tableEvents: null as TableEventScope | null,
       parentRendered: false,
       tableViewportWidth: 0,
       columnsOptionResetTime: 0,
-
-      // Template refs (string keys)
-      tableRootRef: 'tableRootRef' as const,
-      tableContainerWrapperRef: 'tableContainerWrapperRef' as const,
-      tableContainerRef: 'tableContainerRef' as const,
-      tableRef: 'tableRef' as const,
-      tableBodyRef: 'tableBodyRef' as const,
-      tableContentWrapperRef: 'tableContentWrapperRef' as const,
-      virtualPhantomRef: 'virtualPhantomRef' as const,
-      editInputRef: 'editInputRef' as const,
-      cellSelectionRef: 'cellSelectionRef' as const,
-      contextmenuRef: 'contextmenuRef' as const,
 
       // Column state
       cloneColumns: [] as ColumnOption[],
@@ -346,7 +179,7 @@ export default defineComponent({
       // Virtual scroll
       defaultVirtualScrollMinRowHeight: 40,
       defaultVirtualScrollBufferScale: 1,
-      _vsVersion: 0,
+      virtualScrollVersion: 0,
 
       // Scrolling state
       isLeftScrolling: false,
@@ -416,7 +249,7 @@ export default defineComponent({
 
       // 非响应式对象：TanStack 虚拟滚动实例（赋值时用 markRaw 包裹）与列宽测量 Map。
       // 只有引用本身是响应式的（替换实例时触发依赖），对象内部不会被 Vue 深度代理
-      _vs: null as VirtualScrollInstance | null,
+      virtualScroll: null as VirtualScrollInstance | null,
       measureColsWidths: markRaw(new Map<string, number>()),
       debouncedMeasureCellWidthChange: null as ((...args: any[]) => void) | null,
     }
@@ -476,12 +309,12 @@ export default defineComponent({
         return this.virtualItems.map((item: VirtualItem) => this.tableData[item.index])
       return this.tableData
     },
-    // TanStack virtual items (reactive via _vsVersion)
+    // TanStack virtual items (reactive via virtualScrollVersion)
     virtualItems(): VirtualItem[] {
       if (!this.isVirtualScroll)
         return []
-      void this._vsVersion // establish reactive dependency
-      const vs = this._vs as VirtualScrollInstance | null
+      void this.virtualScrollVersion // establish reactive dependency
+      const vs = this.virtualScroll as VirtualScrollInstance | null
       return vs ? vs.getVirtualItems() : this.initialVirtualItems
     },
     /*
@@ -516,28 +349,28 @@ export default defineComponent({
       }
       return result
     },
-    // Total scrollable height from TanStack (reactive via _vsVersion)
+    // Total scrollable height from TanStack (reactive via virtualScrollVersion)
     virtualTotalSize(): number {
       if (!this.isVirtualScroll)
         return 0
-      void this._vsVersion // establish reactive dependency
-      const vs = this._vs as VirtualScrollInstance | null
+      void this.virtualScrollVersion // establish reactive dependency
+      const vs = this.virtualScroll as VirtualScrollInstance | null
       return vs ? vs.getTotalSize() : (this.tableData?.length ?? 0) * this.virtualScrollEstimateSize
     },
     // Top spacer height for virtual scroll
     virtualPaddingTop(): number {
       if (!this.isVirtualScroll)
         return 0
-      void this._vsVersion // establish reactive dependency
-      const vs = this._vs as VirtualScrollInstance | null
+      void this.virtualScrollVersion // establish reactive dependency
+      const vs = this.virtualScroll as VirtualScrollInstance | null
       return vs ? vs.getPaddingTop() : 0
     },
     // Bottom spacer height for virtual scroll
     virtualPaddingBottom(): number {
       if (!this.isVirtualScroll)
         return 0
-      void this._vsVersion // establish reactive dependency
-      const vs = this._vs as VirtualScrollInstance | null
+      void this.virtualScrollVersion // establish reactive dependency
+      const vs = this.virtualScroll as VirtualScrollInstance | null
       if (vs)
         return vs.getPaddingBottom()
       // 实例创建前：未渲染的行按预估行高占位
@@ -566,13 +399,6 @@ export default defineComponent({
         stickyStart: fixedHeader ? headerTotalHeight : 0,
         stickyEnd: fixedFooter ? footerTotalHeight : 0,
       }
-    },
-    // return row keys
-    allRowKeys(): Array<string | number> {
-      const { tableData, rowKeyFieldName } = this
-      if (!rowKeyFieldName)
-        return []
-      return (tableData as any[]).map(x => x[rowKeyFieldName])
     },
     // 选区 / 编辑状态依赖的行列 key（SEL-01，供同步 watcher 使用）
     cellStateKeys(): [ColgroupData[], Array<string | number>] {
@@ -808,8 +634,8 @@ export default defineComponent({
     rowInsertIndicatorProps() {
       return {
         parentRendered: this.parentRendered,
-        tableContainerEl: this.$refs[this.tableContainerRef] as HTMLElement | undefined,
-        tableEl: this.$refs[this.tableRef] as HTMLTableElement | undefined,
+        tableContainerEl: this.tableContainerRef as HTMLElement | undefined,
+        tableEl: this.tableRef as HTMLTableElement | undefined,
         colgroups: this.colgroups,
         // INS-01 / VS-06：插入位置的数据下标直接从行的 <tbody data-index> 读取，
         // 不再依赖虚拟滚动区间（否则每次滚动都会重新渲染指示器）
@@ -857,9 +683,9 @@ export default defineComponent({
           return
         }
 
-        if (this._vs) {
+        if (this.virtualScroll) {
           // 传入新的 getItemKey，TanStack 会按新的 key 顺序重新排布（行高缓存保留）
-          this._vs.setOptions({
+          this.virtualScroll.setOptions({
             count: newVal.count,
             getItemKey: (index: number) => this.getVirtualRowKey(index),
           })
@@ -873,22 +699,22 @@ export default defineComponent({
     // VS-06：virtualScrollOption 的后续变化同步给 TanStack
     'virtualScrollOverscan': {
       handler(overscan) {
-        this._vs?.setOptions({ overscan })
+        this.virtualScroll?.setOptions({ overscan })
       },
     },
     'virtualScrollEstimateSize': {
       handler(estimateSize) {
-        this._vs?.setOptions({ estimateSize })
+        this.virtualScroll?.setOptions({ estimateSize })
       },
     },
     'virtualScrollOption.scrolling': {
       handler(scrolling) {
-        this._vs?.setOptions({ onScrolling: isFunction(scrolling) ? scrolling : null })
+        this.virtualScroll?.setOptions({ onScrolling: isFunction(scrolling) ? scrolling : null })
       },
     },
     'virtualScrollViewportOffsets': {
       handler(offsets) {
-        this._vs?.setOptions(offsets)
+        this.virtualScroll?.setOptions(offsets)
       },
     },
     /*
@@ -1039,9 +865,6 @@ export default defineComponent({
     },
   },
   created() {
-    // created 执行时组件实例的 effect scope 已激活，这里注册的订阅随组件卸载自动注销（MOD-01）
-    this.tableEvents = markRaw(useTableContext(this.tableContext))
-
     // Debounced handler for the column-width measurement row (bug fixed #467)
     this.debouncedMeasureCellWidthChange = debounce(
       this.measureCellWidthChange,
@@ -1052,12 +875,12 @@ export default defineComponent({
     this.parentRendered = true
 
     // set contextmenu event target
-    this.contextmenuEventTarget = this.$el.querySelector(
+    this.contextmenuEventTarget = this.tableRootRef.querySelector(
       `.${clsName('content')}`,
     )
 
     // 接收子组件通过表格上下文发出的事件（MOD-01）：事件名 → 处理方法
-    this.tableEvents!.onMany({
+    this.tableEvents.onMany({
       [EMIT_EVENTS.SORT_CHANGE]: () => this.updateColgroupsBySortChange(),
       [EMIT_EVENTS.HEADER_ROW_HEIGHT_CHANGE]: ({ rowIndex, height }) => this.headerRowHeightChange({ rowIndex, height }),
       [EMIT_EVENTS.FOOTER_ROW_HEIGHT_CHANGE]: ({ rowIndex, height }) => this.footRowHeightChange({ rowIndex, height }),
@@ -1288,36 +1111,36 @@ export default defineComponent({
      */
     initTanStackVirtualScroll() {
       // Guard: don't double-create
-      if (this._vs)
+      if (this.virtualScroll)
         return
       if (!this.isVirtualScroll)
         return
 
-      const scrollEl = this.$refs[this.tableContainerRef] as HTMLElement | null
+      const scrollEl = this.tableContainerRef as HTMLElement | null
       if (!scrollEl)
         return
 
       const { virtualScrollOption, tableData } = this
       const scrollingCb = isFunction(virtualScrollOption?.scrolling) ? virtualScrollOption.scrolling : undefined
 
-      // markRaw：实例内部状态由 TanStack 自己管理，通过 _vsVersion 通知 Vue 重新渲染
-      this._vs = markRaw(createVirtualScroll({
+      // markRaw：实例内部状态由 TanStack 自己管理，通过 virtualScrollVersion 通知 Vue 重新渲染
+      this.virtualScroll = markRaw(createVirtualScroll({
         count: tableData?.length ?? 0,
-        getScrollElement: () => this.$refs[this.tableContainerRef] as HTMLElement | null,
+        getScrollElement: () => this.tableContainerRef as HTMLElement | null,
         estimateSize: this.virtualScrollEstimateSize,
         overscan: this.virtualScrollOverscan,
         // 每次读取当前的 tableData，整体替换数组（同样的 key）时无需更新
         getItemKey: (index: number) => this.getVirtualRowKey(index),
         onChange: () => {
           // Increment reactive counter → triggers re-render of computed properties
-          this._vsVersion++
+          this.virtualScrollVersion++
         },
         onScrolling: scrollingCb,
         ...this.virtualScrollViewportOffsets,
       }))
 
       // Force initial render
-      this._vsVersion++
+      this.virtualScrollVersion++
     },
 
     // 虚拟滚动行的 key：有 rowKeyFieldName 时用行 key（行高缓存随行移动），否则退回下标
@@ -1329,17 +1152,17 @@ export default defineComponent({
 
     // 每行 <tbody> 的 ref 回调：交给 TanStack 测量。方法引用稳定，Vue 不会在每次渲染时重新绑定 ref
     measureVirtualRow(el: HTMLElement | null) {
-      this._vs?.measureElement(el)
+      this.virtualScroll?.measureElement(el)
     },
 
     /**
      * Destroy the TanStack Virtual instance and clean up listeners.
      */
     destroyTanStackVirtualScroll() {
-      if (this._vs) {
-        this._vs.destroy()
-        this._vs = null
-        this._vsVersion++
+      if (this.virtualScroll) {
+        this.virtualScroll.destroy()
+        this.virtualScroll = null
+        this.virtualScrollVersion++
       }
     },
 
@@ -1363,7 +1186,7 @@ export default defineComponent({
 
         content = (
           <div
-            ref={this.virtualPhantomRef}
+            ref="virtualPhantomRef"
             class={[
               clsName('virtual-phantom'),
             ]}
@@ -1753,10 +1576,10 @@ export default defineComponent({
           JSON.stringify(colKeys)
           !== JSON.stringify([currentCell.colKey])
         ) {
-          this.$refs[this.cellSelectionRef].clearCurrentCellRect()
+          this.cellSelectionRef.clearCurrentCellRect()
         }
 
-        this.$refs[this.cellSelectionRef].clearNormalEndCellRect()
+        this.cellSelectionRef.clearNormalEndCellRect()
       }
 
       const { startColKey, endColKey } = headerIndicatorColKeys
@@ -2109,7 +1932,7 @@ export default defineComponent({
 
     // table scrollTo
     [INSTANCE_METHODS.SCROLL_TO](option) {
-      scrollTo(this.$refs[this.tableContainerRef], option)
+      scrollTo(this.tableContainerRef, option)
     },
     // table scroll to rowKey position
     [INSTANCE_METHODS.SCROLL_TO_ROW_KEY]({ rowKey }) {
@@ -2119,20 +1942,20 @@ export default defineComponent({
       }
 
       const { isVirtualScroll, headerTotalHeight } = this
-      const tableContainerRef = this.$refs[this.tableContainerRef]
+      const tableContainerRef = this.tableContainerRef
 
-      if (isVirtualScroll && this._vs) {
+      if (isVirtualScroll && this.virtualScroll) {
         // Find the row's index in tableData
         const index = this.tableData.findIndex(
           (row: any) => row[this.rowKeyFieldName] === rowKey,
         )
         if (index >= 0) {
-          this._vs.scrollToIndex(index, { align: 'start', behavior: 'auto' })
+          this.virtualScroll.scrollToIndex(index, { align: 'start', behavior: 'auto' })
         }
       }
       else {
         // key 会被转义；未渲染的行返回 null
-        const rowEl = queryBodyRow(this.$el, rowKey)
+        const rowEl = queryBodyRow(this.tableRootRef, rowKey)
 
         const scrollTop = rowEl ? rowEl.offsetTop - headerTotalHeight : 0
 
@@ -2348,7 +2171,7 @@ export default defineComponent({
 
     // body props
     const bodyProps = {
-      ref: this.tableBodyRef,
+      ref: 'tableBodyRef',
       // 虚拟滚动时 Body 渲染多个 <tbody>（片段根节点），class 无法 fall-through，因此作为 prop 显式传入
       bodyClass: [clsName('body'), this.tableBodyClass],
       stripe: this.tableBodyClass[clsName('stripe')],
@@ -2376,7 +2199,7 @@ export default defineComponent({
       virtualItems: this.virtualItems,
       virtualPaddingTop: this.virtualPaddingTop,
       virtualPaddingBottom: this.virtualPaddingBottom,
-      virtualMeasureElement: this._vs ? this.measureVirtualRow : undefined,
+      virtualMeasureElement: this.virtualScroll ? this.measureVirtualRow : undefined,
       [getEmitEventName(EMIT_EVENTS.HIGHLIGHT_ROW_CHANGE)]:
                     this[INSTANCE_METHODS.SET_HIGHLIGHT_ROW],
     }
@@ -2401,7 +2224,7 @@ export default defineComponent({
 
     // table root props
     const tableRootProps = {
-      ref: this.tableRootRef,
+      ref: 'tableRootRef',
       class: {
         'vue-table-root': true,
         // SEL-08：表格模式下弱化活动单元格
@@ -2420,7 +2243,7 @@ export default defineComponent({
 
     // table container wrapper props
     const tableContainerWrapperProps = {
-      ref: this.tableContainerWrapperRef,
+      ref: 'tableContainerWrapperRef',
       style: this.tableContainerWrapperStyle,
       class: {
         've-table': true,
@@ -2430,7 +2253,7 @@ export default defineComponent({
       onOnDomResizeChange: ({ height }) => {
         this.tableOffestHeight = height
         // Re-initialize virtual scroll when container resizes (e.g. maxHeight changes)
-        if (this.isVirtualScroll && !this._vs) {
+        if (this.isVirtualScroll && !this.virtualScroll) {
           this.$nextTick(() => this.initTanStackVirtualScroll())
         }
         // fixed #404
@@ -2442,12 +2265,12 @@ export default defineComponent({
 
     // table container props
     const tableContainerProps = {
-      ref: this.tableContainerRef,
+      ref: 'tableContainerRef',
       class: this.tableContainerClass,
       style: tableContainerStyle,
       onScroll: () => {
         const tableContainerRef
-                        = this.$refs[this.tableContainerRef] as HTMLElement
+                        = this.tableContainerRef as HTMLElement
 
         this.tableContext.emit(
           HOOKS_NAME.TABLE_CONTAINER_SCROLL,
@@ -2469,7 +2292,7 @@ export default defineComponent({
 
     // table wrapper props
     const tableWrapperProps = {
-      ref: this.tableContentWrapperRef,
+      ref: 'tableContentWrapperRef',
       class: [clsName('content-wrapper')],
       tagName: 'div',
       onOnDomResizeChange: ({ height }) => {
@@ -2479,15 +2302,15 @@ export default defineComponent({
 
     // tale props
     const tableProps = {
-      ref: this.tableRef,
+      ref: 'tableRef',
       class: [clsName('content'), tableClass],
       style: tableStyle,
     }
 
     // selection props
     const selectionProps = {
-      ref: this.cellSelectionRef,
-      tableEl: this.$refs[this.tableRef] as HTMLTableElement | undefined,
+      ref: 'cellSelectionRef',
+      tableEl: this.tableRef as HTMLTableElement | undefined,
       allRowKeys,
       colgroups,
       parentRendered: this.parentRendered,
@@ -2510,7 +2333,7 @@ export default defineComponent({
 
     // edit input props
     const editInputProps = {
-      ref: this.editInputRef,
+      ref: 'editInputRef',
       parentRendered: this.parentRendered,
       inputStartValue: this.editorInputStartValue,
       rowKeyFieldName,
@@ -2548,7 +2371,7 @@ export default defineComponent({
 
     // 直接在组件上写事件，单元测试无法通过。如 on={{"on-node-click":()=>{}}}
     const contextmenuProps = {
-      ref: this.contextmenuRef,
+      ref: 'contextmenuRef',
       eventTarget: this.contextmenuEventTarget as string | HTMLElement,
       options: contextmenuOptions,
       onOnNodeClick: (type: any) => {
@@ -2559,7 +2382,7 @@ export default defineComponent({
     // column resizer props
     const columnResizerProps = {
       parentRendered: this.parentRendered,
-      tableContainerEl: this.$refs[this.tableContainerRef] as HTMLDivElement | undefined,
+      tableContainerEl: this.tableContainerRef as HTMLDivElement | undefined,
       colgroups,
       isColumnResizerHover: this.isColumnResizerHover,
       isColumnResizing: this.isColumnResizing,

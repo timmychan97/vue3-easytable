@@ -155,3 +155,18 @@ export interface ContextmenuOption {
   children?: ContextmenuOption[]
   [key: string]: any
 }
+
+// ── Child component instances reached through template refs (MOD-02) ──
+
+// 编辑框（editor/index.tsx）
+export interface EditorInstance {
+  textareaSelect: () => void
+  textareaAddNewLine: () => void
+  $refs: { textareaInputRef?: HTMLTextAreaElement | null }
+}
+
+// 选区层（selection/index.tsx）
+export interface SelectionInstance {
+  clearCurrentCellRect: () => void
+  clearNormalEndCellRect: () => void
+}

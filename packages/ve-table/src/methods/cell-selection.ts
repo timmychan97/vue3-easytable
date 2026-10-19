@@ -531,7 +531,7 @@ export const cellSelectionMethods = {
     if (!this.isAutofillStarting)
       return
 
-    const containerEl = this.$refs[this.tableContainerRef] as HTMLElement | undefined
+    const containerEl = this.tableContainerRef as HTMLElement | undefined
     const target = event.target as Node | null
 
     let isInside = false
