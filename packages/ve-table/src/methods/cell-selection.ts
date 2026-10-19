@@ -21,104 +21,6 @@ import {
 import { safeCall } from '../util/safe-call.js'
 
 export const cellSelectionMethods = {
-  // cell selection current cell change
-  cellSelectionCurrentCellChange(this: any, { rowKey, colKey }: any) {
-    this.cellSelectionData.currentCell.colKey = colKey
-    this.cellSelectionData.currentCell.rowKey = rowKey
-    this.cellSelectionData.currentCell.rowIndex
-              = this.allRowKeys.indexOf(rowKey)
-  },
-
-  // cell selection end cell change
-  cellSelectionNormalEndCellChange(this: any, { rowKey, colKey }: any) {
-    this.cellSelectionData.normalEndCell.colKey = colKey
-    this.cellSelectionData.normalEndCell.rowKey = rowKey
-    this.cellSelectionData.normalEndCell.rowIndex
-              = this.allRowKeys.indexOf(rowKey)
-  },
-
-  // cell selection auto fill cell change
-  cellSelectionAutofillCellChange(this: any, { rowKey, colKey }: any) {
-    this.cellSelectionData.autoFillEndCell.colKey = colKey
-    this.cellSelectionData.autoFillEndCell.rowKey = rowKey
-  },
-
-  // clear cell selection current cell
-  clearCellSelectionCurrentCell(this: any) {
-    this.cellSelectionCurrentCellChange({
-      rowKey: '',
-      colKey: '',
-      rowIndex: -1,
-    })
-  },
-
-  // clear cell selection normal end cell
-  clearCellSelectionNormalEndCell(this: any) {
-    this.cellSelectionNormalEndCellChange({
-      rowKey: '',
-      colKey: '',
-      rowIndex: -1,
-    })
-  },
-
-  // clear cell selection autofill end cell
-  clearCellSelectionAutofillEndCell(this: any) {
-    this.cellSelectionAutofillCellChange({ rowKey: '', colKey: '' })
-  },
-
-  /*
-   * 表头 / 行指示器（整列、整行选择）只保存 key（SEL-09）。
-   * 行列位置会变化（插入行、排序、隐藏列），需要下标时用 getIndicatorIndexes 按 key 重新计算
-   */
-  // header indicator colKeys change
-  headerIndicatorColKeysChange(this: any, { startColKey, endColKey }: any) {
-    this.headerIndicatorColKeys.startColKey = startColKey
-    this.headerIndicatorColKeys.endColKey = endColKey
-  },
-
-  // clear header indicator colKeys
-  clearHeaderIndicatorColKeys(this: any) {
-    this.headerIndicatorColKeys.startColKey = ''
-    this.headerIndicatorColKeys.endColKey = ''
-  },
-
-  // body indicator rowKeys change
-  bodyIndicatorRowKeysChange(this: any, { startRowKey, endRowKey }: any) {
-    this.bodyIndicatorRowKeys.startRowKey = startRowKey
-    this.bodyIndicatorRowKeys.endRowKey = endRowKey
-  },
-
-  // clear body indicator RowKeys
-  clearBodyIndicatorRowKeys(this: any) {
-    this.bodyIndicatorRowKeys.startRowKey = ''
-    this.bodyIndicatorRowKeys.endRowKey = ''
-  },
-
-  // 清除表头与行指示器：选区被键盘、单元格点击或 API 改为普通单元格选择时调用（SEL-09）
-  clearIndicatorKeys(this: any) {
-    this.clearHeaderIndicatorColKeys()
-    this.clearBodyIndicatorRowKeys()
-  },
-
-  /*
-   * @getIndicatorIndexes
-   * @desc 按当前的 colgroups / allRowKeys 计算指示器的起止下标，未设置或已不存在时为 -1（SEL-09）
-   */
-  getIndicatorIndexes(this: any) {
-    const { colgroups, allRowKeys, headerIndicatorColKeys, bodyIndicatorRowKeys } = this
-    const colIndex = (colKey: any) =>
-      isEmptyValue(colKey) ? -1 : colgroups.findIndex((x: any) => x.key === colKey)
-    const rowIndex = (rowKey: any) =>
-      isEmptyValue(rowKey) ? -1 : allRowKeys.indexOf(rowKey)
-
-    return {
-      startColIndex: colIndex(headerIndicatorColKeys.startColKey),
-      endColIndex: colIndex(headerIndicatorColKeys.endColKey),
-      startRowIndex: rowIndex(bodyIndicatorRowKeys.startRowKey),
-      endRowIndex: rowIndex(bodyIndicatorRowKeys.endRowKey),
-    }
-  },
-
   // set cell selection by autofill
   setCellSelectionByAutofill(this: any) {
     const {
@@ -362,42 +264,6 @@ export const cellSelectionMethods = {
       safeCall('afterAutofill', cellAutofillOption.afterAutofill, autofillResponse)
   },
 
-  // cell selection range data change
-  cellSelectionRangeDataChange(this: any, newData: any) {
-    this.cellSelectionRangeData = Object.assign(
-      this.cellSelectionRangeData,
-      newData,
-    )
-  },
-
-  // set current cell selection type
-  setCurrentCellSelectionType(this: any) {
-    const { currentCell, normalEndCell } = this.cellSelectionData
-
-    let result
-
-    if (
-      isEmptyValue(currentCell.rowKey)
-      || isEmptyValue(currentCell.colKey)
-    ) {
-      result = ''
-    }
-    else {
-      if (
-        !isEmptyValue(normalEndCell.rowKey)
-        && !isEmptyValue(normalEndCell.colKey)
-      ) {
-        result = CURRENT_CELL_SELECTION_TYPES.RANGE
-      }
-
-      else {
-        result = CURRENT_CELL_SELECTION_TYPES.SINGLE
-      }
-    }
-
-    this.currentCellSelectionType = result
-  },
-
   // cell selection by click
   cellSelectionByClick(this: any, { rowData, column }: any) {
     const { rowKeyFieldName } = this
@@ -413,49 +279,6 @@ export const cellSelectionMethods = {
     // row to visible
     this.rowToVisible(KEY_CODES.ARROW_UP, rowKey)
     this.rowToVisible(KEY_CODES.ARROW_DOWN, rowKey)
-  },
-
-  // set range cell selection by header indicator
-  setRangeCellSelectionByHeaderIndicator(this: any) {
-    const { headerIndicatorColKeys, allRowKeys } = this
-    const { startColKey, endColKey } = headerIndicatorColKeys
-
-    if (isEmptyValue(startColKey) || isEmptyValue(endColKey))
-      return false
-
-    this.cellSelectionCurrentCellChange({
-      rowKey: allRowKeys[0],
-      colKey: startColKey,
-    })
-
-    this.cellSelectionNormalEndCellChange({
-      rowKey: allRowKeys[allRowKeys.length - 1],
-      colKey: endColKey,
-    })
-  },
-
-  // set range cell selection by body indicator
-  setRangeCellSelectionByBodyIndicator(this: any) {
-    const { bodyIndicatorRowKeys, colgroups } = this
-    const { startRowKey, endRowKey } = bodyIndicatorRowKeys
-
-    if (isEmptyValue(startRowKey) || isEmptyValue(endRowKey))
-      return false
-
-    // 整行选择只包含非操作列（SEL-03：之前固定从 colgroups[1] 开始，没有操作列时会漏掉第一列）
-    const dataColumns = colgroups.filter((x: any) => !x.operationColumn)
-
-    if (dataColumns.length) {
-      this.cellSelectionCurrentCellChange({
-        rowKey: startRowKey,
-        colKey: dataColumns[0].key,
-      })
-
-      this.cellSelectionNormalEndCellChange({
-        rowKey: endRowKey,
-        colKey: dataColumns[dataColumns.length - 1].key,
-      })
-    }
   },
 
   /*

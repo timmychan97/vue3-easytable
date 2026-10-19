@@ -1,4 +1,5 @@
 import type { ColumnOption } from '@/ve-table/src/ve-table-types'
+import { useCellSelectionState } from '@/ve-table/src/features/cell-selection/useCellSelectionState'
 import { useColumns } from '@/ve-table/src/features/columns/useColumns'
 import { useTableLayout } from '@/ve-table/src/features/layout/useTableLayout'
 import { createTableContext } from '@/ve-table/src/features/table-context'
@@ -213,5 +214,70 @@ describe('useVirtualScroll', () => {
   it('falls back to the row index as key without rowKeyFieldName', () => {
     const { vs } = setup({ rowKeyFieldName: null })
     expect(vs.getVirtualRowKey(3)).toBe(3)
+  })
+})
+
+describe('useCellSelectionState', () => {
+  function setup(extraProps: Record<string, any> = {}) {
+    const props = reactive({ cellSelectionOption: null, rowKeyFieldName: 'id', ...extraProps }) as any
+    const colgroups = ref<any[]>([
+      { key: 'op', operationColumn: true },
+      { key: 'a' },
+      { key: 'b' },
+      { key: 'c' },
+    ])
+    const rowKeys = ref(['r0', 'r1', 'r2'])
+    const { result, stop } = runInScope(() => useCellSelectionState({
+      props,
+      colgroups,
+      allRowKeys: computed(() => rowKeys.value),
+    }))
+    return { props, state: result, rowKeys, stop }
+  }
+
+  it('enables cell selection only with a row key field and without enable: false', () => {
+    expect(setup().state.enableCellSelection.value).toBe(true)
+    expect(setup({ rowKeyFieldName: '' }).state.enableCellSelection.value).toBe(false)
+    expect(setup({ cellSelectionOption: { enable: false } }).state.enableCellSelection.value).toBe(false)
+  })
+
+  it('keeps the row index and the selection type in sync with the cells', async () => {
+    const { state, stop } = setup()
+    expect(state.currentCellSelectionType.value).toBe('')
+
+    state.cellSelectionCurrentCellChange({ rowKey: 'r1', colKey: 'a' })
+    await nextTick()
+    expect(state.cellSelectionData.value.currentCell).toEqual({ rowKey: 'r1', colKey: 'a', rowIndex: 1 })
+    expect(state.currentCellSelectionType.value).toBe('single')
+
+    state.cellSelectionNormalEndCellChange({ rowKey: 'r2', colKey: 'b' })
+    await nextTick()
+    expect(state.currentCellSelectionType.value).toBe('range')
+
+    state.clearCellSelectionCurrentCell()
+    state.clearCellSelectionNormalEndCell()
+    await nextTick()
+    expect(state.currentCellSelectionType.value).toBe('')
+    stop()
+  })
+
+  it('turns the header / body indicators into a range and recomputes their indexes by key (SEL-09)', async () => {
+    const { state, rowKeys, stop } = setup()
+
+    state.headerIndicatorColKeysChange({ startColKey: 'b', endColKey: 'a' })
+    await nextTick()
+    expect(state.cellSelectionData.value.currentCell).toMatchObject({ rowKey: 'r0', colKey: 'b' })
+    expect(state.cellSelectionData.value.normalEndCell).toMatchObject({ rowKey: 'r2', colKey: 'a' })
+
+    state.clearHeaderIndicatorColKeys()
+    state.bodyIndicatorRowKeysChange({ startRowKey: 'r1', endRowKey: 'r2' })
+    await nextTick()
+    // 整行选择不包含操作列（SEL-03）
+    expect(state.cellSelectionData.value.currentCell).toMatchObject({ rowKey: 'r1', colKey: 'a' })
+    expect(state.cellSelectionData.value.normalEndCell).toMatchObject({ rowKey: 'r2', colKey: 'c' })
+
+    rowKeys.value = ['new', 'r0', 'r1', 'r2']
+    expect(state.getIndicatorIndexes()).toEqual({ startColIndex: -1, endColIndex: -1, startRowIndex: 2, endRowIndex: 3 })
+    stop()
   })
 })

@@ -2,14 +2,10 @@ import type { ComponentPublicInstance } from 'vue'
 import type { AutofillingDirection } from './selection/geometry'
 import type { KeyboardMode } from './util/constant.js'
 import type {
-  BodyIndicatorRowKeys,
-  CellSelectionData,
-  CellSelectionRangeData,
   ColgroupData,
   ContextmenuOption,
   EditingCell,
   EditorInstance,
-  HeaderIndicatorColKeys,
   SelectionInstance,
 } from './ve-table-types'
 import VueDomResizeObserver from '@vue3-easytable/common/comps/resize-observer'
@@ -34,6 +30,7 @@ import Body from './body'
 import Colgroup from './colgroup'
 import ColumnResizer from './column-resizer'
 import EditInput from './editor'
+import { useCellSelectionState } from './features/cell-selection/useCellSelectionState'
 import { useColumnMeasure } from './features/columns/useColumnMeasure'
 import { useColumns } from './features/columns/useColumns'
 import { FIXED_COLUMNS_KEY, useFixedColumns } from './features/fixed-columns/useFixedColumns'
@@ -157,6 +154,9 @@ export default defineComponent({
     // 表头 / 表尾行高、表格高度
     const layout = useTableLayout({ props, groupColumns: columns.groupColumns })
 
+    // 单元格选区状态：活动单元格、区域、整列 / 整行指示器
+    const selectionState = useCellSelectionState({ props, colgroups: columns.colgroups, allRowKeys })
+
     // 虚拟滚动（TanStack Virtual）
     const virtualScroll = useVirtualScroll({
       props,
@@ -175,6 +175,7 @@ export default defineComponent({
       ...columnMeasure,
       ...layout,
       ...virtualScroll,
+      ...selectionState,
       tableRootRef,
       tableContainerWrapperRef,
       tableContainerRef,
@@ -201,34 +202,11 @@ export default defineComponent({
       scrollBarWidth: null as number | null,
       previewTableContainerScrollLeft: null as number | null,
 
-      // Cell selection
-      // 整列 / 整行选择的指示器，只保存 key（SEL-09）
-      headerIndicatorColKeys: {
-        startColKey: '',
-        endColKey: '',
-      } as HeaderIndicatorColKeys,
-      bodyIndicatorRowKeys: {
-        startRowKey: '',
-        endRowKey: '',
-      } as BodyIndicatorRowKeys,
-      cellSelectionData: {
-        currentCell: { rowKey: '', colKey: '', rowIndex: -1 },
-        normalEndCell: { rowKey: '', colKey: '', rowIndex: -1 },
-        autoFillEndCell: { rowKey: '', colKey: '' },
-      } as CellSelectionData,
-      cellSelectionRangeData: {
-        leftColKey: '',
-        rightColKey: '',
-        topRowKey: '',
-        bottomRowKey: '',
-      } as CellSelectionRangeData,
-
       // Mouse interaction state
       isHeaderCellMousedown: false,
       isBodyCellMousedown: false,
       isBodyOperationColumnMousedown: false,
       isAutofillStarting: false,
-      currentCellSelectionType: '',
       // 键盘模式（SEL-08）：单元格导航 / 表格（焦点在根元素上，Tab 交给浏览器）
       keyboardMode: KEYBOARD_MODE.TABLE as KeyboardMode,
 
@@ -446,29 +424,6 @@ export default defineComponent({
       else
         return CONTEXTMENU_TYPES.BODY_CONTEXTMENU
     },
-    /*
-        enable cell selection
-        单元格编辑、剪贴板都依赖单元格选择
-        */
-    enableCellSelection() {
-      let result = true
-
-      const { cellSelectionOption, rowKeyFieldName } = this
-
-      if (isEmptyValue(rowKeyFieldName)) {
-        result = false
-      }
-
-      else if (
-        cellSelectionOption
-        && isBoolean(cellSelectionOption.enable)
-        && cellSelectionOption.enable === false
-      ) {
-        result = false
-      }
-
-      return result
-    },
     // enable clipboard
     enableClipboard() {
       return this.rowKeyFieldName
@@ -518,22 +473,6 @@ export default defineComponent({
         }
       },
     },
-    // watch current cell
-    'cellSelectionData.currentCell': {
-      handler() {
-        this.setCurrentCellSelectionType()
-      },
-      deep: true,
-      immediate: true,
-    },
-    // watch normal end cell
-    'cellSelectionData.normalEndCell': {
-      handler() {
-        this.setCurrentCellSelectionType()
-      },
-      deep: true,
-      immediate: true,
-    },
     // SEL-08：活动单元格变化（点击、API、键盘）时进入单元格导航（编辑框会获得焦点），清空时回到表格模式。
     // 只监听 key，rowIndex 因排序等变化时不切换模式
     'cellSelectionData.currentCell.rowKey': {
@@ -545,20 +484,6 @@ export default defineComponent({
       handler() {
         this.syncKeyboardModeByCurrentCell()
       },
-    },
-    // watch header indicator colKeys
-    'headerIndicatorColKeys': {
-      handler() {
-        this.setRangeCellSelectionByHeaderIndicator()
-      },
-      deep: true,
-    },
-    // watch body indicator rowKeys
-    'bodyIndicatorRowKeys': {
-      handler() {
-        this.setRangeCellSelectionByBodyIndicator()
-      },
-      deep: true,
     },
   },
   mounted() {
