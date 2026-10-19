@@ -1,9 +1,11 @@
 import emitter from '@vue3-easytable/common/mixins/emitter'
 import { getValByUnit } from '@vue3-easytable/common/utils/index.js'
 import { h } from 'vue'
+import { bindCustomEvents, getCustomEvents } from '../features/custom-events/bindCustomEvents'
 import { clsName, getFixedTotalWidthByColumnKey } from '../util'
 
 import { COMPS_NAME } from '../util/constant'
+import { safeCall } from '../util/safe-call'
 
 export default defineComponent({
   name: COMPS_NAME.VE_TABLE_BODY_TD,
@@ -146,18 +148,18 @@ export default defineComponent({
       }
 
       // cell style option
-      if (
-        cellStyleOption
-        && typeof cellStyleOption.footerCellClass === 'function'
-      ) {
-        const customClass = cellStyleOption.footerCellClass({
+      // INFRA-13：渲染时调用，抛出异常时只记录，不中断渲染
+      const { value: customClass } = safeCall(
+        'cellStyleOption.footerCellClass',
+        cellStyleOption?.footerCellClass,
+        {
           row: rowData,
           column,
           rowIndex,
-        })
-        if (customClass)
-          result[customClass] = true
-      }
+        },
+      )
+      if (customClass)
+        result[customClass] = true
       // cell selection option
       if (cellSelectionData) {
         const { rowKey, colKey } = cellSelectionData.currentCell
@@ -282,42 +284,6 @@ export default defineComponent({
 
       return { rowspan, colspan }
     },
-    // cell click
-    cellClick(e, fn) {
-      fn && fn(e)
-    },
-    // dblclick
-    cellDblclick(e, fn) {
-      fn && fn(e)
-    },
-    // contextmenu
-    cellContextmenu(e, fn) {
-      fn && fn(e)
-    },
-    // mouseenter
-    cellMouseenter(e, fn) {
-      fn && fn(e)
-    },
-    // mouseleave
-    cellMouseleave(e, fn) {
-      fn && fn(e)
-    },
-    // mousemove
-    cellMousemove(e, fn) {
-      fn && fn(e)
-    },
-    // mouseover
-    cellMouseover(e, fn) {
-      fn && fn(e)
-    },
-    // mousedown
-    cellMousedown(e, fn) {
-      fn && fn(e)
-    },
-    // mouseup
-    cellMouseup(e, fn) {
-      fn && fn(e)
-    },
   },
   render() {
     const { column, rowData, rowIndex, eventCustomOption } = this
@@ -326,56 +292,12 @@ export default defineComponent({
     if (!rowspan || !colspan)
       return null
 
-    // custom on cell event
-    let customEvents = {}
-    if (eventCustomOption) {
-      const { footerCellEvents } = eventCustomOption
-      customEvents = footerCellEvents
-        ? footerCellEvents({ row: rowData, column, rowIndex })
-        : {}
-    }
-
-    const {
-      click,
-      dblclick,
-      contextmenu,
-      mouseenter,
-      mouseleave,
-      mousemove,
-      mouseover,
-      mousedown,
-      mouseup,
-    } = customEvents
-
-    const events = {
-      onClick: (e) => {
-        this.cellClick(e, click)
-      },
-      onDblclick: (e) => {
-        this.cellDblclick(e, dblclick)
-      },
-      onContextmenu: (e) => {
-        this.cellContextmenu(e, contextmenu)
-      },
-      onMouseenter: (e) => {
-        this.cellMouseenter(e, mouseenter)
-      },
-      onMouseleave: (e) => {
-        this.cellMouseleave(e, mouseleave)
-      },
-      onMousemove: (e) => {
-        this.cellMousemove(e, mousemove)
-      },
-      onMouseover: (e) => {
-        this.cellMouseover(e, mouseover)
-      },
-      onMousedown: (e) => {
-        this.cellMousedown(e, mousedown)
-      },
-      onMouseup: (e) => {
-        this.cellMouseup(e, mouseup)
-      },
-    }
+    // custom on cell event（MOD-07, INFRA-13）
+    const events = bindCustomEvents(
+      getCustomEvents(eventCustomOption, 'footerCellEvents', { row: rowData, column, rowIndex }),
+      {},
+      'eventCustomOption.footerCellEvents',
+    )
 
     // td props
     const tdProps = {

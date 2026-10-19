@@ -3,6 +3,7 @@ import { getValByUnit, isEmptyValue } from '@vue3-easytable/common/utils'
 import { ICON_NAMES } from '@vue3-easytable/common/utils/constant'
 import VeIcon from '@vue3-easytable/ve-icon'
 import { h } from 'vue'
+import { bindCustomEvents, getCustomEvents } from '../features/custom-events/bindCustomEvents'
 import {
   clsName,
   getColKeysByHeaderColumn,
@@ -10,6 +11,7 @@ import {
   getFixedTotalWidthByColumnKey,
 } from '../util'
 import { COLUMN_TYPES, COMPS_NAME, EMIT_EVENTS } from '../util/constant'
+import { safeCall } from '../util/safe-call'
 import HeaderCheckboxContent from './header-checkbox-content'
 import HeaderFilterContent from './header-filter-content'
 import HeaderFilterCustomContent from './header-filter-custom-content'
@@ -248,17 +250,17 @@ export default defineComponent({
         }
       }
 
-      if (
-        cellStyleOption
-        && typeof cellStyleOption.headerCellClass === 'function'
-      ) {
-        const customClass = cellStyleOption.headerCellClass({
+      // INFRA-13：渲染时调用，抛出异常时只记录，不中断渲染
+      const { value: customClass } = safeCall(
+        'cellStyleOption.headerCellClass',
+        cellStyleOption?.headerCellClass,
+        {
           column,
           rowIndex,
-        })
-        if (customClass)
-          result[customClass] = true
-      }
+        },
+      )
+      if (customClass)
+        result[customClass] = true
 
       return result
     },
@@ -453,103 +455,12 @@ export default defineComponent({
       return result
     },
 
-    // cell click
-    cellClick(e, fn) {
-      fn && fn(e)
-
-      const { groupColumnItem } = this
-
-      this.dispatch(COMPS_NAME.VE_TABLE, EMIT_EVENTS.HEADER_CELL_CLICK, {
-        event: e,
-        column: groupColumnItem,
+    // 通知 ve-table 表头单元格事件（列选择、右键菜单等）
+    dispatchCellEvent(eventName, event) {
+      this.dispatch(COMPS_NAME.VE_TABLE, eventName, {
+        event,
+        column: this.groupColumnItem,
       })
-    },
-    // dblclick
-    cellDblclick(e, fn) {
-      fn && fn(e)
-    },
-    // contextmenu
-    cellContextmenu(e, fn) {
-      fn && fn(e)
-
-      const { groupColumnItem } = this
-
-      this.dispatch(
-        COMPS_NAME.VE_TABLE,
-        EMIT_EVENTS.HEADER_CELL_CONTEXTMENU,
-        {
-          event: e,
-          column: groupColumnItem,
-        },
-      )
-    },
-    // mouseenter
-    cellMouseenter(e, fn) {
-      fn && fn(e)
-    },
-    // mouseleave
-    cellMouseleave(e, fn) {
-      fn && fn(e)
-
-      const { groupColumnItem } = this
-
-      this.dispatch(
-        COMPS_NAME.VE_TABLE,
-        EMIT_EVENTS.HEADER_CELL_MOUSELEAVE,
-        {
-          event: e,
-          column: groupColumnItem,
-        },
-      )
-    },
-    // mousemove
-    cellMousemove(e, fn) {
-      fn && fn(e)
-
-      const { groupColumnItem } = this
-
-      this.dispatch(
-        COMPS_NAME.VE_TABLE,
-        EMIT_EVENTS.HEADER_CELL_MOUSEMOVE,
-        {
-          event: e,
-          column: groupColumnItem,
-        },
-      )
-    },
-    // mouseover
-    cellMouseover(e, fn) {
-      fn && fn(e)
-
-      const { groupColumnItem } = this
-
-      this.dispatch(
-        COMPS_NAME.VE_TABLE,
-        EMIT_EVENTS.HEADER_CELL_MOUSEOVER,
-        {
-          event: e,
-          column: groupColumnItem,
-        },
-      )
-    },
-    // mousedown
-    cellMousedown(e, fn) {
-      fn && fn(e)
-
-      const { groupColumnItem } = this
-
-      this.dispatch(
-        COMPS_NAME.VE_TABLE,
-        EMIT_EVENTS.HEADER_CELL_MOUSEDOWN,
-        {
-          event: e,
-          column: groupColumnItem,
-        },
-      )
-    },
-    // mouseup
-    cellMouseup(e, fn) {
-      fn && fn(e)
     },
   },
   render() {
@@ -579,59 +490,22 @@ export default defineComponent({
       content = groupColumnItem.title
     }
 
-    // custom on cell event
-    let customEvents = {}
-    if (eventCustomOption) {
-      const { headerCellEvents } = eventCustomOption
-      customEvents = headerCellEvents
-        ? headerCellEvents({ column: groupColumnItem, rowIndex })
-        : {}
-    }
-
-    const {
-      click,
-      dblclick,
-      contextmenu,
-      mouseenter,
-      mouseleave,
-      mousemove,
-      mouseover,
-      mousedown,
-      mouseup,
-    } = customEvents
-
-    const events = {
-      onClick: (e) => {
-        this.cellClick(e, click)
-        // Note: Sorting is now triggered only by clicking on the sort icons themselves,
-        // not by clicking anywhere on the header cell. This prevents sorting from
-        // interfering with column selection.
+    // custom on cell event（MOD-07, INFRA-13）
+    // 排序只由点击排序图标触发，不响应整个表头单元格的点击，避免与列选择冲突
+    const customEvents = getCustomEvents(eventCustomOption, 'headerCellEvents', { column: groupColumnItem, rowIndex })
+    const dispatchCellEvent = eventName => e => this.dispatchCellEvent(eventName, e)
+    const events = bindCustomEvents(
+      customEvents,
+      {
+        click: dispatchCellEvent(EMIT_EVENTS.HEADER_CELL_CLICK),
+        contextmenu: dispatchCellEvent(EMIT_EVENTS.HEADER_CELL_CONTEXTMENU),
+        mouseleave: dispatchCellEvent(EMIT_EVENTS.HEADER_CELL_MOUSELEAVE),
+        mousemove: dispatchCellEvent(EMIT_EVENTS.HEADER_CELL_MOUSEMOVE),
+        mouseover: dispatchCellEvent(EMIT_EVENTS.HEADER_CELL_MOUSEOVER),
+        mousedown: dispatchCellEvent(EMIT_EVENTS.HEADER_CELL_MOUSEDOWN),
       },
-      onDblclick: (e) => {
-        this.cellDblclick(e, dblclick)
-      },
-      onContextmenu: (e) => {
-        this.cellContextmenu(e, contextmenu)
-      },
-      onMouseenter: (e) => {
-        this.cellMouseenter(e, mouseenter)
-      },
-      onMouseleave: (e) => {
-        this.cellMouseleave(e, mouseleave)
-      },
-      onMousemove: (e) => {
-        this.cellMousemove(e, mousemove)
-      },
-      onMouseover: (e) => {
-        this.cellMouseover(e, mouseover)
-      },
-      onMousedown: (e) => {
-        this.cellMousedown(e, mousedown)
-      },
-      onMouseup: (e) => {
-        this.cellMouseup(e, mouseup)
-      },
-    }
+      'eventCustomOption.headerCellEvents',
+    )
 
     const thProps = {
       style: getTheadThStyle(groupColumnItem, rowIndex),

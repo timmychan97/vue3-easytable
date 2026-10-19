@@ -84,4 +84,39 @@ describe('veTable expand icon click (ROW-06)', () => {
 
     wrapper.unmount()
   })
+
+  // ROW-09：icon / cell 触发时，点击展开图标也要调用用户的 bodyCellEvents.click（之前被图标阻止冒泡而跳过）
+  describe('the user\'s cell click handler (ROW-09)', () => {
+    it.each([
+      ['icon (default)', undefined],
+      ['icon', 'icon'],
+      ['cell', 'cell'],
+    ])('trigger %s: an icon click calls bodyCellEvents.click once, not the row click', async (_name, trigger) => {
+      const { wrapper, afterExpandRowChange, cellClick, rowClick, bodyCellClick } = mountTable(trigger)
+
+      await clickIcon(wrapper, 0)
+
+      expect(cellClick).toHaveBeenCalledTimes(1)
+      expect(cellClick).toHaveBeenCalledWith('a')
+      expect(bodyCellClick).toHaveBeenCalledTimes(1)
+      expect(afterExpandRowChange).toHaveBeenCalledTimes(1)
+      // 与之前一样，展开点击不冒泡到 tr
+      expect(rowClick).not.toHaveBeenCalled()
+
+      wrapper.unmount()
+    })
+
+    it('trigger icon: a click on the expand cell outside the icon does not expand', async () => {
+      const { wrapper, afterExpandRowChange, cellClick, rowClick } = mountTable()
+
+      await wrapper.findAll('.ve-table-body-tr')[0].find('.ve-table-body-td').trigger('click')
+      await later()
+
+      expect(cellClick).toHaveBeenCalledTimes(1)
+      expect(afterExpandRowChange).not.toHaveBeenCalled()
+      expect(rowClick).toHaveBeenCalledTimes(1)
+
+      wrapper.unmount()
+    })
+  })
 })

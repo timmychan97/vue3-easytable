@@ -1,5 +1,6 @@
 import emitter from '@vue3-easytable/common/mixins/emitter'
 import { isEmptyValue } from '@vue3-easytable/common/utils'
+import { bindCustomEvents, getCustomEvents } from '../features/custom-events/bindCustomEvents'
 import { clsName, getEmitEventName } from '../util'
 import { COMPS_CUSTOM_ATTRS, COMPS_NAME, EMIT_EVENTS } from '../util/constant'
 import BodyTd from './body-td'
@@ -175,10 +176,8 @@ export default defineComponent({
   },
 
   methods: {
-    // click
-    rowClick(e, fn) {
-      fn && fn(e)
-
+    // click：通知 body 处理行高亮和按行展开
+    rowClick() {
       const { rowData, rowIndex } = this
 
       this.dispatch(
@@ -189,38 +188,6 @@ export default defineComponent({
           rowIndex,
         },
       )
-    },
-    // dblclick
-    rowDblclick(e, fn) {
-      fn && fn(e)
-    },
-    // contextmenu
-    rowContextmenu(e, fn) {
-      fn && fn(e)
-    },
-    // mouseenter
-    rowMouseenter(e, fn) {
-      fn && fn(e)
-    },
-    // mouseleave
-    rowMouseleave(e, fn) {
-      fn && fn(e)
-    },
-    // mousemove
-    rowMousemove(e, fn) {
-      fn && fn(e)
-    },
-    // mouseover
-    rowMouseover(e, fn) {
-      fn && fn(e)
-    },
-    // mousedown
-    rowMousedown(e, fn) {
-      fn && fn(e)
-    },
-    // mouseup
-    rowMouseup(e, fn) {
-      fn && fn(e)
     },
   },
 
@@ -273,56 +240,13 @@ export default defineComponent({
 
     let result = null
 
-    // custom on row event
-    let customEvents = {}
-    if (eventCustomOption) {
-      const { bodyRowEvents } = eventCustomOption
-      customEvents = bodyRowEvents
-        ? bodyRowEvents({ row: rowData, rowIndex })
-        : {}
-    }
-
-    const {
-      click,
-      dblclick,
-      contextmenu,
-      mouseenter,
-      mouseleave,
-      mousemove,
-      mouseover,
-      mousedown,
-      mouseup,
-    } = customEvents
-
-    const events = {
-      onClick: (e) => {
-        this.rowClick(e, click)
-      },
-      onDblclick: (e) => {
-        this.rowDblclick(e, dblclick)
-      },
-      onContextmenu: (e) => {
-        this.rowContextmenu(e, contextmenu)
-      },
-      onMouseenter: (e) => {
-        this.rowMouseenter(e, mouseenter)
-      },
-      onMouseleave: (e) => {
-        this.rowMouseleave(e, mouseleave)
-      },
-      onMousemove: (e) => {
-        this.rowMousemove(e, mousemove)
-      },
-      onMouseover: (e) => {
-        this.rowMouseover(e, mouseover)
-      },
-      onMousedown: (e) => {
-        this.rowMousedown(e, mousedown)
-      },
-      onMouseup: (e) => {
-        this.rowMouseup(e, mouseup)
-      },
-    }
+    // custom on row event（MOD-07, INFRA-13）
+    const customEvents = getCustomEvents(eventCustomOption, 'bodyRowEvents', { row: rowData, rowIndex })
+    const events = bindCustomEvents(
+      customEvents,
+      { click: this.rowClick },
+      'eventCustomOption.bodyRowEvents',
+    )
 
     // Render a plain <tr> in all cases.
     // For virtual scroll, TanStack measures the parent <tbody> wrapper,

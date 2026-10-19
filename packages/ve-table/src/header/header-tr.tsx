@@ -1,5 +1,6 @@
 import VueDomResizeObserver from '@vue3-easytable/common/comps/resize-observer'
 import emitter from '@vue3-easytable/common/mixins/emitter'
+import { bindCustomEvents, getCustomEvents } from '../features/custom-events/bindCustomEvents'
 import { clsName, getDomResizeObserverCompKey } from '../util'
 import { COMPS_NAME, EMIT_EVENTS } from '../util/constant'
 import HeaderTh from './header-th'
@@ -106,42 +107,6 @@ export default defineComponent({
         },
       )
     },
-    // click
-    rowClick(e, fn) {
-      fn && fn(e)
-    },
-    // dblclick
-    rowDblclick(e, fn) {
-      fn && fn(e)
-    },
-    // contextmenu
-    rowContextmenu(e, fn) {
-      fn && fn(e)
-    },
-    // mouseenter
-    rowMouseenter(e, fn) {
-      fn && fn(e)
-    },
-    // mouseleave
-    rowMouseleave(e, fn) {
-      fn && fn(e)
-    },
-    // mousemove
-    rowMousemove(e, fn) {
-      fn && fn(e)
-    },
-    // mouseover
-    rowMouseover(e, fn) {
-      fn && fn(e)
-    },
-    // mousedown
-    rowMousedown(e, fn) {
-      fn && fn(e)
-    },
-    // mouseup
-    rowMouseup(e, fn) {
-      fn && fn(e)
-    },
   },
   render() {
     const {
@@ -159,54 +124,12 @@ export default defineComponent({
       cellSelectionData,
     } = this
 
-    // custom on cell event
-    let customEvents = {}
-    if (eventCustomOption) {
-      const { headerRowEvents } = eventCustomOption
-      customEvents = headerRowEvents ? headerRowEvents({ rowIndex }) : {}
-    }
-
-    const {
-      click,
-      dblclick,
-      contextmenu,
-      mouseenter,
-      mouseleave,
-      mousemove,
-      mouseover,
-      mousedown,
-      mouseup,
-    } = customEvents
-
-    const events = {
-      onClick: (e) => {
-        this.rowClick(e, click)
-      },
-      onDblclick: (e) => {
-        this.rowDblclick(e, dblclick)
-      },
-      onContextmenu: (e) => {
-        this.rowContextmenu(e, contextmenu)
-      },
-      onMouseenter: (e) => {
-        this.rowMouseenter(e, mouseenter)
-      },
-      onMouseleave: (e) => {
-        this.rowMouseleave(e, mouseleave)
-      },
-      onMousemove: (e) => {
-        this.rowMousemove(e, mousemove)
-      },
-      onMouseover: (e) => {
-        this.rowMouseover(e, mouseover)
-      },
-      onMousedown: (e) => {
-        this.rowMousedown(e, mousedown)
-      },
-      onMouseup: (e) => {
-        this.rowMouseup(e, mouseup)
-      },
-    }
+    // custom on row event（MOD-07, INFRA-13）
+    const events = bindCustomEvents(
+      getCustomEvents(eventCustomOption, 'headerRowEvents', { rowIndex }),
+      {},
+      'eventCustomOption.headerRowEvents',
+    )
 
     const trProps = {
       key: getDomResizeObserverCompKey(

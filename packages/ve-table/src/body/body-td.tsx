@@ -1,6 +1,7 @@
 import emitter from '@vue3-easytable/common/mixins/emitter'
 import { getTextContentOfVNode, isBoolean, isEmptyValue, isNumber } from '@vue3-easytable/common/utils/index'
 import { h } from 'vue'
+import { bindCustomEvents, getCustomEvents } from '../features/custom-events/bindCustomEvents'
 import { clsName, getRowKeysByRangeRowKeys } from '../util'
 
 import {
@@ -10,6 +11,7 @@ import {
   EMIT_EVENTS,
   EXPAND_TRIGGER_TYPES,
 } from '../util/constant'
+import { safeCall } from '../util/safe-call'
 import BodyCheckboxContent from './body-checkbox-content'
 import BodyRadioContent from './body-radio-content'
 import ExpandTrIcon from './expand-tr-icon'
@@ -219,18 +221,18 @@ export default defineComponent({
         result[clsName('operation-col')] = true
 
       // cell style option
-      if (
-        cellStyleOption
-        && typeof cellStyleOption.bodyCellClass === 'function'
-      ) {
-        const customClass = cellStyleOption.bodyCellClass({
+      // INFRA-13：渲染时调用，抛出异常时只记录，不中断整个表格的渲染
+      const { value: customClass } = safeCall(
+        'cellStyleOption.bodyCellClass',
+        cellStyleOption?.bodyCellClass,
+        {
           row: rowData,
           column,
           rowIndex,
-        })
-        if (customClass)
-          result[customClass] = true
-      }
+        },
+      )
+      if (customClass)
+        result[customClass] = true
 
       if (cellSelectionData) {
         const { rowKey, colKey } = cellSelectionData.currentCell
@@ -396,17 +398,25 @@ export default defineComponent({
 
       return { rowspan, colspan }
     },
-    // cell click
-    cellClick(e, fn) {
-      fn && fn(e)
+    // 通知 ve-table 单元格事件（选区、右键菜单等）
+    dispatchCellEvent(eventName, event) {
+      const { column, rowData } = this
 
-      const { column, expandOption, rowData } = this
-
-      this.dispatch(COMPS_NAME.VE_TABLE, EMIT_EVENTS.BODY_CELL_CLICK, {
-        event: e,
+      this.dispatch(COMPS_NAME.VE_TABLE, eventName, {
+        event,
         rowData,
         column,
       })
+    },
+    /*
+     * cell click
+     * ROW-09：展开图标不再自己处理点击，点击冒泡到这里，因此用户的 bodyCellEvents.click
+     * 在 bindCustomEvents 中先被调用；之前图标调用 cellClick 并阻止冒泡，用户的处理函数被跳过
+     */
+    cellClick(e) {
+      const { column, expandOption } = this
+
+      this.dispatchCellEvent(EMIT_EVENTS.BODY_CELL_CLICK, e)
 
       if (column.type !== COLUMN_TYPES.EXPAND)
         return false
@@ -430,111 +440,10 @@ export default defineComponent({
         }
       }
     },
-    // dblclick
-    cellDblclick(e, fn) {
-      fn && fn(e)
-
-      const { column, rowData } = this
-
-      this.dispatch(
-        COMPS_NAME.VE_TABLE,
-        EMIT_EVENTS.BODY_CELL_DOUBLE_CLICK,
-        {
-          event: e,
-          rowData,
-          column,
-        },
-      )
-    },
-    // contextmenu
-    cellContextmenu(e, fn) {
-      fn && fn(e)
-
-      const { column, rowData } = this
-
-      this.dispatch(
-        COMPS_NAME.VE_TABLE,
-        EMIT_EVENTS.BODY_CELL_CONTEXTMENU,
-        {
-          event: e,
-          rowData,
-          column,
-        },
-      )
-    },
-    // mouseenter
-    cellMouseenter(e, fn) {
-      fn && fn(e)
-    },
-    // mouseleave
-    cellMouseleave(e, fn) {
-      fn && fn(e)
-    },
-    // mousemove
-    cellMousemove(e, fn) {
-      fn && fn(e)
-
-      const { column, rowData } = this
-
-      this.dispatch(
-        COMPS_NAME.VE_TABLE,
-        EMIT_EVENTS.BODY_CELL_MOUSEMOVE,
-        {
-          event: e,
-          rowData,
-          column,
-        },
-      )
-    },
-    // mouseover
-    cellMouseover(e, fn) {
-      fn && fn(e)
-
-      const { column, rowData } = this
-
-      this.dispatch(
-        COMPS_NAME.VE_TABLE,
-        EMIT_EVENTS.BODY_CELL_MOUSEOVER,
-        {
-          event: e,
-          rowData,
-          column,
-        },
-      )
-    },
-    // mousedown
-    cellMousedown(e, fn) {
-      fn && fn(e)
-
-      const { column, rowData } = this
-
-      this.dispatch(
-        COMPS_NAME.VE_TABLE,
-        EMIT_EVENTS.BODY_CELL_MOUSEDOWN,
-        {
-          event: e,
-          rowData,
-          column,
-        },
-      )
-    },
-    // mouseup
-    cellMouseup(e, fn) {
-      fn && fn(e)
-
-      const { column, rowData } = this
-
-      this.dispatch(COMPS_NAME.VE_TABLE, EMIT_EVENTS.BODY_CELL_MOUSEUP, {
-        event: e,
-        rowData,
-        column,
-      })
-    },
   },
   render() {
     const {
       column,
-      cellClick,
       rowData,
       isExpandRow,
       expandOption,
@@ -545,70 +454,35 @@ export default defineComponent({
     } = this
 
     // expand icon props
+    // ROW-09：图标的点击冒泡到 td，由 cellClick 处理（trigger 为 row 时再冒泡到 tr）
     const expandIconProps = {
       rowData,
       column,
       expandOption,
       expandedRowkeys,
       rowKeyFieldName,
-      cellClick,
     }
 
     const { rowspan, colspan } = this.getCellSpan()
     if (!rowspan || !colspan)
       return null
 
-    // custom on cell event
-    let customEvents: Record<string, any> = {}
-    if (eventCustomOption) {
-      const { bodyCellEvents } = eventCustomOption
-
-      customEvents = bodyCellEvents
-        ? bodyCellEvents({ row: rowData, column, rowIndex })
-        : {}
-    }
-
-    const {
-      click,
-      dblclick,
-      contextmenu,
-      mouseenter,
-      mouseleave,
-      mousemove,
-      mouseover,
-      mousedown,
-      mouseup,
-    } = customEvents
-
-    const events = {
-      onClick: (e) => {
-        this.cellClick(e, click)
+    // custom on cell event（MOD-07, INFRA-13）
+    const customEvents = getCustomEvents(eventCustomOption, 'bodyCellEvents', { row: rowData, column, rowIndex })
+    const dispatchCellEvent = eventName => e => this.dispatchCellEvent(eventName, e)
+    const events = bindCustomEvents(
+      customEvents,
+      {
+        click: this.cellClick,
+        dblclick: dispatchCellEvent(EMIT_EVENTS.BODY_CELL_DOUBLE_CLICK),
+        contextmenu: dispatchCellEvent(EMIT_EVENTS.BODY_CELL_CONTEXTMENU),
+        mousemove: dispatchCellEvent(EMIT_EVENTS.BODY_CELL_MOUSEMOVE),
+        mouseover: dispatchCellEvent(EMIT_EVENTS.BODY_CELL_MOUSEOVER),
+        mousedown: dispatchCellEvent(EMIT_EVENTS.BODY_CELL_MOUSEDOWN),
+        mouseup: dispatchCellEvent(EMIT_EVENTS.BODY_CELL_MOUSEUP),
       },
-      onDblclick: (e) => {
-        this.cellDblclick(e, dblclick)
-      },
-      onContextmenu: (e) => {
-        this.cellContextmenu(e, contextmenu)
-      },
-      onMouseenter: (e) => {
-        this.cellMouseenter(e, mouseenter)
-      },
-      onMouseleave: (e) => {
-        this.cellMouseleave(e, mouseleave)
-      },
-      onMousemove: (e) => {
-        this.cellMousemove(e, mousemove)
-      },
-      onMouseover: (e) => {
-        this.cellMouseover(e, mouseover)
-      },
-      onMousedown: (e) => {
-        this.cellMousedown(e, mousedown)
-      },
-      onMouseup: (e) => {
-        this.cellMouseup(e, mouseup)
-      },
-    }
+      'eventCustomOption.bodyCellEvents',
+    )
 
     // td props
     const tdProps = {

@@ -181,7 +181,7 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
   - **Effect:** lint-staged appends the staged paths, but the `.` still makes eslint lint and auto-fix every file in the repo. Commits are slow, and the hook can modify files that are not part of the commit.
   - **Fix:** `"eslint --fix"`, so only the staged files are linted.
 
-- [ ] **INFRA-13** 🟢 More user callbacks called without `safeCall` (found in batch 7)
+- [x] ✅ 2026-10-19 · refactor/audit-wave2-table-parts · **INFRA-13** 🟢 More user callbacks called without `safeCall` (found in batch 7)
   - **Where:**
     - `sortOption.sortChange` (`header/index.tsx` `sortChange`; INFRA-08 only added the existence guard)
     - `cellStyleOption.bodyCellClass` (`body/body-td.tsx`, called during render)
@@ -189,6 +189,12 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
     - `filter.filterConfirm` / `filter.filterReset` (`header/header-filter-content.tsx`)
   - **Effect:** a throw escapes the click handler, or breaks the whole render for the render-time callbacks (`bodyCellClass`, the `*Events` factories). A truthy non-function `*Events` value throws `… is not a function`.
   - **Fix:** route them through `util/safe-call.ts`, as INFRA-07 and INFRA-11 did, and call the `*Events` factories only when they are functions.
+  - **Done:**
+    - The six `*Events` factories go through `getCustomEvents()` (`features/custom-events/bindCustomEvents.ts`, MOD-07): called only when they are functions, through `safeCall`, and a non-object result counts as no events. The handlers they return are called through `safeCall` by `bindCustomEvents()`, so a throwing (or non-function) handler is logged and the table's own handling of the event (e.g. `BODY_CELL_CLICK`) still runs; before, it threw before the dispatch.
+    - `sortOption.sortChange` (`header/index.tsx`): through `safeCall`; the header state and the `SORT_CHANGE` dispatch happen before it, as before.
+    - `cellStyleOption.bodyCellClass` (`body-td.tsx`), plus its siblings `headerCellClass` (`header-th.tsx`) and `footerCellClass` (`footer-td.tsx`), which had the same render-time pattern: through `safeCall`, a throw means no custom class.
+    - `filter.filterConfirm` / `filterReset` (`header-filter-content.tsx`): only the two calls changed.
+  - **Verified:** `ve-table-callback-guards.spec.tsx` › "more throwing callbacks go through safeCall (INFRA-13)" (16 tests). Failed before: "a throwing sortChange is logged and the sort still changes" (the error reached the app `errorHandler`), "a throwing bodyCellClass is logged and the body still renders" and "a throwing eventCustomOption.* is logged and the table still renders" (×6; the render threw), "a truthy eventCustomOption.* that is not a function is ignored" (×6; `… is not a function`), "a throwing cell event handler is logged and the table still handles the click" (the error escaped and `BODY_CELL_CLICK` was not dispatched), "throwing filterConfirm / filterReset are logged". `ve-table-bind-custom-events.spec.ts` covers `getCustomEvents` directly.
 
 ---
 
@@ -637,10 +643,12 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
   - **Effect:** after a selected row is removed from `tableData`, its key stays selected. It is reported in later `selectedRowChange` / `selectedAllChange` payloads, and a new row with the same key shows up checked. Since ROW-07 (D7), select all / deselect all also keep keys that are not in the current data, so they no longer clean them up either.
   - **Fix:** document that uncontrolled mode keeps keys that are not in the data (the same rule as D7), or add an opt-in option that prunes them.
 
-- [ ] **ROW-09** 🟢 With expand trigger `icon` or `cell`, a click on the expand icon never reaches the user's `bodyCellEvents.click` (found in batch 7)
+- [x] ✅ 2026-10-19 · refactor/audit-wave2-table-parts · **ROW-09** 🟢 With expand trigger `icon` or `cell`, a click on the expand icon never reaches the user's `bodyCellEvents.click` (found in batch 7)
   - **Where:** `body/expand-tr-icon.tsx`. For these triggers the icon calls `cellClick`, which stops propagation (see ROW-06), so the td's own click handler, which calls the user's `bodyCellEvents` click, never runs.
   - **Effect:** the table still dispatches `BODY_CELL_CLICK` once, but the app's cell click handler is skipped for clicks on the icon.
   - **Fix:** call the user's cell click handler from the icon as well, or stop propagation at the td instead of at the icon.
+  - **Done (with MOD-07):** propagation now stops at the td. The icon has no click handler any more (its `cellClick` prop is gone), so an icon click always bubbles to the td, whose listener (built by `bindCustomEvents`) calls the user's `bodyCellEvents.click` first and then `cellClick`: one `BODY_CELL_CLICK`, and for `icon` / `cell` the expand plus `stopPropagation`, as before. With `trigger: 'row'` the click goes on to the tr as since ROW-06. The td logic already treated any non-TD target in the expand cell as an icon click, so nothing else changes.
+  - **Verified:** `ve-table-row-expand-trigger.spec.tsx` › "the user's cell click handler (ROW-09)": "trigger icon (default) / icon / cell: an icon click calls bodyCellEvents.click once, not the row click" (all three: 0 calls before), plus "trigger icon: a click on the expand cell outside the icon does not expand" as a guard. The three ROW-06 tests still pass.
 
 ---
 
@@ -1025,7 +1033,9 @@ These are structural changes. Several of them remove whole bug classes above (no
 
   [FILL-01, SEL-07, INFRA-04]
 - [ ] **MOD-06** `useFixedColumns(colgroups)`: one `Map<colKey, { style, class }>` computed at table level and shared by header, body and footer, replacing three divergent implementations. [COL-06]
-- [ ] **MOD-07** `bindCustomEvents(customEvents, extra)`: replace the nine forwarding methods (`cellClick` … `rowClick` …) copied across six components.
+- [x] ✅ 2026-10-19 · refactor/audit-wave2-table-parts · **MOD-07** `bindCustomEvents(customEvents, extra)`: replace the nine forwarding methods (`cellClick` … `rowClick` …) copied across six components.
+  - **Done:** new `features/custom-events/bindCustomEvents.ts`: `getCustomEvents(eventCustomOption, factoryName, params)` calls the user's `*Events` factory (INFRA-13) and `bindCustomEvents(customEvents, extra, logName)` returns the `onClick` … `onMouseup` listeners. Each listener calls the user handler first (through `safeCall`) and then the component's own handler from `extra`, the same order as before; an event with neither gets no listener (each body td used to carry nine listeners, most of them no-ops). `body-tr`, `body-td`, `header-tr`, `header-th`, `footer-tr` and `footer-td` lost their nine forwarding methods each; the ones that notify the table use a single `dispatchCellEvent(eventName, event)` (body-td, header-th) or `rowClick()` (body-tr). ROW-09 was fixed on top of it (the expand icon no longer handles clicks itself).
+  - **Verified:** the existing `ve-table-custom-events.spec.ts` (all six factories, every event), the cell selection, contextmenu and expand specs pass unchanged, with no snapshot change. New `ve-table-bind-custom-events.spec.ts` (5 unit tests: only bound events get listeners, user-then-internal order, a throwing user handler still runs the internal one, non-function values are ignored, `getCustomEvents`).
 - [x] ✅ 2026-10-16 · fix/audit-batch4-row-state · **MOD-08** `useRowSelection` / `useRowExpand` composables that return derived state as props, and remove the local `isSelected` mirrors in the checkbox and radio content components. [ROW-03, ROW-04, ROW-05]
   - **Done:** `features/row-selection/useRowSelection.ts` (`useRowSelection` for checkboxes, `useRowRadio` for radios) and `features/row-expand/useRowExpand.ts`. Inputs are getters (`checkboxOption` / `radioOption` / `expandOption`, `allRowKeys`, a `getRowByKey` lookup); outputs are computeds (`selectedRowKeys`, `selectedKeySet`, `isSelectedAll`, `isIndeterminate`, `expandedRowKeys`, `expandedKeySet`, …) plus actions (`selectRow`, `selectAll`, `toggleRowExpand`) that call the user callbacks. `features/row-state` creates all three once per table: ve-table (still Options API) calls `createRowState` in its `provide()` option, where the instance scope is active, so the computeds and watchers stop on unmount. The body, the body checkbox/radio cells and the header checkbox `inject` it (`setup()`), so the checkbox/radio cells no longer keep a local `isSelected` and no longer talk through the emitter. The four row-selection events were removed from `EMIT_EVENTS`.
   - **Verified:** `ve-table-row-state-composables.spec.ts` (12 unit tests, written together with the composables) and the ROW-01 … ROW-05 integration tests above, which were written first and failed on the old code.

@@ -2,6 +2,7 @@ import emitter from '@vue3-easytable/common/mixins/emitter'
 import { markRaw } from 'vue'
 import { clsName } from '../util'
 import { COMPS_NAME, EMIT_EVENTS } from '../util/constant'
+import { safeCall } from '../util/safe-call'
 import HeaderTr from './header-tr'
 
 export default defineComponent({
@@ -133,9 +134,8 @@ export default defineComponent({
         sortColumns,
       )
 
-      // invoke
-      if (typeof sortChange === 'function')
-        sortChange(sortColumns)
+      // invoke（INFRA-13：抛出异常时只记录，排序状态已经更新）
+      safeCall('sortOption.sortChange', sortChange, sortColumns)
     },
 
     /*
@@ -150,7 +150,7 @@ export default defineComponent({
       const nextConfigs = markRaw(new Map<string, { field: string, sortBy: string }>())
       const sortColumns = {}
 
-      colgroups.forEach((item) => {
+      colgroups.forEach((item: any) => {
         if (typeof item.sortBy !== 'string')
           return
 
