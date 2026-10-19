@@ -334,6 +334,12 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
   - **Done:** new `getColgroupKeysByHeaderColumn({ headerColumnItem, colgroups })` in `util/columns/col-keys.ts`: the same split as `getColKeysByHeaderColumn`, mapped back to the real `colgroups` keys through a `String(key) → key` map (header order kept, unknown keys dropped). Both header handlers use it. `getColKeysByHeaderColumn` is unchanged for the header code that compares as strings (COL-10).
   - **Verified:** `ve-table-numeric-col-keys.spec.ts` › "header column selection with numeric keys (COL-13)" (5 tests, all failed before): "clicking a group header over numeric columns selects them" and "clicking a leaf header with key 0 under a group header selects that column" (indicator stayed `{ '', '' }`), "dragging from a group header to a numeric column extends the selection" (`{ '', '2' }`), "dragging from a numeric column onto a group header to its left extends the selection" (`{ '', '0' }`), "shift-clicking a group header extends from the current cell" (`{ 2, '1' }`). `ve-table-util.spec.ts` › "getColgroupKeysByHeaderColumn (COL-13)" (3 unit tests). `ve-table-cell-selection-indicator.spec.ts` and `ve-table-header-group.spec.ts` still pass.
 
+- [x] ✅ 2026-10-19 · fix/audit-pre-mod02 · **COL-14** 🟢 Leftover cast `COLUMN_FIXED_TYPE.LEFT as 'left'` (found in wave 3)
+  - **Where:** `ve-table.tsx`, the operation-column default (`col.fixed = COLUMN_FIXED_TYPE.LEFT as 'left'`). It sits in `showOrHideColumns` (called from `initColumns`), left over from COL-11.
+  - **Effect:** none; the cast is redundant since COL-11 made `COLUMN_FIXED_TYPE` `as const`.
+  - **Done:** the cast is removed.
+  - **Verified:** `vue-tsc` total unchanged at 238. New guard `ve-table-operation-column.spec.ts` › "the operation column is fixed left by default" (`colgroups[].fixed` is `['left', undefined, …]`, and the `columns` prop is not mutated).
+
 ---
 
 ## SEL — cell selection and keyboard

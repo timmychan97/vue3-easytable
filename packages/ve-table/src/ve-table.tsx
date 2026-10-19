@@ -1204,7 +1204,7 @@ export default defineComponent({
       cloneColumns = cloneColumns.map((col) => {
         // 操作列默认左固定
         if (col.operationColumn)
-          col.fixed = COLUMN_FIXED_TYPE.LEFT as 'left'
+          col.fixed = COLUMN_FIXED_TYPE.LEFT
 
         return col
       })
