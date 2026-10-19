@@ -71,13 +71,14 @@ export default defineComponent({
     getIcon() {
       let result
       const { filterIcon } = this.column.filter
+      // INFRA-16：渲染时调用，抛出异常时只记录，回退为默认图标
       if (isFunction(filterIcon))
-        result = filterIcon(h)
+        result = safeCall('filter.filterIcon', filterIcon, h)
 
-      else
-        result = <VeIcon name={ICON_NAMES.FILTER} />
+      if (!result || result.threw)
+        return <VeIcon name={ICON_NAMES.FILTER} />
 
-      return result
+      return result.value
     },
   },
   render() {
