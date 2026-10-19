@@ -1,5 +1,6 @@
 import veTable from '@/ve-table'
-import { later } from '@test-utils'
+import { later, wrapMount } from '@test-utils'
+import { KEY_CODES } from '@test-utils/constant'
 import { mount } from '@vue/test-utils'
 
 describe('veTable cell selection', () => {
@@ -133,5 +134,160 @@ describe('veTable cell selection', () => {
         '.ve-table-body .ve-table-body-td.ve-table-cell-indicator',
       ).length,
     ).toEqual(4)
+  })
+
+  /*
+   * SEL-09：方向键等键盘导航把选区收缩为单个单元格后，整列 / 整行选择的指示器状态应被清除；
+   * 指示器只保存 key，行列位置变化后按 key 重新计算下标
+   */
+  describe('indicator state after keyboard navigation (SEL-09)', () => {
+    let wrapper: any = null
+
+    afterEach(() => {
+      wrapper?.unmount()
+      wrapper = null
+    })
+
+    function mountTable(tableData = TABLE_DATA) {
+      wrapper = wrapMount(veTable, {
+        propsData: {
+          columns: COLUMNS,
+          tableData,
+          rowKeyFieldName: 'rowKey',
+        },
+      })
+      return wrapper.vm as any
+    }
+
+    function keydown(keyCode: number) {
+      const event = new KeyboardEvent('keydown', { keyCode, bubbles: true, cancelable: true })
+      wrapper.element.dispatchEvent(event)
+      return event
+    }
+
+    function headerTh(colKey: string) {
+      const index = COLUMNS.findIndex(x => x.key === colKey)
+      return wrapper.findAll('.ve-table-header-th')[index]
+    }
+
+    // jsdom 的 MouseEvent.which 恒为 0，这里显式指定为右键
+    function rightMousedown(el: Element) {
+      const event = new MouseEvent('mousedown', { bubbles: true, cancelable: true, button: 2 })
+      Object.defineProperty(event, 'which', { value: 3 })
+      el.dispatchEvent(event)
+    }
+
+    function operationTd(rowKey: string) {
+      return wrapper.find(`tr[row-key="${rowKey}"]`).findAll('.ve-table-body-td')[0]
+    }
+
+    it('arrow keys after selecting a whole column clear the header indicator', async () => {
+      const vm = mountTable()
+
+      await headerTh('b').trigger('mousedown')
+      await later()
+      await later()
+      expect(vm.cellSelectionRangeData).toMatchObject({ leftColKey: 'b', rightColKey: 'b', topRowKey: '1', bottomRowKey: '5' })
+      expect(headerTh('b').classes()).toContain('ve-table-cell-indicator-active')
+
+      keydown(KEY_CODES.ARROW_DOWN)
+      await later()
+      await later()
+
+      expect(vm.cellSelectionData.currentCell).toMatchObject({ rowKey: '2', colKey: 'b' })
+      expect(vm.headerIndicatorColKeys.startColKey).toBe('')
+      expect(vm.headerIndicatorColKeys.endColKey).toBe('')
+      expect(headerTh('b').classes()).toContain('ve-table-cell-indicator')
+      expect(headerTh('b').classes()).not.toContain('ve-table-cell-indicator-active')
+      // 右键菜单类型回到 body
+      expect(vm.contextMenuType).toBe('bodyContextmenu')
+    })
+
+    it('arrow keys after selecting a whole row clear the row indicator, so clicking it again re-selects the row', async () => {
+      const vm = mountTable()
+
+      await operationTd('2').trigger('mousedown')
+      await later()
+      await later()
+      expect(vm.cellSelectionRangeData).toMatchObject({ leftColKey: 'a', rightColKey: 'd', topRowKey: '2', bottomRowKey: '2' })
+
+      keydown(KEY_CODES.ARROW_RIGHT)
+      await later()
+      await later()
+
+      expect(vm.bodyIndicatorRowKeys.startRowKey).toBe('')
+      expect(operationTd('2').classes()).toContain('ve-table-cell-indicator')
+      expect(operationTd('2').classes()).not.toContain('ve-table-cell-indicator-active')
+
+      // 再次点击同一行的指示器，重新选中整行（之前指示器 key 未变化，watcher 不触发，选区停在单个单元格）
+      await wrapper.find('.ve-table-container').trigger('mouseup')
+      await operationTd('2').trigger('mousedown')
+      await later()
+      await later()
+      expect(vm.cellSelectionRangeData).toMatchObject({ leftColKey: 'a', rightColKey: 'd', topRowKey: '2', bottomRowKey: '2' })
+    })
+
+    it('tab and enter also clear the indicators', async () => {
+      const vm = mountTable()
+
+      await headerTh('b').trigger('mousedown')
+      await later()
+      keydown(KEY_CODES.TAB)
+      await later()
+      expect(vm.headerIndicatorColKeys.startColKey).toBe('')
+
+      await wrapper.find('.ve-table-container').trigger('mouseup')
+      await operationTd('3').trigger('mousedown')
+      await later()
+      keydown(KEY_CODES.ENTER)
+      await later()
+      expect(vm.bodyIndicatorRowKeys.startRowKey).toBe('')
+    })
+
+    it('setCellSelection and setRangeCellSelection after setAllCellSelection clear the indicators', async () => {
+      const vm = mountTable()
+
+      vm.setAllCellSelection()
+      await later()
+      expect(headerTh('a').classes()).toContain('ve-table-cell-indicator-active')
+
+      vm.setCellSelection({ rowKey: '2', colKey: 'b' })
+      await later()
+      expect(vm.headerIndicatorColKeys.startColKey).toBe('')
+      expect(vm.bodyIndicatorRowKeys.startRowKey).toBe('')
+      expect(headerTh('b').classes()).toContain('ve-table-cell-indicator')
+      expect(headerTh('b').classes()).not.toContain('ve-table-cell-indicator-active')
+
+      vm.setAllCellSelection()
+      await later()
+      vm.setRangeCellSelection({ startRowKey: '2', startColKey: 'a', endRowKey: '3', endColKey: 'b' })
+      await later()
+      expect(vm.headerIndicatorColKeys.startColKey).toBe('')
+      expect(vm.bodyIndicatorRowKeys.startRowKey).toBe('')
+      expect(vm.cellSelectionRangeData).toMatchObject({ leftColKey: 'a', rightColKey: 'b', topRowKey: '2', bottomRowKey: '3' })
+    })
+
+    it('right-clicking inside a row selection keeps it after rows are inserted above', async () => {
+      const tableData = TABLE_DATA.map(x => ({ ...x }))
+      const vm = mountTable(tableData)
+
+      // 选中第 2、3 行
+      await operationTd('2').trigger('mousedown')
+      await wrapper.find('.ve-table-container').trigger('mouseup')
+      await operationTd('3').trigger('mousedown', { shiftKey: true })
+      await wrapper.find('.ve-table-container').trigger('mouseup')
+      await later()
+      expect(vm.cellSelectionRangeData).toMatchObject({ topRowKey: '2', bottomRowKey: '3' })
+
+      // 在上方插入一行，第 3 行的下标从 2 变为 3
+      await wrapper.setProps({ tableData: [{ ...TABLE_DATA[0], rowKey: '0' }, ...tableData] })
+      await later()
+
+      // 在选区内右键：保留整行选择（之前用过期的下标判断，选区被重置为第 3 行）
+      rightMousedown(operationTd('3').element)
+      await later()
+      expect(vm.bodyIndicatorRowKeys).toMatchObject({ startRowKey: '2', endRowKey: '3' })
+      expect(vm.cellSelectionRangeData).toMatchObject({ topRowKey: '2', bottomRowKey: '3' })
+    })
   })
 })

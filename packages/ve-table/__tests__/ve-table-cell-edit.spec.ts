@@ -1,11 +1,12 @@
 import veTable from '@/ve-table'
 import CellEditor from '@/ve-table/src/editor/index'
 import { HOOKS_NAME } from '@/ve-table/src/util/constant'
-import { later } from '@test-utils'
+import { later, mockCellRects } from '@test-utils'
 import { KEY_CODES } from '@test-utils/constant'
 import { mount } from '@vue/test-utils'
 import { cloneDeep } from 'lodash'
 import { expect, vi } from 'vitest'
+import { reactive } from 'vue'
 
 describe('veTable cell edit', () => {
   const TABLE_DATA = [
@@ -2169,5 +2170,43 @@ describe('veTable cell edit', () => {
     expect(
       wrapper.find('.ve-table-edit-input-container-show').exists(),
     ).toBe(true)
+  })
+
+  // EDIT-03：找不到单元格时编辑框会放弃旧单元格；新增行后立即选中时仍能找到新单元格
+  it('the editor finds a cell whose row is added in the same tick', async () => {
+    const rectSpy = mockCellRects()
+
+    // 用户数据通常是响应式的，新增行后立即选中
+    const tableData = reactive(cloneDeep(TABLE_DATA))
+    const wrapper = mount(veTable, {
+      propsData: {
+        columns: COLUMNS,
+        tableData,
+        editOption: {},
+        rowKeyFieldName: 'rowKey',
+      },
+      attachTo: document.body,
+    })
+    await later()
+
+    await wrapper.findAll('.ve-table-body-tr')[0].findAll('.ve-table-body-td')[0].trigger('mousedown')
+    await later()
+
+    const editor = wrapper.findComponent(CellEditor)
+
+    const vm = wrapper.vm as any
+    tableData.push({ ...TABLE_DATA[0], rowKey: 99 })
+    // 行还没有渲染
+    vm.setCellSelection({ rowKey: 99, colKey: 'name', isScrollToRow: false })
+    await later()
+    await later()
+
+    const tdEl = wrapper.find('tr[row-key="99"] td[col-key="name"]')
+    expect(tdEl.exists()).toBe(true)
+    expect((editor.vm as any).cellEl).toBe(tdEl.element)
+    expect((editor.vm as any).overflowViewport).toBe(false)
+
+    wrapper.unmount()
+    rectSpy.mockRestore()
   })
 })

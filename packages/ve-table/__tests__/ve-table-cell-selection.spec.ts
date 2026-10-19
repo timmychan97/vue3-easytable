@@ -583,6 +583,77 @@ describe('veTable cell selection', () => {
     })
   })
 
+  // SEL-06：公开的选区 API 收到未知的 rowKey / colKey 时不抛错，也不改变选区
+  describe('unknown keys in the selection API (SEL-06)', () => {
+    function mountWithXScrollBar() {
+      const wrapper = mount(veTable, {
+        propsData: {
+          columns: COLUMNS,
+          tableData: TABLE_DATA,
+          rowKeyFieldName: 'rowKey',
+        },
+      })
+      // jsdom 没有布局，直接模拟出现横向滚动条（columnToVisible 只在此时工作）
+      ;(wrapper.vm as any).hasXScrollBar = true
+      return wrapper
+    }
+
+    it('setCellSelection ignores an unknown colKey or rowKey', async () => {
+      const wrapper = mountWithXScrollBar()
+      const vm = wrapper.vm as any
+
+      vm.setCellSelection({ rowKey: '2', colKey: 'a' })
+      await later()
+
+      expect(() => vm.setCellSelection({ rowKey: '3', colKey: 'unknown' })).not.toThrow()
+      expect(() => vm.setCellSelection({ rowKey: 'unknown', colKey: 'b' })).not.toThrow()
+      await later()
+
+      expect(vm.cellSelectionData.currentCell).toMatchObject({ rowKey: '2', colKey: 'a' })
+      wrapper.unmount()
+    })
+
+    it('setRangeCellSelection ignores unknown keys', async () => {
+      const wrapper = mountWithXScrollBar()
+      const vm = wrapper.vm as any
+
+      vm.setCellSelection({ rowKey: '2', colKey: 'a' })
+      await later()
+
+      expect(() => vm.setRangeCellSelection({
+        startRowKey: '2',
+        startColKey: 'unknown',
+        endRowKey: '3',
+        endColKey: 'b',
+        isScrollToStartCell: true,
+      })).not.toThrow()
+      expect(vm.setRangeCellSelection({
+        startRowKey: '2',
+        startColKey: 'a',
+        endRowKey: 'unknown',
+        endColKey: 'b',
+      })).toBe(false)
+      expect(vm.setRangeCellSelection({
+        startRowKey: '2',
+        startColKey: 'a',
+        endRowKey: '3',
+        endColKey: 'unknown',
+      })).toBe(false)
+      await later()
+
+      expect(vm.cellSelectionData.currentCell).toMatchObject({ rowKey: '2', colKey: 'a' })
+      expect(vm.cellSelectionData.normalEndCell).toMatchObject({ rowKey: '', colKey: '' })
+      wrapper.unmount()
+    })
+
+    it('columnToVisible tolerates a missing column', () => {
+      const wrapper = mountWithXScrollBar()
+      expect(() => (wrapper.vm as any).columnToVisible(undefined)).not.toThrow()
+      wrapper.unmount()
+    })
+  })
+
+  // SEL-03：没有操作列时也从第一列开始（之前跳过了第一列，leftColKey 为 'b'）
   it('table instance: setAllCellSelection method', async () => {
     const wrapper = mount(veTable, {
       propsData: {
@@ -598,7 +669,36 @@ describe('veTable cell selection', () => {
 
     expect((wrapper.vm as any).cellSelectionRangeData).toEqual({
       bottomRowKey: '5',
-      leftColKey: 'b',
+      leftColKey: 'a',
+      rightColKey: 'd',
+      topRowKey: '1',
+    })
+    expect((wrapper.vm as any).cellSelectionData.currentCell).toMatchObject({
+      rowKey: '1',
+      colKey: 'a',
+    })
+  })
+
+  // SEL-03：操作列不参与选区，选区从第一个非操作列开始
+  it('table instance: setAllCellSelection skips the operation column', async () => {
+    const wrapper = mount(veTable, {
+      propsData: {
+        columns: [
+          { field: '', key: 'op', title: '', width: 50, operationColumn: true },
+          ...COLUMNS,
+        ],
+        tableData: TABLE_DATA,
+        rowKeyFieldName: 'rowKey',
+      },
+    })
+
+    ;(wrapper.vm as any).setAllCellSelection()
+
+    await later()
+
+    expect((wrapper.vm as any).cellSelectionRangeData).toEqual({
+      bottomRowKey: '5',
+      leftColKey: 'a',
       rightColKey: 'd',
       topRowKey: '1',
     })

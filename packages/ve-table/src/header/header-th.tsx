@@ -209,8 +209,7 @@ export default defineComponent({
 
       if (cellSelectionRangeData) {
         const { leftColKey, rightColKey } = cellSelectionRangeData
-        const { startColKeyIndex } = headerIndicatorColKeys
-        const isIndicatorActive = startColKeyIndex > -1
+        const isIndicatorActive = !isEmptyValue(headerIndicatorColKeys.startColKey)
 
         if (!isEmptyValue(leftColKey)) {
           let indicatorColKeys = []
