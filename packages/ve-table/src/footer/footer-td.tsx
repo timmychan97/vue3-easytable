@@ -2,7 +2,8 @@ import emitter from '@vue3-easytable/common/mixins/emitter'
 import { getValByUnit } from '@vue3-easytable/common/utils/index.js'
 import { h } from 'vue'
 import { bindCustomEvents, getCustomEvents } from '../features/custom-events/bindCustomEvents'
-import { clsName, getFixedTotalWidthByColumnKey } from '../util'
+import { injectFixedColumns } from '../features/fixed-columns/useFixedColumns'
+import { clsName } from '../util'
 
 import { COMPS_NAME } from '../util/constant'
 import { safeCall } from '../util/safe-call'
@@ -72,49 +73,15 @@ export default defineComponent({
       default: true,
     },
   },
+  setup() {
+    return {
+      fixedColumns: injectFixedColumns(),
+    }
+  },
   computed: {
-    // is last left fixed column
-    isLastLeftFixedColumn() {
-      let result = false
-
-      const { colgroups, column } = this
-
-      const { fixed } = column
-
-      if (fixed === 'left') {
-        // 按 key 比较：没有 field 的列（如复选框列、序号列）field 都是 undefined（COL-06）
-        const { key } = column
-        const leftFixedColumns = colgroups.filter(
-          x => x.fixed === 'left',
-        )
-        const index = leftFixedColumns.findIndex(
-          x => x.key === key,
-        )
-
-        if (index === leftFixedColumns.length - 1)
-          result = true
-      }
-      return result
-    },
-    // is first right fixed column
-    isfirstRightFixedColumn() {
-      let result = false
-
-      const { colgroups, column } = this
-
-      const { fixed } = column
-
-      if (fixed === 'right') {
-        // 按 key 比较（COL-06）
-        const { key } = column
-        const rightFixedColumns = colgroups.filter(
-          x => x.fixed === 'right',
-        )
-
-        if (rightFixedColumns[0].key === key)
-          result = true
-      }
-      return result
+    // 固定列的样式与 class（MOD-06，表格级计算一次）
+    fixedInfo() {
+      return this.fixedColumns.getColumnFixedInfo(this.column.key)
     },
   },
   methods: {
@@ -137,15 +104,9 @@ export default defineComponent({
         rowKeyFieldName,
       } = this
 
-      // column fixed
-      if (fixed) {
-        result[clsName('fixed-left')] = fixed === 'left'
-        result[clsName('fixed-right')] = fixed === 'right'
-        result[clsName('last-left-fixed-column')]
-                    = this.isLastLeftFixedColumn
-        result[clsName('first-right-fixed-column')]
-                    = this.isfirstRightFixedColumn
-      }
+      // column fixed：fixed-left、fixed-right、last-left-fixed-column、first-right-fixed-column（MOD-06）
+      if (fixed)
+        Object.assign(result, this.fixedInfo.class)
 
       // cell style option
       // INFRA-13：渲染时调用，抛出异常时只记录，不中断渲染
@@ -177,38 +138,16 @@ export default defineComponent({
     /*
          * @getBodyTdStyle
          * @desc  get body td style
-         * @param {any} key - column key
          * @param {string} align - 居中方式
-         * @param {bool} fixed - 固定方式
          */
-    getBodyTdStyle({ key, align, fixed }) {
-      const result = {}
+    getBodyTdStyle({ align }) {
+      const { rowIndex, footerRows } = this
 
-      const { colgroups, rowIndex, footerRows } = this
-
-      // text align
-      result['text-align'] = align || 'center'
-
-      // fixed left total width or right total width
-      if (fixed) {
-        let totalWidth = 0
-        // column index
-        const columnIndex = colgroups.findIndex(x => x.key === key)
-        if (
-          (fixed === 'left' && columnIndex > 0)
-          || (fixed === 'right' && columnIndex < colgroups.length - 1)
-        ) {
-          totalWidth = getFixedTotalWidthByColumnKey({
-            colgroups,
-            colKey: key,
-            fixed,
-          })
-
-          totalWidth = getValByUnit(totalWidth)
-        }
-
-        result.left = fixed === 'left' ? totalWidth : ''
-        result.right = fixed === 'right' ? totalWidth : ''
+      const result: Record<string, any> = {
+        // text align
+        'text-align': align || 'center',
+        // fixed left total width or right total width（MOD-06）
+        ...this.fixedInfo.style,
       }
 
       // footer rows th fixed bottom

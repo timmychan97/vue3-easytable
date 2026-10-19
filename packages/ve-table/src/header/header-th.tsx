@@ -4,11 +4,11 @@ import { ICON_NAMES } from '@vue3-easytable/common/utils/constant'
 import VeIcon from '@vue3-easytable/ve-icon'
 import { h } from 'vue'
 import { bindCustomEvents, getCustomEvents } from '../features/custom-events/bindCustomEvents'
+import { injectFixedColumns } from '../features/fixed-columns/useFixedColumns'
 import {
   clsName,
   getColKeysByHeaderColumn,
   getColKeysByRangeColKeys,
-  getFixedTotalWidthByColumnKey,
 } from '../util'
 import { COLUMN_TYPES, COMPS_NAME, EMIT_EVENTS } from '../util/constant'
 import { safeCall } from '../util/safe-call'
@@ -106,45 +106,15 @@ export default defineComponent({
       },
     },
   },
+  setup() {
+    return {
+      fixedColumns: injectFixedColumns(),
+    }
+  },
   computed: {
-    // is last left fixed column
-    isLastLeftFixedColumn() {
-      let result = false
-
-      const { groupColumn, groupColumnItem: column } = this
-
-      const { fixed, _keys } = column
-
-      if (fixed === 'left') {
-        const leftFixedColumns = groupColumn.filter(
-          x => x.fixed === 'left',
-        )
-        const index = leftFixedColumns.findIndex(
-          x => x._keys === _keys,
-        )
-
-        if (index === leftFixedColumns.length - 1)
-          result = true
-      }
-      return result
-    },
-    // is first right fixed column
-    isfirstRightFixedColumn() {
-      let result = false
-
-      const { groupColumn, groupColumnItem: column } = this
-
-      const { fixed, _keys } = column
-
-      if (fixed === 'right') {
-        const leftFixedColumns = groupColumn.filter(
-          x => x.fixed === 'right',
-        )
-
-        if (leftFixedColumns[0]._keys === _keys)
-          result = true
-      }
-      return result
+    // 固定列的样式与 class（MOD-06，表格级计算；分组列由首尾叶子列得出）
+    fixedInfo() {
+      return this.fixedColumns.getHeaderFixedInfo(this.groupColumnItem)
     },
     // is last column
     isLastCloumn() {
@@ -187,14 +157,11 @@ export default defineComponent({
          * @desc  get thead th class
          * @param {string} fixed - 固定方式
          */
-    getTheadThClass({ fixed }) {
+    getTheadThClass() {
       const result = {
         [clsName('header-th')]: true,
-        [clsName('fixed-left')]: fixed === 'left',
-        [clsName('fixed-right')]: fixed === 'right',
-        [clsName('last-left-fixed-column')]: this.isLastLeftFixedColumn,
-        [clsName('first-right-fixed-column')]:
-                    this.isfirstRightFixedColumn,
+        // fixed-left、fixed-right、last-left-fixed-column、first-right-fixed-column
+        ...this.fixedInfo.class,
         [clsName('last-column')]: this.isLastCloumn,
         [clsName('sortable-column')]: this.isSortableCloumn,
       }
@@ -266,53 +233,18 @@ export default defineComponent({
     },
     /*
          * @getTheadThStyle
-         * @desc  get body td style
-         * @param {string} _keys - 当前列包含的key（单元格合并时有多个key值）
+         * @desc  get thead th style
          * @param {string} align - 居中方式
-         * @param {bool} fixed - 固定方式
          * @param {number} rowIndex - 当前行号
          */
-    getTheadThStyle({ _keys, align, fixed }, rowIndex) {
-      const result = {}
-
-      const colgroups = this.colgroups
+    getTheadThStyle({ align }, rowIndex) {
       const headerRows = this.headerRows
 
-      // text align
-      result['text-align'] = align || 'center'
-
-      // fixed left total width or right total width
-      if (fixed) {
-        let key = ''
-        let totalWidth = 0
-        const keys = _keys.split('|')
-        if (fixed === 'left')
-          key = keys[0]
-
-        else if (fixed === 'right')
-          key = keys.length === 1 ? keys[0] : keys[keys.length - 2]
-
-        if (key) {
-          // column index
-          const columnIndex = colgroups.findIndex(
-            x => x.key === key,
-          )
-          if (
-            (fixed === 'left' && columnIndex > 0)
-            || (fixed === 'right'
-              && columnIndex < colgroups.length - 1)
-          ) {
-            totalWidth = getFixedTotalWidthByColumnKey({
-              colgroups,
-              colKey: key,
-              fixed,
-            })
-
-            totalWidth = getValByUnit(totalWidth)
-          }
-        }
-        result.left = fixed === 'left' ? totalWidth : ''
-        result.right = fixed === 'right' ? totalWidth : ''
+      const result: Record<string, any> = {
+        // text align
+        'text-align': align || 'center',
+        // fixed left total width or right total width（MOD-06）
+        ...this.fixedInfo.style,
       }
 
       // header row th fixed top
@@ -509,7 +441,7 @@ export default defineComponent({
 
     const thProps = {
       style: getTheadThStyle(groupColumnItem, rowIndex),
-      class: getTheadThClass(groupColumnItem),
+      class: getTheadThClass(),
       rowspan: groupColumnItem._rowspan,
       colspan: groupColumnItem._colspan,
       ...events,

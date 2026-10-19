@@ -39,6 +39,7 @@ import Body from './body'
 import Colgroup from './colgroup'
 import ColumnResizer from './column-resizer'
 import EditInput from './editor'
+import { FIXED_COLUMNS_KEY, useFixedColumns } from './features/fixed-columns/useFixedColumns'
 import { createRowState, ROW_STATE_KEY } from './features/row-state'
 import Footer from './footer'
 import Header from './header'
@@ -112,6 +113,8 @@ export default defineComponent({
         rowKeyFieldName: () => this.rowKeyFieldName,
         allRowKeys: () => this.allRowKeys,
       }),
+      // 固定列的样式与 class（MOD-06）：按 colgroups 计算一次，表头、表体、表尾共享
+      [FIXED_COLUMNS_KEY as symbol]: useFixedColumns(() => this.colgroups),
     }
   },
   props: {

@@ -1,12 +1,7 @@
 import type { VNode } from 'vue'
 import emitter from '@vue3-easytable/common/mixins/emitter'
-import { getValByUnit } from '@vue3-easytable/common/utils'
 import { cloneVNode, defineComponent } from 'vue'
 import { injectRowState } from '../features/row-state'
-import {
-  clsName,
-  getFixedTotalWidthByColumnKey,
-} from '../util'
 import {
   COLUMN_TYPES,
   COMPS_NAME,
@@ -183,64 +178,7 @@ export default defineComponent({
     }
   },
   computed: {
-    /*
-        column collenction info
-        1、style of each column
-        2、class of each column
-        */
-    columnCollection() {
-      const columnCollection = []
-
-      const { colgroups } = this
-
-      colgroups.forEach((col) => {
-        const colKey = col.key
-
-        const columnCollectionItem = {
-          colKey,
-          class: {
-            [clsName('last-left-fixed-column')]:
-                            this.isLastLeftFixedColumn(col),
-            [clsName('first-right-fixed-column')]:
-                            this.isfirstRightFixedColumn(col),
-          },
-          style: {},
-        }
-
-        const { fixed, align } = col
-
-        columnCollectionItem.style['text-align'] = align || 'center'
-
-        if (fixed) {
-          let totalWidth = 0
-          // column index
-          const columnIndex = colgroups.findIndex(
-            x => x.key === colKey,
-          )
-          if (
-            (fixed === 'left' && columnIndex > 0)
-            || (fixed === 'right'
-              && columnIndex < colgroups.length - 1)
-          ) {
-            totalWidth = getFixedTotalWidthByColumnKey({
-              colgroups,
-              colKey,
-              fixed,
-            })
-
-            totalWidth = getValByUnit(totalWidth)
-          }
-
-          columnCollectionItem.style.left
-                        = fixed === 'left' ? totalWidth : ''
-          columnCollectionItem.style.right
-                        = fixed === 'right' ? totalWidth : ''
-        }
-
-        columnCollection.push(columnCollectionItem)
-      })
-      return columnCollection
-    },
+    // 固定列的样式与 class 由 ve-table 提供（MOD-06），body-td 直接 inject，这里不再计算 columnCollection
     // expand column
     expandColumn() {
       return this.colgroups.find(x => x.type === COLUMN_TYPES.EXPAND)
@@ -257,51 +195,6 @@ export default defineComponent({
     })
   },
   methods: {
-    // is last left fixed column
-    isLastLeftFixedColumn(column) {
-      let result = false
-
-      const { colgroups } = this
-
-      const { fixed } = column
-
-      if (fixed === 'left') {
-        // 按 key 比较：没有 field 的列（如复选框列、序号列）field 都是 undefined（COL-06）
-        const { key } = column
-        const leftFixedColumns = colgroups.filter(
-          x => x.fixed === 'left',
-        )
-        const index = leftFixedColumns.findIndex(
-          x => x.key === key,
-        )
-
-        if (index === leftFixedColumns.length - 1)
-          result = true
-      }
-      return result
-    },
-
-    // is first right fixed column
-    isfirstRightFixedColumn(column) {
-      let result = false
-
-      const { colgroups } = this
-
-      const { fixed } = column
-
-      if (fixed === 'right') {
-        // 按 key 比较（COL-06）
-        const { key } = column
-        const rightFixedColumns = colgroups.filter(
-          x => x.fixed === 'right',
-        )
-
-        if (rightFixedColumns[0].key === key)
-          result = true
-      }
-      return result
-    },
-
     /*
          * @expandRowChange
          * @desc  row expand change
@@ -452,7 +345,6 @@ export default defineComponent({
       eventCustomOption: this.eventCustomOption,
       cellSelectionData: this.cellSelectionData,
       editOption: this.editOption,
-      columnCollection: this.columnCollection,
       cellSelectionRangeData: this.cellSelectionRangeData,
       bodyIndicatorRowKeys: this.bodyIndicatorRowKeys,
     })

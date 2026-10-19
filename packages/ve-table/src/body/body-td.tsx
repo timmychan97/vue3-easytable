@@ -2,6 +2,7 @@ import emitter from '@vue3-easytable/common/mixins/emitter'
 import { getTextContentOfVNode, isBoolean, isEmptyValue, isNumber } from '@vue3-easytable/common/utils/index'
 import { h } from 'vue'
 import { bindCustomEvents, getCustomEvents } from '../features/custom-events/bindCustomEvents'
+import { injectFixedColumns } from '../features/fixed-columns/useFixedColumns'
 import { clsName, getRowKeysByRangeRowKeys } from '../util'
 
 import {
@@ -26,10 +27,6 @@ export default defineComponent({
     },
     column: {
       type: Object,
-      required: true,
-    },
-    columnCollection: {
-      type: Array,
       required: true,
     },
     rowIndex: {
@@ -140,6 +137,11 @@ export default defineComponent({
       },
     },
   },
+  setup() {
+    return {
+      fixedColumns: injectFixedColumns(),
+    }
+  },
   computed: {
     /*
         原始单元格数据
@@ -150,13 +152,9 @@ export default defineComponent({
       const { rowData, column } = this
       return column ? rowData[column.field] : undefined
     },
-    /*
-        current column collection item
-        1、Cache the style、class of each column
-        */
-    currentColumnCollectionItem() {
-      const { columnCollection, column } = this
-      return columnCollection?.find(x => x.colKey === column.key)
+    // 固定列的样式与 class（MOD-06，表格级计算一次）
+    fixedInfo() {
+      return this.fixedColumns.getColumnFixedInfo(this.column.key)
     },
 
     // current row key
@@ -171,18 +169,10 @@ export default defineComponent({
          * @desc body td style
          */
     bodyTdStyle() {
-      const { currentColumnCollectionItem } = this
-
-      let result = {}
-
-      if (currentColumnCollectionItem) {
-        result = Object.assign(
-          result,
-          currentColumnCollectionItem.style,
-        )
+      return {
+        'text-align': this.column.align || 'center',
+        ...this.fixedInfo.style,
       }
-
-      return result
     },
 
     /*
@@ -190,11 +180,11 @@ export default defineComponent({
          * @desc body td class
          */
     bodyTdClass() {
-      const { currentColumnCollectionItem } = this
+      const { fixedInfo } = this
 
       const { fixed, operationColumn } = this.column
 
-      let result = {
+      const result = {
         [clsName('body-td')]: true,
       }
 
@@ -212,8 +202,8 @@ export default defineComponent({
 
       // column fixed
       if (fixed) {
-        result[clsName('fixed-left')] = fixed === 'left'
-        result[clsName('fixed-right')] = fixed === 'right'
+        result[clsName('fixed-left')] = fixedInfo.class[clsName('fixed-left')]
+        result[clsName('fixed-right')] = fixedInfo.class[clsName('fixed-right')]
       }
 
       // operation column
@@ -273,14 +263,8 @@ export default defineComponent({
         }
       }
 
-      if (currentColumnCollectionItem) {
-        result = Object.assign(
-          result,
-          currentColumnCollectionItem.class,
-        )
-      }
-
-      return result
+      // last-left-fixed-column / first-right-fixed-column 放在最后（与之前 columnCollection 的顺序一致）
+      return Object.assign(result, fixedInfo.class)
     },
 
     // get ellipsis content style

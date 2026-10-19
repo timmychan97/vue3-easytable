@@ -26,10 +26,6 @@ export default defineComponent({
       type: Array,
       required: true,
     },
-    columnCollection: {
-      type: Array,
-      required: true,
-    },
     rowKeyFieldName: {
       type: String,
       default: null,
@@ -215,7 +211,6 @@ export default defineComponent({
           rowIndex,
           rowData,
           column,
-          columnCollection: this.columnCollection,
           colgroups,
           expandOption,
           expandedRowkeys,
