@@ -75,6 +75,7 @@ import {
   isContextmenuPanelClicked,
   isOperationColumn,
   recursiveRemoveColumnByKey,
+  restoreColumnsState,
 } from './util/index.js'
 import { createVirtualScroll } from './virtual-scroll'
 
@@ -849,24 +850,22 @@ export default defineComponent({
       immediate: false,
     },
     'columns': {
-      handler(newVal, oldVal) {
+      handler(_newVal, oldVal) {
+        // 只重新生成 cloneColumns，分组表头、列宽、滚动由 cloneColumns watcher 统一处理（COL-04）
         this.initColumns()
-        this.initGroupColumns()
-        this.initColumnWidthByColumnResize()
 
-        // 排除首次
-        if (newVal !== oldVal && oldVal) {
-          this.columnsOptionResetTime++
-          // 需要等待 initColumns 和 initGroupColumns 先执行
-          this.initScrolling()
+        // 首次执行时 cloneColumns watcher 尚未创建，需要在这里同步初始化
+        if (!oldVal) {
+          this.initGroupColumns()
+          this.initColumnWidthByColumnResize()
         }
       },
       immediate: true,
     },
     'cloneColumns': {
       handler() {
+        // columns 变化、隐藏/显示列、右键（取消）固定列都会替换 cloneColumns
         this.initGroupColumns()
-        // 右键（取消）固定列会操作 cloneColumns
         this.initColumnWidthByColumnResize()
 
         this.columnsOptionResetTime++
@@ -1204,15 +1203,20 @@ export default defineComponent({
       if (columnHiddenOption) {
         const { defaultHiddenColumnKeys } = columnHiddenOption
 
+        // 复制一份，避免之后显示列时修改用户传入的数组（COL-03）
         if (!isEmptyArray(defaultHiddenColumnKeys))
-          this.hiddenColumns = defaultHiddenColumnKeys
+          this.hiddenColumns = [...defaultHiddenColumnKeys]
       }
 
       this.showOrHideColumns()
     },
 
-    // show or hide columns
-    showOrHideColumns() {
+    /*
+     * show or hide columns
+     * @param {bool} keepColumnsState 是否保留当前的列状态（右键固定列、拖动列宽）。
+     *   隐藏/显示列时保留；columns 变化时按新的列配置重新生成
+     */
+    showOrHideColumns({ keepColumnsState = false } = {}) {
       let cloneColumns = cloneDeep(this.columns) as ColumnOption[]
 
       cloneColumns = cloneColumns.map((col) => {
@@ -1232,6 +1236,15 @@ export default defineComponent({
             cloneColumns,
             key,
           )
+        })
+      }
+
+      if (keepColumnsState) {
+        cloneColumns = restoreColumnsState({
+          cloneColumns,
+          prevCloneColumns: this.cloneColumns,
+          colgroups: this.colgroups,
+          enableColumnResize: this.enableColumnResize,
         })
       }
 
@@ -2010,7 +2023,7 @@ export default defineComponent({
           new Set(this.hiddenColumns.concat(keys)),
         )
 
-        this.showOrHideColumns()
+        this.showOrHideColumns({ keepColumnsState: true })
       }
     },
 
@@ -2021,13 +2034,11 @@ export default defineComponent({
                 将要显示的列从 hiddenColumns 中移除
                 Remove the columns to show from hidden columns
                 */
-        for (let i = keys.length - 1; i >= 0; i--) {
-          const delIndex = this.hiddenColumns.indexOf(keys[i])
-          if (delIndex > -1)
-            this.hiddenColumns.splice(delIndex, 1)
-        }
+        this.hiddenColumns = this.hiddenColumns.filter(
+          key => !keys.includes(key),
+        )
 
-        this.showOrHideColumns()
+        this.showOrHideColumns({ keepColumnsState: true })
       }
     },
 
