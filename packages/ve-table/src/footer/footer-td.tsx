@@ -9,7 +9,7 @@ import { COMPS_NAME } from '../util/constant'
 import { safeCall } from '../util/safe-call'
 
 export default defineComponent({
-  name: COMPS_NAME.VE_TABLE_BODY_TD,
+  name: COMPS_NAME.VE_TABLE_FOOTER_TD,
   props: {
     rowData: {
       type: Object,

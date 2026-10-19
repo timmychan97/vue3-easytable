@@ -895,6 +895,12 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
   - **Done:** the component is wrapped in `defineComponent` (behaviour unchanged). The type errors this exposed or that were already there in the footer were cheap to fix, all type-only: `footerRows` is `PropType<RowHeight[]>` in `index`, `footer-tr` and `footer-td`; `getTrKey` has typed params and the render casts `footerData` to `Record<string, any>[]` (the prop stays `Array`, because `ve-table.tsx` passes an untyped array); `footer-tr` `trClass` returns its object directly instead of reassigning a `null` variable; `footer-td` types the `getBodyTdClass` / `getBodyTdStyle` params and assigns `getValByUnit(...)` straight to `bottom` instead of writing a string into a `number` variable.
   - **Verified:** vue-tsc 238 → 219: all 18 errors in `footer/` and the `Footer` JSX error in `ve-table.tsx` are gone, with no new errors (diffed the error lists). `ve-table-footer.spec.tsx`, `ve-table-cell-span.spec.tsx` and `ve-table-render-cells.spec.tsx` pass with no snapshot change.
 
+- [x] ✅ 2026-10-19 · fix/audit-footer-header-tr · **RENDER-11** 🟢 `footer-tr` / `footer-td` reuse the body component names (found in wave 3)
+  - **Where:** `footer/footer-tr.tsx` (`name: COMPS_NAME.VE_TABLE_BODY_TR`) and `footer/footer-td.tsx` (`name: COMPS_NAME.VE_TABLE_BODY_TD`).
+  - **Effect:** footer rows and cells register as `VeTableBodyTr` / `VeTableBodyTd`, so `findComponent({ name: 'VeTableBodyTr' })` / `findAllComponents` in tests and the Vue devtools mix footer and body components (with 5 body rows and 2 footer rows, a lookup for body rows found 7).
+  - **Done:** new `COMPS_NAME.VE_TABLE_FOOTER_TR` (`'VeTableFooterTr'`) and `VE_TABLE_FOOTER_TD` (`'VeTableFooterTd'`) in `util/constant.ts`, used by the two footer components. Nothing in the source, specs or docs looked components up by the body names (searched for `VE_TABLE_BODY_TR` / `VE_TABLE_BODY_TD` and the string names; the specs find components only by `VeTableSelection`, `VeTableEditInput`, `VeTable` and `VueDomResizeObserver`).
+  - **Verified:** `ve-table-footer.spec.tsx` › "footer rows and cells have their own component names (RENDER-11)" (failed before: 7 `VeTableBodyTr` instead of 5; now the body names find only body rows / cells and the footer names only footer rows / cells). No snapshot change (component names don't appear in the HTML).
+
 ---
 
 ## MENU — contextmenu (table menus and the `ve-contextmenu` component)

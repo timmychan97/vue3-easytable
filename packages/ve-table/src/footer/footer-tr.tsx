@@ -7,7 +7,7 @@ import { COMPS_CUSTOM_ATTRS, COMPS_NAME, EMIT_EVENTS } from '../util/constant'
 import FooterTd from './footer-td'
 
 export default defineComponent({
-  name: COMPS_NAME.VE_TABLE_BODY_TR,
+  name: COMPS_NAME.VE_TABLE_FOOTER_TR,
   props: {
     rowData: {
       type: Object,
