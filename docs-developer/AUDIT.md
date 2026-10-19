@@ -251,6 +251,12 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
   - **Done:** the fallback assigns only the coordinates that are given (`isDefined`), so `{ top: 0 }` still scrolls to the top and `{}` changes nothing. The two colKey-0 specs no longer stub the container's `scrollTo` (MOD-02 added the stub because of this).
   - **Verified:** new `packages/common/__tests__/scroll-to.spec.ts` › "fallback without Element.scrollTo (INFRA-20)": "a top-only call keeps scrollLeft", "a left-only call keeps scrollTop" and "an empty option changes nothing" failed before (the other axis became 0); "sets both coordinates when both are given, including 0" and the `Element.scrollTo` delegation pass before and after. `ve-table-cell-selection.spec.ts` › "setCellSelection / setRangeCellSelection accept colKey 0 and scroll that column into view" (SEL-16, SEL-21) without the stub: both failed on the old fallback (`scrollLeft` 0 instead of 100, because the `scrollToRowKey` call after `columnToVisible` reset it) and pass now.
 
+- [x] ✅ 2026-10-19 · fix/audit-final-sweep · **INFRA-21** 🟢 Dead helper `getDomResizeObserverCompKey` (found in wave 4)
+  - **Where:** `packages/ve-table/src/util/core.ts` `getDomResizeObserverCompKey(originalKey, columnsOptionResetTime)`, re-exported from `util/index.ts` (`export * from './core'`).
+  - **Effect:** none at runtime; it built the `key@resetTime` keys that remounted the header rows and the measuring cells on every column change. RENDER-12 and COL-15 removed both uses, so nothing calls it, and it only invites the remount pattern back.
+  - **Done:** the function is removed. The barrel is unchanged (it re-exports `core`, which no longer has it). No spec tested it.
+  - **Verified:** a repo-wide search for `getDomResizeObserverCompKey` outside `node_modules` finds only the AUDIT.md history (COL-15, RENDER-12, DD-09, MOD-03). vue-tsc reports no new error, and the full suite passes.
+
 ---
 
 ## COL — columns (fixed, hide/show, resize)
