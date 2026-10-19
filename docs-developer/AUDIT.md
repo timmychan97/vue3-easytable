@@ -485,6 +485,12 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
   - **Done:** `contextmenuItemClick` calls `endSelectionDrag()`, which resets the same three flags and removes the listeners. `isAutofillStarting = false` is unchanged.
   - **Verified:** `ve-table-cell-selection.spec.ts` › "a contextmenu item click ends the drag and removes its document listener (SEL-19)" (failed before: the flag was reset but the `mouseup` listener was not removed).
 
+- [x] ✅ 2026-10-19 · fix/audit-pre-mod02 · **SEL-20** 🟢 `tableContainerMouseup` and `tableClickOutside` reset the drag flags themselves (found in wave 3)
+  - **Where:** `ve-table.tsx` `tableContainerMouseup` and `tableClickOutside` set `isHeaderCellMousedown` / `isBodyCellMousedown` / `isBodyOperationColumnMousedown` to `false` directly instead of calling `endSelectionDrag()` (`methods/cell-selection.ts`); the same duplication as SEL-19.
+  - **Effect:** mostly harmless, because on a real release the SEL-11 `document` capture `mouseup` listener runs first and removes itself. A click outside without a mouseup (a script or keyboard click, `detail: 0`, which `clickoutside` does not ignore) ended the drag but left the `document` `mouseup` and `window` `blur` listeners registered until the next mouseup.
+  - **Done:** both call `endSelectionDrag()`. `tableContainerMouseup` still sets `isAutofillStarting = false` (a release inside the table commits the fill), and `tableClickOutside` still calls `cancelAutofill()` (FILL-02).
+  - **Verified:** `ve-table-cell-selection.spec.ts` › "other paths that end a drag remove its listeners (SEL-20)": "a click outside the table during a drag (no mouseup, e.g. a script click)" and "the table container mouseup handler" (both failed before: the flag was reset but the drag's `mouseup` / `blur` listeners were not removed). `ve-table-autofill.spec.ts`, `ve-table-cell-selection-indicator.spec.ts`, `ve-table-column-resize.spec.ts` and `ve-table-keyboard.spec.ts` still pass.
+
 ---
 
 ## CLIP — clipboard

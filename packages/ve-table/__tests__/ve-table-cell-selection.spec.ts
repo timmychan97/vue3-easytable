@@ -860,6 +860,66 @@ describe('veTable cell selection', () => {
       add.mockRestore()
       remove.mockRestore()
     })
+
+    // SEL-20：tableClickOutside / tableContainerMouseup 通过 endSelectionDrag 结束拖动，同时移除 mouseup / blur 监听
+    describe('other paths that end a drag remove its listeners (SEL-20)', () => {
+      function spyListeners() {
+        const docAdd = vi.spyOn(document, 'addEventListener')
+        const docRemove = vi.spyOn(document, 'removeEventListener')
+        const winAdd = vi.spyOn(window, 'addEventListener')
+        const winRemove = vi.spyOn(window, 'removeEventListener')
+        const isRemoved = (removeSpy: any) => ([type, fn]: any[]) =>
+          removeSpy.mock.calls.some(([t, f]: any[]) => t === type && f === fn)
+        return {
+          // 拖动选择的 document mouseup 与 window blur
+          added: () => [
+            ...docAdd.mock.calls.filter(([type]) => type === 'mouseup'),
+            ...winAdd.mock.calls.filter(([type]) => type === 'blur'),
+          ],
+          allRemoved: () =>
+            docAdd.mock.calls.filter(([type]) => type === 'mouseup').every(isRemoved(docRemove))
+            && winAdd.mock.calls.filter(([type]) => type === 'blur').every(isRemoved(winRemove)),
+          restore: () => {
+            docAdd.mockRestore()
+            docRemove.mockRestore()
+            winAdd.mockRestore()
+            winRemove.mockRestore()
+          },
+        }
+      }
+
+      it('a click outside the table during a drag (no mouseup, e.g. a script click)', async () => {
+        const vm = mountInPage()
+        const spies = spyListeners()
+
+        mouse('mousedown', td(1, 1))
+        expect(vm.isBodyCellMousedown).toBe(true)
+        expect(spies.added().length).toBe(2)
+
+        // 没有 mousedown 的 click（detail 为 0），clickoutside 不会忽略它
+        ;(wrapper.find('.outside').element as HTMLElement).click()
+        await later()
+
+        expect(vm.isBodyCellMousedown).toBe(false)
+        expect(spies.allRemoved()).toBe(true)
+        spies.restore()
+      })
+
+      it('the table container mouseup handler', async () => {
+        const vm = mountInPage()
+        const spies = spyListeners()
+
+        mouse('mousedown', td(1, 1))
+        expect(spies.added().length).toBe(2)
+
+        // 直接调用容器的 mouseup 处理（真实事件中 document 捕获监听先执行）
+        vm.tableContainerMouseup()
+
+        expect(vm.isBodyCellMousedown).toBe(false)
+        expect(spies.allRemoved()).toBe(true)
+        spies.restore()
+      })
+    })
   })
 
   // SEL-12：区域选择之后调用 setCellSelection 应该得到单个单元格，而不是从新单元格到旧结束单元格的区域

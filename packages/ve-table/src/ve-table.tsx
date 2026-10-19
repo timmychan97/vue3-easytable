@@ -1363,9 +1363,8 @@ export default defineComponent({
       if (isContextmenuPanelClicked(e))
         return false
 
-      this.isHeaderCellMousedown = false
-      this.isBodyCellMousedown = false
-      this.isBodyOperationColumnMousedown = false
+      // 结束拖动选择，同时移除拖动期间的 mouseup / blur 监听（SEL-20）
+      this.endSelectionDrag()
       // 在表格外点击：取消正在进行的填充，而不是提交（FILL-02）
       this.cancelAutofill()
       this.setIsColumnResizing(false)
@@ -1881,9 +1880,9 @@ export default defineComponent({
 
     // table container mouseup
     tableContainerMouseup() {
-      this.isHeaderCellMousedown = false
-      this.isBodyCellMousedown = false
-      this.isBodyOperationColumnMousedown = false
+      // 结束拖动选择，同时移除拖动期间的 mouseup / blur 监听（SEL-20）
+      this.endSelectionDrag()
+      // 在表格内释放：提交填充（通常 FILL-02 的 window 捕获监听已先处理）
       this.isAutofillStarting = false
     },
 
