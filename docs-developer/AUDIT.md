@@ -181,13 +181,15 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
   - **Done:** the `columns` watcher only calls `initColumns()` (which replaces `cloneColumns`); the `cloneColumns` watcher does `initGroupColumns`, `initColumnWidthByColumnResize`, `columnsOptionResetTime++` and `initScrolling`. The only exception is the first, `immediate` run, which still calls `initGroupColumns` and `initColumnWidthByColumnResize` itself, because the `cloneColumns` watcher does not exist yet at that point. Also worse than described: `columnsOptionResetTime++` and `initScrolling()` ran twice per change too.
   - **Verified:** `ve-table-column-state.spec.ts` › "columns prop change (COL-04)": "rebuilds the columns once per change" (failed before: `initGroupColumns` was called 2 times; it also checks `columnsOptionResetTime` goes up by exactly 1); "still builds the columns on mount" guards the immediate run.
 
-- [ ] **COL-05** 🟢 The column resizer clobbers globals and can get stuck
+- [x] ✅ 2026-10-19 · fix/audit-batch7-columns · **COL-05** 🟢 The column resizer clobbers globals and can get stuck
   - **Where:** `column-resizer/index.tsx:169-182, 253-258`
   - **Issues:**
     - It overwrites `document.onselectstart` and `document.ondragstart`, removing any app handlers.
     - Alt-tab, or releasing the mouse outside the window, leaves resizing stuck.
     - There is no unmount cleanup (also listed in INFRA-03). → Fixed by INFRA-03 (batch 2). The other two bullets are still open.
   - **Fix:** use `addEventListener('selectstart', prevent)` and remove it afterwards. In mousemove, `if (e.buttons === 0) end()`; also end on `window` `blur` and on Escape.
+  - **Done:** `addDragListeners()` / `removeDragListeners()` own every drag listener: document `mousemove`, `mouseup`, `keydown`, `selectstart` and `dragstart` (the last two call `preventDefault`, so text selection is still blocked while dragging, without touching `document.onselectstart` / `ondragstart`), plus `window` `blur`. A `mousemove` with `buttons === 0` while resizing ends the drag and commits the width at the last position seen with the button held (the button was released outside the window). Escape and `window` `blur` cancel the drag without changing the width. A `mouseup` when no column was picked up (`currentResizingColumn` is null) also ends the drag; before, it returned early and left `isColumnResizing` true with the listeners attached. Unmount uses `removeDragListeners()`.
+  - **Verified:** `ve-table-column-resize.spec.ts` › "veTable column resize (COL-05)": "does not overwrite the app's document.onselectstart / ondragstart" (failed before: the app's handler was replaced), "ends the drag when the mouse button was released outside the window" (failed: still resizing), "cancels the drag on Escape" and "cancels the drag when the window loses focus" (both failed: still resizing); "resizes a column by dragging" guards the normal path. `ve-table-lifecycle.spec.ts` (INFRA-03 unmount cleanup) still passes.
 
 - [x] ✅ 2026-10-19 · fix/audit-batch7-columns · **COL-06** 🟢 🔍 Fixed-column edge detection compares `field` instead of `key`
   - **Where:** `body/index.tsx:423-462` and `footer-td.tsx` (last-left / first-right shadow classes); `selection/index.tsx:238` (`isFirstNotFixedSelectionCol` compares `col.field` to `leftColKey`). `header-th.tsx` correctly uses `_keys`.
