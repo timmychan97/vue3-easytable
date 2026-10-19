@@ -245,6 +245,12 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
   - **Fix:** remove `mitt` from both `package.json` files and update `pnpm-lock.yaml` (`pnpm install`).
   - **Blocked:** only because the user has uncommitted `pnpm-lock.yaml` changes in the main checkout. Changing the lockfile on a branch now would conflict with them, so this waits for the user.
 
+- [x] ✅ 2026-10-19 · fix/audit-final-sweep · **INFRA-20** 🟢 The `scrollTo` fallback resets the other axis (found in wave 4)
+  - **Where:** `packages/common/utils/index.ts` `scrollTo`: without `Element.scrollTo` it assigned `el.scrollTop = top ?? 0` and `el.scrollLeft = left ?? 0`.
+  - **Trigger:** a browser without `Element.scrollTo` (very old browsers; also jsdom). `scrollToRowKey` and the `scrollTo({ top })` instance method set `scrollLeft` to 0, and a left-only call set `scrollTop` to 0. `Element.scrollTo` leaves a missing coordinate where it is.
+  - **Done:** the fallback assigns only the coordinates that are given (`isDefined`), so `{ top: 0 }` still scrolls to the top and `{}` changes nothing. The two colKey-0 specs no longer stub the container's `scrollTo` (MOD-02 added the stub because of this).
+  - **Verified:** new `packages/common/__tests__/scroll-to.spec.ts` › "fallback without Element.scrollTo (INFRA-20)": "a top-only call keeps scrollLeft", "a left-only call keeps scrollTop" and "an empty option changes nothing" failed before (the other axis became 0); "sets both coordinates when both are given, including 0" and the `Element.scrollTo` delegation pass before and after. `ve-table-cell-selection.spec.ts` › "setCellSelection / setRangeCellSelection accept colKey 0 and scroll that column into view" (SEL-16, SEL-21) without the stub: both failed on the old fallback (`scrollLeft` 0 instead of 100, because the `scrollToRowKey` call after `columnToVisible` reset it) and pass now.
+
 ---
 
 ## COL — columns (fixed, hide/show, resize)
