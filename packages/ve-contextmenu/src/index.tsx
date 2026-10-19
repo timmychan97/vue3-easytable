@@ -111,12 +111,12 @@ export default defineComponent({
       },
       immediate: true,
     },
-    eventTarget: {
-      handler(val) {
-        if (val)
-          this.registerContextmenuEvent()
-      },
-      immediate: true,
+    /*
+          首次注册放在 mounted：字符串选择器在 created 阶段可能还查询不到元素（MENU-02）
+          之后每次变化都先移除旧元素上的监听，再注册到新元素
+          */
+    eventTarget() {
+      this.registerContextmenuEvent()
     },
   },
 
@@ -129,6 +129,7 @@ export default defineComponent({
   },
 
   mounted() {
+    this.registerContextmenuEvent()
     this.addRootContextmenuPanelToBody()
   },
 
@@ -491,14 +492,17 @@ export default defineComponent({
       }
     },
 
+    // 注册前先移除旧元素上的监听，保证同一时间只监听一个元素
     registerContextmenuEvent() {
+      this.removeContextmenuEvent()
+
       const { eventTarget } = this
 
-      if (typeof eventTarget === 'string' && eventTarget.length > 0)
-        this.eventTargetEl = document.querySelector(eventTarget)
+      if (typeof eventTarget === 'string')
+        this.eventTargetEl = eventTarget ? document.querySelector<HTMLElement>(eventTarget) : null
 
       else
-        this.eventTargetEl = eventTarget as HTMLElement
+        this.eventTargetEl = (eventTarget as HTMLElement) || null
 
       if (this.eventTargetEl) {
         // contextmenu is on the current element
@@ -515,6 +519,7 @@ export default defineComponent({
           'contextmenu',
           this.showRootContextmenuPanel,
         )
+        this.eventTargetEl = null
       }
     },
 

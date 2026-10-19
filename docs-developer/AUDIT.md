@@ -570,9 +570,11 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
   - **Effect:** a user menu item with no `type` matches "removeColumn", and a user `type: 'REMOVE_COLUMN'` renders with no label.
   - **Fix:** restore the constants (implementing them is optional), or remove them from the collections.
 
-- [ ] **MENU-02** 🟠 Changing `eventTarget` leaves a listener on the old element
+- [x] ✅ 2026-10-19 · fix/audit-batch7-contextmenu · **MENU-02** 🟠 Changing `eventTarget` leaves a listener on the old element
   - **Where:** `ve-contextmenu/src/index.tsx:109-115, 458-474`. The old listener is never removed, and a string selector is resolved by an `immediate` watcher before mount, so it gets `null` and is never retried.
   - **Fix:** call `removeContextmenuEvent()` before re-registering, and resolve strings in `mounted`.
+  - **Done:** the first registration moved from the `immediate` watcher to `mounted` (also keeps `document` out of `created` for SSR). The `eventTarget` watcher is no longer immediate and re-registers on every change. `registerContextmenuEvent()` always calls `removeContextmenuEvent()` first, which now also clears `eventTargetEl`; an empty string or missing element leaves no listener. The prop declaration is unchanged (INFRA-05 owns its type).
+  - **Verified:** `ve-contextmenu.spec.tsx` › "eventTarget (MENU-02)" › "changing eventTarget moves the listener to the new element" (failed before: the old element still had the listener, so its right-click was still `preventDefault`ed) and › "a string selector is resolved after mount, and re-resolved when it changes" (failed before: a target rendered after the component never got a listener). The first also checks that unmount leaves no listener.
 
 - [x] ✅ 2026-10-16 · fix/audit-batch2-lifecycle-leaks · **MENU-03** 🟠 The debounced hover handler fires after unmount
   - **Where:** `ve-contextmenu/src/index.tsx:120-133, 217-226` (the 300ms `debounceCreatePanelByHover` is never cancelled).

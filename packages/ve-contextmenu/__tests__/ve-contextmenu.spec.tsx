@@ -864,6 +864,61 @@ describe('veContextmenu', () => {
     wrapper.unmount()
   })
 
+  describe('eventTarget (MENU-02)', () => {
+    // showRootContextmenuPanel 会同步调用 preventDefault，dispatchEvent 返回 false 即表示监听器已注册
+    const rightClick = (el: Element) => !el.dispatchEvent(
+      new MouseEvent('contextmenu', { bubbles: true, cancelable: true }),
+    )
+
+    it('changing eventTarget moves the listener to the new element', async () => {
+      const elA = document.createElement('div')
+      const elB = document.createElement('div')
+      document.body.append(elA, elB)
+
+      const wrapper = mountDetached(veContextmenu, {
+        props: { options: cloneDeep(OPTIONS) as any, eventTarget: elA },
+      })
+      await later()
+      expect(rightClick(elA)).toBe(true)
+
+      await wrapper.setProps({ eventTarget: elB })
+      expect(rightClick(elA)).toBe(false)
+      expect(rightClick(elB)).toBe(true)
+
+      wrapper.unmount()
+      expect(rightClick(elB)).toBe(false)
+      elA.remove()
+      elB.remove()
+    })
+
+    it('a string selector is resolved after mount, and re-resolved when it changes', async () => {
+      const wrapper = mount({
+        template: `
+          <div>
+            <ve-contextmenu :eventTarget="selector" :options="options" />
+            <div id="menu02-target-a">A</div>
+            <div id="menu02-target-b">B</div>
+          </div>`,
+        data() {
+          return { selector: '#menu02-target-a', options: cloneDeep(OPTIONS) }
+        },
+      })
+      await later()
+
+      const elA = document.querySelector('#menu02-target-a')!
+      const elB = document.querySelector('#menu02-target-b')!
+      // 目标元素在组件之后渲染：created 阶段还查询不到
+      expect(rightClick(elA)).toBe(true)
+
+      ;(wrapper.vm as any).selector = '#menu02-target-b'
+      await later()
+      expect(rightClick(elA)).toBe(false)
+      expect(rightClick(elB)).toBe(true)
+
+      wrapper.unmount()
+    })
+  })
+
   describe('lifecycle and timers', () => {
     afterEach(() => {
       vi.useRealTimers()
