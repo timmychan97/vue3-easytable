@@ -178,7 +178,7 @@ describe('veTable lifecycle (remount / toggle)', () => {
   })
 
   it('pending selection debounces do not run after unmount (INFRA-03)', async () => {
-    mockNonZeroRect()
+    const rectSpy = mockNonZeroRect()
     const wrapper = mount(veTable, {
       props: {
         columns: COLUMNS,
@@ -191,21 +191,23 @@ describe('veTable lifecycle (remount / toggle)', () => {
     wrapper.findAll('.ve-table-body-tr')[1].findAll('.ve-table-body-td')[1].trigger('mousedown')
     await later()
 
-    const selection = wrapper.findComponent({ name: 'VeTableSelection' }).vm as any
+    expect(wrapper.findComponent({ name: 'VeTableSelection' }).exists()).toBe(true)
 
     vi.useFakeTimers()
     // 滚动 hook 会排两个防抖：debounceSetCellEls(200ms) 与 debounceResetCellPositions(210ms)
     const containerEl = wrapper.find('.ve-table-container').element
     ;(wrapper.vm as any).hooks.triggerHook(HOOKS_NAME.TABLE_CONTAINER_SCROLL, containerEl)
 
-    const setPositionsSpy = vi.spyOn(selection, 'setSelectionPositions')
-    const setCurrentCellElSpy = vi.spyOn(selection, 'setCurrentCellEl')
-
     await wrapper.setProps({ cellSelectionOption: { enable: false } })
+    expect(wrapper.findComponent({ name: 'VeTableSelection' }).exists()).toBe(false)
 
+    /*
+    选区层的防抖函数是 useSelectionPositions 内部的闭包，无法在实例上 spy（MOD-05）。
+    改为观察效果：未取消的 debounceResetCellPositions 会读取表格与单元格的位置（getBoundingClientRect）
+    */
+    const rectCallsBefore = rectSpy.mock.calls.length
     expect(() => vi.advanceTimersByTime(1000)).not.toThrow()
-    expect(setPositionsSpy).not.toHaveBeenCalled()
-    expect(setCurrentCellElSpy).not.toHaveBeenCalled()
+    expect(rectSpy.mock.calls.length).toBe(rectCallsBefore)
 
     wrapper.unmount()
   })

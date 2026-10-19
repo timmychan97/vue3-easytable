@@ -662,6 +662,34 @@ describe('veDropdown', () => {
       expect((wrapper.vm as any).isDropdownVisible).toBe(false)
       wrapper.unmount()
     })
+
+    // SEL-11：在面板内按下、在面板外松开（例如拖动选择文字），浏览器在公共祖先上触发 click，面板保持打开
+    it('a drag that starts inside the open panel and ends outside keeps it open (SEL-11)', async () => {
+      const wrapper = mount(veDropdown, {
+        props: { modelValue: DROPDOWN_ITEMS },
+        slots: { default: `<div class="btn">click me</div>` },
+      })
+      await later()
+
+      wrapper.find('.btn').element.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      await later()
+      expect((wrapper.vm as any).isDropdownVisible).toBe(true)
+
+      const panel = document.querySelector('.ve-dropdown-dd-show .ve-dropdown-items')!
+      const init = { bubbles: true, cancelable: true, detail: 1 }
+      panel.dispatchEvent(new MouseEvent('mousedown', init))
+      document.body.dispatchEvent(new MouseEvent('mouseup', init))
+      document.body.dispatchEvent(new MouseEvent('click', init))
+      await later(10)
+      expect((wrapper.vm as any).isDropdownVisible).toBe(true)
+
+      // 之后在外部的普通点击照常关闭
+      document.body.dispatchEvent(new MouseEvent('mousedown', init))
+      document.body.dispatchEvent(new MouseEvent('click', init))
+      await later(10)
+      expect((wrapper.vm as any).isDropdownVisible).toBe(false)
+      wrapper.unmount()
+    })
   })
 
   describe('option objects (DD-04)', () => {

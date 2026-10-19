@@ -289,5 +289,58 @@ describe('veTable cell selection', () => {
       expect(vm.bodyIndicatorRowKeys).toMatchObject({ startRowKey: '2', endRowKey: '3' })
       expect(vm.cellSelectionRangeData).toMatchObject({ topRowKey: '2', bottomRowKey: '3' })
     })
+
+    // SEL-15：从下往上（或从右往左）拖出的整行 / 整列选择，起点下标大于终点下标
+    it('right-clicking inside a row selection dragged upwards keeps it (SEL-15)', async () => {
+      const vm = mountTable()
+
+      // 从第 4 行拖到第 2 行
+      await operationTd('4').trigger('mousedown')
+      await operationTd('3').trigger('mouseover')
+      await operationTd('2').trigger('mouseover')
+      await wrapper.find('.ve-table-container').trigger('mouseup')
+      await later()
+      expect(vm.bodyIndicatorRowKeys).toMatchObject({ startRowKey: '4', endRowKey: '2' })
+      expect(vm.cellSelectionRangeData).toMatchObject({ topRowKey: '2', bottomRowKey: '4' })
+
+      // 在选区内（第 3 行）右键：保留整行选择（之前按 start <= end 判断，被重置为第 3 行）
+      rightMousedown(operationTd('3').element)
+      await wrapper.find('.ve-table-container').trigger('mouseup')
+      await later()
+      expect(vm.bodyIndicatorRowKeys).toMatchObject({ startRowKey: '4', endRowKey: '2' })
+      expect(vm.cellSelectionRangeData).toMatchObject({ topRowKey: '2', bottomRowKey: '4' })
+
+      // 在选区外右键：仍然重置为该行
+      rightMousedown(operationTd('5').element)
+      await wrapper.find('.ve-table-container').trigger('mouseup')
+      await later()
+      expect(vm.bodyIndicatorRowKeys).toMatchObject({ startRowKey: '5', endRowKey: '5' })
+    })
+
+    it('right-clicking inside a column selection dragged leftwards keeps it (SEL-15)', async () => {
+      const vm = mountTable()
+
+      // 从 c 列拖到 a 列
+      await headerTh('c').trigger('mousedown')
+      await headerTh('b').trigger('mouseover')
+      await headerTh('a').trigger('mouseover')
+      await wrapper.find('.ve-table-container').trigger('mouseup')
+      await later()
+      expect(vm.headerIndicatorColKeys).toMatchObject({ startColKey: 'c', endColKey: 'a' })
+      expect(vm.cellSelectionRangeData).toMatchObject({ leftColKey: 'a', rightColKey: 'c' })
+
+      // 在选区内（b 列）右键：保留整列选择
+      rightMousedown(headerTh('b').element)
+      await wrapper.find('.ve-table-container').trigger('mouseup')
+      await later()
+      expect(vm.headerIndicatorColKeys).toMatchObject({ startColKey: 'c', endColKey: 'a' })
+      expect(vm.cellSelectionRangeData).toMatchObject({ leftColKey: 'a', rightColKey: 'c' })
+
+      // 在选区外右键：仍然重置为该列
+      rightMousedown(headerTh('d').element)
+      await wrapper.find('.ve-table-container').trigger('mouseup')
+      await later()
+      expect(vm.headerIndicatorColKeys).toMatchObject({ startColKey: 'd', endColKey: 'd' })
+    })
   })
 })

@@ -583,6 +583,182 @@ describe('veTable cell selection', () => {
     })
   })
 
+  /*
+  SEL-11：在表格内开始拖动、在表格外（页面内）松开时，浏览器在公共祖先上触发 click（detail 为 1）。
+  这不是一次“在表格外的点击”，不应清除选区；但拖动本身要结束
+  */
+  describe('releasing a drag outside the table (SEL-11)', () => {
+    let wrapper: any = null
+
+    afterEach(() => {
+      wrapper?.unmount()
+      wrapper = null
+    })
+
+    function mountInPage() {
+      const ParentComp = {
+        template: `
+          <div class="page">
+            <button class="outside">outside table</button>
+            <veTable :columns="columns" :tableData="tableData" rowKeyFieldName="rowKey" />
+          </div>
+        `,
+        data() {
+          return { columns: COLUMNS, tableData: TABLE_DATA }
+        },
+      }
+      wrapper = mount(ParentComp, { attachTo: document.body })
+      return wrapper.findComponent(veTable).vm as any
+    }
+
+    function td(rowIndex: number, colIndex: number) {
+      return wrapper.findAll('.ve-table-body-tr')[rowIndex].findAll('.ve-table-body-td')[colIndex].element as HTMLElement
+    }
+
+    function mouse(type: string, el: Element, init: MouseEventInit = {}) {
+      el.dispatchEvent(new MouseEvent(type, { bubbles: true, cancelable: true, button: 0, buttons: 1, detail: 1, ...init }))
+    }
+
+    // 在表格外松开：mouseup 在外部按钮上，click 在公共祖先（.page）上
+    async function releaseOutside() {
+      mouse('mouseup', wrapper.find('.outside').element, { buttons: 0 })
+      mouse('click', wrapper.element, { buttons: 0 })
+      await later()
+    }
+
+    it('keeps a range selection, and the drag ends', async () => {
+      const vm = mountInPage()
+
+      mouse('mousedown', td(1, 1))
+      mouse('mouseover', td(3, 2))
+      await later()
+      expect(vm.cellSelectionRangeData).toEqual({ leftColKey: 'b', rightColKey: 'c', topRowKey: '2', bottomRowKey: '4' })
+
+      await releaseOutside()
+
+      expect(vm.cellSelectionData.currentCell).toMatchObject({ rowKey: '2', colKey: 'b' })
+      expect(vm.cellSelectionData.normalEndCell).toMatchObject({ rowKey: '4', colKey: 'c' })
+      expect(vm.cellSelectionRangeData).toEqual({ leftColKey: 'b', rightColKey: 'c', topRowKey: '2', bottomRowKey: '4' })
+
+      // 拖动已结束：之后鼠标经过其他单元格不再扩展选区
+      mouse('mouseover', td(4, 3), { buttons: 0 })
+      await later()
+      expect(vm.isBodyCellMousedown).toBe(false)
+      expect(vm.cellSelectionData.normalEndCell).toMatchObject({ rowKey: '4', colKey: 'c' })
+    })
+
+    it('keeps a single cell selection', async () => {
+      const vm = mountInPage()
+
+      mouse('mousedown', td(2, 0))
+      await releaseOutside()
+
+      expect(vm.cellSelectionData.currentCell).toMatchObject({ rowKey: '3', colKey: 'a' })
+    })
+
+    it('keeps a column selection dragged over the header, and the drag ends', async () => {
+      const vm = mountInPage()
+      const ths = wrapper.findAll('.ve-table-header-th')
+
+      mouse('mousedown', ths[0].element)
+      mouse('mouseover', ths[1].element)
+      await later()
+      expect(vm.headerIndicatorColKeys).toMatchObject({ startColKey: 'a', endColKey: 'b' })
+
+      await releaseOutside()
+
+      expect(vm.headerIndicatorColKeys).toMatchObject({ startColKey: 'a', endColKey: 'b' })
+      expect(vm.cellSelectionRangeData).toMatchObject({ leftColKey: 'a', rightColKey: 'b', topRowKey: '1', bottomRowKey: '5' })
+
+      mouse('mouseover', ths[3].element, { buttons: 0 })
+      await later()
+      expect(vm.isHeaderCellMousedown).toBe(false)
+      expect(vm.headerIndicatorColKeys).toMatchObject({ startColKey: 'a', endColKey: 'b' })
+    })
+
+    it('a real click outside the table still clears the selection', async () => {
+      const vm = mountInPage()
+
+      mouse('mousedown', td(1, 1))
+      mouse('mouseup', td(1, 1), { buttons: 0 })
+      mouse('click', td(1, 1), { buttons: 0 })
+      await later()
+      expect(vm.cellSelectionData.currentCell).toMatchObject({ rowKey: '2', colKey: 'b' })
+
+      const outside = wrapper.find('.outside').element
+      mouse('mousedown', outside)
+      mouse('mouseup', outside, { buttons: 0 })
+      mouse('click', outside, { buttons: 0 })
+      await later()
+      expect(vm.cellSelectionData.currentCell).toMatchObject({ rowKey: '', colKey: '' })
+    })
+
+    it('removes its document listener when the drag ends and on unmount', async () => {
+      const add = vi.spyOn(document, 'addEventListener')
+      const remove = vi.spyOn(document, 'removeEventListener')
+      mountInPage()
+      const added = () => add.mock.calls.filter(([type]) => type === 'mouseup')
+      const isRemoved = ([type, fn, options]: any[]) =>
+        remove.mock.calls.some(([t, f, o]) => t === type && f === fn && o === options)
+
+      mouse('mousedown', td(1, 1))
+      expect(added().length).toBe(1)
+      await releaseOutside()
+      expect(added().every(isRemoved)).toBe(true)
+
+      // 拖动中卸载
+      mouse('mousedown', td(2, 1))
+      expect(added().length).toBe(2)
+      wrapper.unmount()
+      wrapper = null
+      expect(added().every(isRemoved)).toBe(true)
+
+      add.mockRestore()
+      remove.mockRestore()
+    })
+  })
+
+  // SEL-12：区域选择之后调用 setCellSelection 应该得到单个单元格，而不是从新单元格到旧结束单元格的区域
+  it('setCellSelection after a range selects a single cell (SEL-12)', async () => {
+    const wrapper = mount(veTable, {
+      propsData: {
+        columns: COLUMNS,
+        tableData: TABLE_DATA,
+        rowKeyFieldName: 'rowKey',
+      },
+    })
+    const vm = wrapper.vm as any
+
+    vm.setRangeCellSelection({
+      startRowKey: '2',
+      startColKey: 'a',
+      endRowKey: '4',
+      endColKey: 'c',
+    })
+    await later()
+    expect(vm.currentCellSelectionType).toBe('range')
+
+    vm.setCellSelection({ rowKey: '1', colKey: 'b' })
+    await later()
+
+    expect(vm.cellSelectionData.currentCell).toMatchObject({ rowKey: '1', colKey: 'b' })
+    expect(vm.cellSelectionData.normalEndCell).toMatchObject({ rowKey: '', colKey: '', rowIndex: -1 })
+    expect(vm.currentCellSelectionType).toBe('single')
+    expect(vm.cellSelectionRangeData).toEqual({
+      leftColKey: 'b',
+      rightColKey: 'b',
+      topRowKey: '1',
+      bottomRowKey: '1',
+    })
+    expect(vm.getRangeCellSelection().selectionRangeKeys).toEqual({
+      startColKey: 'b',
+      endColKey: 'b',
+      startRowKey: '1',
+      endRowKey: '1',
+    })
+    wrapper.unmount()
+  })
+
   // SEL-06：公开的选区 API 收到未知的 rowKey / colKey 时不抛错，也不改变选区
   describe('unknown keys in the selection API (SEL-06)', () => {
     function mountWithXScrollBar() {

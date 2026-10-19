@@ -1146,6 +1146,8 @@ export default defineComponent({
     this.destroyTanStackVirtualScroll()
     // 拖动填充中卸载：移除 window 上的监听（FILL-02）
     this.removeAutofillWindowListeners()
+    // 拖动选择中卸载：移除 document 上的监听（SEL-11）
+    this.removeSelectionDragListener()
   },
 
   methods: {
@@ -1550,6 +1552,8 @@ export default defineComponent({
 
         const { bodyIndicatorRowKeys } = this
         this.isBodyOperationColumnMousedown = true
+        // 在表格外松开时也要结束拖动（SEL-11）
+        this.addSelectionDragListener()
 
         const { startRowKey, endRowKey } = bodyIndicatorRowKeys
         // 下标按当前行顺序计算，插入行后不会过期（SEL-09）
@@ -1571,13 +1575,16 @@ export default defineComponent({
         }
         else {
           const currentRowIndex = allRowKeys.indexOf(rowKey)
+          // 从下往上拖动时起点下标大于终点下标，按上下边界判断（SEL-15）
+          const topRowIndex = Math.min(startRowKeyIndex, endRowKeyIndex)
+          const bottomRowIndex = Math.max(startRowKeyIndex, endRowKeyIndex)
 
           // 左键点击 || 不在当前选择行内
           if (
             mouseEventClickType
             === MOUSE_EVENT_CLICK_TYPE.LEFT_MOUSE
-            || currentRowIndex < startRowKeyIndex
-            || currentRowIndex > endRowKeyIndex
+            || currentRowIndex < topRowIndex
+            || currentRowIndex > bottomRowIndex
           ) {
             newStartRowKey = rowKey
             newEndRowKey = rowKey
@@ -1592,6 +1599,8 @@ export default defineComponent({
       else {
         // body cell mousedown（在输入框中拖动选择文字时不扩展单元格选区，SEL-10）
         this.isBodyCellMousedown = !isWidgetMousedown
+        if (this.isBodyCellMousedown)
+          this.addSelectionDragListener()
 
         const isClearByRightClick
                     = isClearSelectionByBodyCellRightClick({
@@ -1739,6 +1748,7 @@ export default defineComponent({
         return false
 
       this.isHeaderCellMousedown = true
+      this.addSelectionDragListener()
 
       const { shiftKey } = event
 
@@ -1837,18 +1847,21 @@ export default defineComponent({
       else {
         const mouseEventClickType = getMouseEventClickType(event)
         const currentCellStartColIndex = colgroups.findIndex(
-          x => x.key === currentCellEndColKey,
-        )
-        const currentCellEndColIndex = colgroups.findIndex(
           x => x.key === currentCellStartColKey,
         )
+        const currentCellEndColIndex = colgroups.findIndex(
+          x => x.key === currentCellEndColKey,
+        )
+        // 从右往左拖动时起点下标大于终点下标，按左右边界判断（SEL-15）
+        const leftColIndex = Math.min(startColKeyIndex, endColKeyIndex)
+        const rightColIndex = Math.max(startColKeyIndex, endColKeyIndex)
         // 左键点击 || 不在当前选择列内
         if (
           mouseEventClickType === MOUSE_EVENT_CLICK_TYPE.LEFT_MOUSE
-          || currentCellStartColIndex < startColKeyIndex
-          || currentCellEndColIndex < startColKeyIndex
-          || currentCellStartColIndex > endColKeyIndex
-          || currentCellEndColIndex > endColKeyIndex
+          || currentCellStartColIndex < leftColIndex
+          || currentCellEndColIndex < leftColIndex
+          || currentCellStartColIndex > rightColIndex
+          || currentCellEndColIndex > rightColIndex
         ) {
           newStartColKey = currentCellStartColKey
           newEndColKey = currentCellEndColKey
@@ -1969,6 +1982,8 @@ export default defineComponent({
           rowKey,
           colKey,
         })
+        // 选中单个单元格：清除之前区域选择的结束单元格（SEL-12）
+        this.clearCellSelectionNormalEndCell()
 
         // column to visible
         this.columnToVisible(column)
