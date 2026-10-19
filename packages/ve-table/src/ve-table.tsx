@@ -17,15 +17,13 @@ import {
   isDefined,
   isEmptyValue,
   isFunction,
-  scrollTo,
 } from '@vue3-easytable/common/utils'
 import { MOUSE_EVENT_CLICK_TYPE } from '@vue3-easytable/common/utils/constant'
 // isInputKeyCode moved to methods/keyboard.ts
 import { getMouseEventClickType } from '@vue3-easytable/common/utils/mouse-event'
-import { getScrollbarWidth } from '@vue3-easytable/common/utils/scroll-bar'
 import VeContextmenu from '@vue3-easytable/ve-contextmenu'
 import { cloneDeep } from 'lodash'
-import { computed, defineComponent, getCurrentInstance, inject, markRaw, nextTick, provide, shallowRef, watch } from 'vue'
+import { computed, defineComponent, inject, markRaw, nextTick, provide, shallowRef } from 'vue'
 import Body from './body'
 import Colgroup from './colgroup'
 import ColumnResizer from './column-resizer'
@@ -36,6 +34,7 @@ import { useColumns } from './features/columns/useColumns'
 import { FIXED_COLUMNS_KEY, useFixedColumns } from './features/fixed-columns/useFixedColumns'
 import { useTableLayout } from './features/layout/useTableLayout'
 import { createRowState, ROW_STATE_KEY } from './features/row-state'
+import { useScrolling } from './features/scrolling/useScrolling'
 import { createTableContext, provideTableContext, useTableContext } from './features/table-context'
 import { useVirtualScroll } from './features/virtual-scroll/useVirtualScroll'
 import Footer from './footer'
@@ -45,11 +44,9 @@ import { clipboardMethods } from './methods/clipboard'
 import { contextmenuMethods } from './methods/contextmenu'
 import { editingMethods } from './methods/editing'
 import { keyboardMethods } from './methods/keyboard'
-import { scrollingMethods } from './methods/scrolling'
 import RowInsertIndicator from './row-insert-indicator'
 import Selection from './selection'
 import { getAutofillDirection } from './selection/geometry'
-import { queryBodyRow } from './util/cell-dom'
 // Clipboard utils moved to methods/clipboard.ts
 import {
   COMPS_NAME,
@@ -89,9 +86,6 @@ export default defineComponent({
   emits: [EMIT_EVENTS.ROW_INSERT],
   props: veTableProps,
   setup(props) {
-    // 迁移过程中（MOD-02）尚未改为组合式函数的状态仍在 Options API 中，通过实例读取
-    const vm = getCurrentInstance()!.proxy as any
-
     // 表格上下文（MOD-01）：子组件与表格之间的类型化事件，取代 emitter mixin 与 Hooks。非响应式
     const tableContext = markRaw(createTableContext())
     provideTableContext(tableContext)
@@ -134,13 +128,9 @@ export default defineComponent({
     const columns = useColumns({
       props,
       tableContext,
-      // 拖动列宽后，等 DOM 更新再刷新滚动条状态
-      onColumnWidthResize: () => {
-        nextTick(() => vm.setScrollBarStatus())
-      },
+      // 拖动列宽后，等 DOM 更新再刷新滚动条状态（滚动状态在后面创建，函数声明会被提升）
+      onColumnWidthResize: refreshScrollBarStatusAfterRender,
     })
-    // 迁移过程中（MOD-02）：列变化后刷新滚动状态
-    watch(columns.columnsOptionResetTime, () => vm.initScrolling())
     // 列宽测量（COL-07、COL-15）
     const columnMeasure = useColumnMeasure({
       colgroups: columns.colgroups,
@@ -166,6 +156,27 @@ export default defineComponent({
       scrollElement: tableContainerRef,
     })
 
+    // 滚动阴影、滚动条状态、行 / 列滚动到可见区域
+    const scrolling = useScrolling({
+      props,
+      rootElement: tableRootRef,
+      containerElement: tableContainerRef,
+      contentWrapper: tableContentWrapperRef,
+      colgroups: columns.colgroups,
+      hasFixedColumn: columns.hasFixedColumn,
+      columnsOptionResetTime: columns.columnsOptionResetTime,
+      isVirtualScroll: virtualScroll.isVirtualScroll,
+      virtualScroll: virtualScroll.virtualScroll,
+      headerTotalHeight: layout.headerTotalHeight,
+      footerTotalHeight: layout.footerTotalHeight,
+      cellSelectionData: selectionState.cellSelectionData,
+      cellSelectionCurrentCellChange: selectionState.cellSelectionCurrentCellChange,
+    })
+
+    function refreshScrollBarStatusAfterRender() {
+      nextTick(() => scrolling.setScrollBarStatus())
+    }
+
     return {
       tableContext,
       tableEvents,
@@ -176,6 +187,7 @@ export default defineComponent({
       ...layout,
       ...virtualScroll,
       ...selectionState,
+      ...scrolling,
       tableRootRef,
       tableContainerWrapperRef,
       tableContainerRef,
@@ -191,16 +203,6 @@ export default defineComponent({
   data() {
     return {
       parentRendered: false,
-
-      // Scrolling state
-      isLeftScrolling: false,
-      isRightScrolling: false,
-      isVerticalScrolling: false,
-      hasXScrollBar: false,
-      hasYScrollBar: false,
-      // 滚动条宽度缓存；null 表示尚未测量（覆盖式滚动条的宽度为 0，也需要缓存）
-      scrollBarWidth: null as number | null,
-      previewTableContainerScrollLeft: null as number | null,
 
       // Mouse interaction state
       isHeaderCellMousedown: false,
@@ -518,9 +520,6 @@ export default defineComponent({
 
     // add key down event listener
     document.addEventListener('keydown', this.dealKeydownEvent)
-
-    // init scrolling
-    this.initScrolling()
   },
   unmounted() {
     // remove key down event listener
@@ -542,20 +541,6 @@ export default defineComponent({
 
       // stop editing cell if active
       this[INSTANCE_METHODS.STOP_EDITING_CELL]()
-    },
-
-    // scroll bar width
-    getScrollBarWidth() {
-      const { scrollBarWidth } = this
-
-      // RENDER-06：用 null 判断是否已测量。覆盖式滚动条（macOS、移动端）宽度为 0，
-      // 若用真值判断会在每次渲染时都插入探测元素并强制两次布局
-      if (scrollBarWidth !== null)
-        return scrollBarWidth
-
-      const result = getScrollbarWidth()
-      this.scrollBarWidth = result
-      return result
     },
 
     // get virtual phantom (kept for expand row + fixed column sticky workaround)
@@ -590,8 +575,6 @@ export default defineComponent({
 
       return content
     },
-
-    // setScrolling, setScrollBarStatus, initScrolling → extracted to methods/scrolling.ts
 
     // table click outside
     tableClickOutside(e) {
@@ -1282,47 +1265,6 @@ export default defineComponent({
       }
     },
 
-    // table scrollTo
-    [INSTANCE_METHODS.SCROLL_TO](option) {
-      scrollTo(this.tableContainerRef, option)
-    },
-    // table scroll to rowKey position
-    [INSTANCE_METHODS.SCROLL_TO_ROW_KEY]({ rowKey }) {
-      if (isEmptyValue(rowKey)) {
-        console.warn('Row key can\'t be empty!')
-        return false
-      }
-
-      const { isVirtualScroll, headerTotalHeight } = this
-      const tableContainerRef = this.tableContainerRef
-
-      if (isVirtualScroll && this.virtualScroll) {
-        // Find the row's index in tableData
-        const index = this.tableData.findIndex(
-          (row: any) => row[this.rowKeyFieldName] === rowKey,
-        )
-        if (index >= 0) {
-          this.virtualScroll.scrollToIndex(index, { align: 'start', behavior: 'auto' })
-        }
-      }
-      else {
-        // key 会被转义；未渲染的行返回 null
-        const rowEl = queryBodyRow(this.tableRootRef, rowKey)
-
-        const scrollTop = rowEl ? rowEl.offsetTop - headerTotalHeight : 0
-
-        scrollTo(tableContainerRef, {
-          top: scrollTop,
-          behavior: 'smooth',
-        })
-      }
-    },
-    // scroll to col key position
-    [INSTANCE_METHODS.SCROLL_TO_COL_KEY]({ colKey }) {
-      const column = getColumnByColkey(colKey, this.colgroups)
-      if (column)
-        this.columnToVisible(column)
-    },
     // start editing cell
     [INSTANCE_METHODS.START_EDITING_CELL]({
       rowKey,
@@ -1456,7 +1398,6 @@ export default defineComponent({
     ...contextmenuMethods,
     ...editingMethods,
     ...keyboardMethods,
-    ...scrollingMethods,
   },
   render() {
     const {

@@ -2,6 +2,7 @@ import type { ColumnOption } from '@/ve-table/src/ve-table-types'
 import { useCellSelectionState } from '@/ve-table/src/features/cell-selection/useCellSelectionState'
 import { useColumns } from '@/ve-table/src/features/columns/useColumns'
 import { useTableLayout } from '@/ve-table/src/features/layout/useTableLayout'
+import { useScrolling } from '@/ve-table/src/features/scrolling/useScrolling'
 import { createTableContext } from '@/ve-table/src/features/table-context'
 import { useVirtualScroll } from '@/ve-table/src/features/virtual-scroll/useVirtualScroll'
 import { HOOKS_NAME } from '@/ve-table/src/util/constant'
@@ -279,5 +280,84 @@ describe('useCellSelectionState', () => {
     rowKeys.value = ['new', 'r0', 'r1', 'r2']
     expect(state.getIndicatorIndexes()).toEqual({ startColIndex: -1, endColIndex: -1, startRowIndex: 2, endRowIndex: 3 })
     stop()
+  })
+})
+
+describe('useScrolling', () => {
+  // jsdom 没有布局：用固定的尺寸模拟滚动容器
+  function fakeContainer(size: Record<string, number>) {
+    const el = document.createElement('div')
+    Object.entries(size).forEach(([key, value]) => {
+      Object.defineProperty(el, key, { configurable: true, writable: true, value })
+    })
+    return el
+  }
+
+  function setup(container: HTMLElement | null, fixed = true) {
+    const props = reactive({ fixedHeader: true, tableData: [], rowKeyFieldName: 'id' }) as any
+    const colgroups = ref<any[]>([
+      { key: 'a', fixed: fixed ? 'left' : '', _realTimeWidth: 100 },
+      { key: 'b', _realTimeWidth: 100 },
+      { key: 'c', _realTimeWidth: 100 },
+    ])
+    const resetTime = ref(0)
+    const changes: any[] = []
+    const { result } = withSetup(() => useScrolling({
+      props,
+      rootElement: shallowRef(null),
+      containerElement: shallowRef(container),
+      contentWrapper: shallowRef(null),
+      colgroups,
+      hasFixedColumn: computed(() => colgroups.value.some(x => x.fixed)),
+      columnsOptionResetTime: resetTime,
+      isVirtualScroll: computed(() => false),
+      virtualScroll: shallowRef(null),
+      headerTotalHeight: computed(() => 40),
+      footerTotalHeight: computed(() => 0),
+      cellSelectionData: ref({ currentCell: { rowKey: '', colKey: 'a', rowIndex: -1 } } as any),
+      cellSelectionCurrentCellChange: cell => changes.push(cell),
+    }))
+    return { scrolling: result, resetTime }
+  }
+
+  it('sets the scroll shadows from the container on mount and after a column reset', async () => {
+    const container = fakeContainer({ scrollWidth: 500, clientWidth: 200, scrollLeft: 100, scrollTop: 10 })
+    const { scrolling, resetTime } = setup(container)
+
+    expect(scrolling.isLeftScrolling.value).toBe(true)
+    expect(scrolling.isRightScrolling.value).toBe(true)
+    expect(scrolling.isVerticalScrolling.value).toBe(true)
+
+    ;(container as any).scrollLeft = 300
+    resetTime.value++
+    await nextTick()
+    expect(scrolling.isRightScrolling.value).toBe(false)
+  })
+
+  it('detects the scroll bars', () => {
+    const container = fakeContainer({ scrollWidth: 500, clientWidth: 200, scrollHeight: 100, clientHeight: 100, scrollLeft: 0, scrollTop: 0 })
+    const { scrolling } = setup(container)
+
+    scrolling.setScrollBarStatus()
+    expect(scrolling.hasXScrollBar.value).toBe(true)
+    expect(scrolling.hasYScrollBar.value).toBe(false)
+  })
+
+  it('scrolls a column into view only when there is a horizontal scroll bar', () => {
+    const container = fakeContainer({ scrollWidth: 300, clientWidth: 100, scrollLeft: 200, scrollTop: 0 })
+    const { scrolling } = setup(container, false)
+
+    expect(scrolling.columnToVisible({ key: 'a' } as any)).toBe(false)
+    scrolling.hasXScrollBar.value = true
+    scrolling.scrollToColKey({ colKey: 'a' })
+    expect(container.scrollLeft).toBe(0)
+  })
+
+  it('warns about an empty row key', () => {
+    const { scrolling } = setup(fakeContainer({ scrollTop: 0 }), false)
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    expect(scrolling.scrollToRowKey({ rowKey: '' })).toBe(false)
+    expect(warn).toHaveBeenCalled()
+    warn.mockRestore()
   })
 })
