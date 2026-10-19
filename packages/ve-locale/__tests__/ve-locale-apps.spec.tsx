@@ -146,4 +146,58 @@ describe('veLocale: per-app isolation (I18N-02)', () => {
       app.unmount()
     }
   })
+
+  describe('app.use(VeLocale, { locale }) and useVeTable() in either order (I18N-06)', () => {
+    // 不经过 VTU（VTU 的全局插件已经执行过 useVeTable()），直接创建 app
+    function mountPlain(install: (app: ReturnType<typeof createApp>) => void) {
+      const app = createApp({ render: () => <ve-pagination total={600} /> })
+      install(app)
+      const el = document.createElement('div')
+      app.mount(el)
+      return { app, label: () => el.querySelector('.ve-pagination-goto-label')!.textContent }
+    }
+
+    it('app.use(VeLocale, { locale }) after useVeTable() sets the app language', () => {
+      const { app, label } = mountPlain((app) => {
+        app.use(useVeTable())
+        app.use(veLocale, { locale: enUS })
+      })
+
+      try {
+        expect(label()).toBe(enUS.分页.前往)
+        expect(veLocale.getMessage().分页.前往).toBe(zhCN.分页.前往)
+      }
+      finally {
+        app.unmount()
+      }
+    })
+
+    it('app.use(VeLocale, { locale }) after useVeTable({ locale }) wins', () => {
+      const { app, label } = mountPlain((app) => {
+        app.use(useVeTable({ locale: nbNO }))
+        app.use(veLocale, { locale: enUS })
+      })
+
+      try {
+        expect(label()).toBe(enUS.分页.前往)
+      }
+      finally {
+        app.unmount()
+      }
+    })
+
+    it('useVeTable() after app.use(VeLocale, { locale }) keeps that language', () => {
+      const { app, label } = mountPlain((app) => {
+        app.use(veLocale, { locale: enUS })
+        app.use(useVeTable())
+      })
+
+      try {
+        expect(label()).toBe(enUS.分页.前往)
+      }
+      finally {
+        app.unmount()
+      }
+    })
+  })
 })

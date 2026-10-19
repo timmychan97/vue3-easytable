@@ -23,7 +23,8 @@ const components = [
   VeDropdown,
   VeIcon,
   VeLoading,
-  VeLocale,
+  // VeLocale 不在这里通过 app.use 安装，而是由下面的 installLocale 安装：
+  // 否则之后的 app.use(VeLocale, { locale }) 会被 Vue 当作重复安装而跳过，语言包不生效（I18N-06）
   VePagination,
   VeRadio,
   VeSelect,
