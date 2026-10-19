@@ -1034,6 +1034,13 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
     - "a non-integer pagingCount is floored" (before: `'向后 3.7 页'`); now 3 number buttons and a jump to 13.
     - "a NaN pagingCount falls back to the default 5" (before: 60 buttons instead of 9).
 
+- [x] ✅ 2026-10-19 · fix/audit-pag06-even-paging · **PAG-06** 🟢 An even `pagingCount` shows one extra page button mid-range (found in wave 3)
+  - **Where:** `ve-pagination/src/pager.tsx`, `numOffset = floor((pagingCount + 2) / 2) - 1`, used as `pageIndex ± numOffset` for the middle range (when both jump buttons show).
+  - **Trigger:** `pagingCount = 4` with 20 pages: near either end the pager shows 4 number buttons, but in the middle it shows `pageIndex ± 2`, which is 5 buttons, so the count changes while paging. `pagingCount = 2` shows 3 in the middle, `6` shows 7. Odd counts (including the default 5) were already correct.
+  - **Done:** the middle range is now `pageIndex - floor((n - 1) / 2)` … `pageIndex + ceil((n - 1) / 2)`, so it always holds exactly `pagingCount` buttons. For an even count the extra button goes after the current page (`pagingCount = 4`, page 10: 9 … 12). For odd counts both offsets equal the old `numOffset`, so the rendered output is unchanged.
+  - **Verified:** `ve-pagination.spec.tsx` › "the pager always shows pagingCount number buttons (PAG-06)". For `pagingCount` 1 … 6, every page index with page counts `n + 2`, `n + 3`, `2n + 3` and 30: when a jump button shows there are exactly `pagingCount` number buttons between the first and last page (otherwise all pages), they are consecutive and include the current page. Before the fix, 2, 4 and 6 failed (e.g. `[3, 4, 5, 6, 7]` for `n = 4`, page 5 of 11) and 1, 3 and 5 passed. "an even pagingCount puts the extra button after the current page" checks the exact ranges for 2, 4, 6 and that 5 is still `8 … 12`. No snapshot changed.
+  - **Note:** a separate, older quirk remains for every count: when `pagingCount + 2 < pageCount < 2 * pagingCount` and the current page is in `(pageCount - pagingCount, pagingCount]`, neither jump button shows and all pages are listed (default 5 with 8 pages: 5, then 6 on pages 4–5, then 5 buttons). Not changed here, because fixing it changes odd-count output.
+
 ---
 
 ## LOAD — loading service
