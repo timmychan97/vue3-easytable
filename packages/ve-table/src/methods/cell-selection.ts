@@ -2,8 +2,10 @@
  * Cell selection methods extracted from ve-table.
  * Spread into defineComponent({ methods: { ...cellSelectionMethods } })
  */
+import type { AppliedCellChange } from '../features/cell-value-change/index.js'
 import { isBoolean, isEmptyValue, isFunction } from '@vue3-easytable/common/utils'
 import { KEY_CODES } from '@vue3-easytable/common/utils/constant'
+import { getCellValueCallbacks } from '../features/cell-value-change/index.js'
 import {
   AUTOFILLING_DIRECTION,
   CURRENT_CELL_SELECTION_TYPES,
@@ -274,14 +276,26 @@ export const cellSelectionMethods = {
       nextNormalEndCell: normalEndCellData,
     }
 
+    /*
+    执行顺序（FILL-03，与剪贴板相同，见 methods/clipboard.ts）：
+      beforeAutofill（可取消）
+      → 逐单元格 beforeCellValueChange 并写入（设置了 editOption 时只写入 edit: true 的列；
+        返回 false 或抛出异常只跳过该单元格）
+      → 选区更新
+      → 逐单元格 cellValueChange、afterCellValueChange（只针对实际写入的单元格）
+      → afterAutofill（最后）
+    操作列、没有 field 的列始终不写入（FILL-04）。
+    */
     let autofillResponse: any = null
+    let appliedChanges: AppliedCellChange[] = []
+    const cellValueCallbacks = getCellValueCallbacks(this.editOption)
 
     if (cellAutofillOption) {
       const { beforeAutofill } = cellAutofillOption
 
       if (isFunction(beforeAutofill)) {
         // before autofill
-        const beforeAutofillResponse = cellAutofill({
+        const { response: beforeAutofillResponse } = cellAutofill({
           isReplaceData: false,
           ...cellAutofillParams,
         })
@@ -296,10 +310,14 @@ export const cellSelectionMethods = {
       }
 
       // replace data
-      autofillResponse = cellAutofill({
+      const { response, applied } = cellAutofill({
         isReplaceData: true,
         ...cellAutofillParams,
+        editableOnly: cellValueCallbacks.editableOnly,
+        canChange: cellValueCallbacks.canChange,
       })
+      autofillResponse = response
+      appliedChanges = applied
     }
 
     // 先更新选区，再调用 afterAutofill（INFRA-07）
@@ -316,6 +334,9 @@ export const cellSelectionMethods = {
         colKey: normalEndCellData.colKey,
       })
     }
+
+    // 内部状态已更新完毕，再调用逐单元格的 after 回调（FILL-03）
+    cellValueCallbacks.fireAfter(appliedChanges)
 
     // after autofill
     if (autofillResponse)

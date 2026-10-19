@@ -3,6 +3,8 @@
 - 填充方向由选区与结束单元格的位置计算，不再是渲染副作用（FILL-01）
 - 在表格外 / 窗口外释放鼠标、窗口失焦时取消填充（FILL-02）
 - 选区边框几何计算不修改共享对象，区域浮层与边框围成的矩形一致（SEL-07）
+- 设置了 editOption 时只填充 edit: true 的列，并逐单元格调用编辑回调（FILL-03，D12）
+- 操作列、没有 field 的列不被填充（FILL-04）
 */
 
 import veTable from '@/ve-table'
@@ -14,6 +16,7 @@ import {
 import { later } from '@test-utils'
 import { mount } from '@vue/test-utils'
 import { cloneDeep } from 'lodash'
+import { toRaw } from 'vue'
 
 // 布局模拟：表头高 40，每行高 40，每列宽 100（按列顺序从 0 开始排列）
 const HEADER_HEIGHT = 40
@@ -54,10 +57,10 @@ function rect(left: number, top: number, width: number, height: number) {
 }
 
 // jsdom 没有布局：按行列位置返回单元格矩形，其他元素返回一个容纳整个表格的矩形
-function mockTableLayout() {
+function mockTableLayout(colKeys: string[] = COL_KEYS) {
   return vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(function (this: Element) {
     if (this.tagName === 'TD' && this.hasAttribute('col-key')) {
-      const colIndex = COL_KEYS.indexOf(this.getAttribute('col-key')!)
+      const colIndex = colKeys.indexOf(this.getAttribute('col-key')!)
       const rowIndex = ROW_KEYS.indexOf(this.closest('tr')!.getAttribute('row-key')!)
       return rect(colIndex * COL_WIDTH, HEADER_HEIGHT + rowIndex * ROW_HEIGHT, COL_WIDTH, ROW_HEIGHT)
     }
@@ -406,6 +409,263 @@ describe('veTable cell autofill', () => {
       wrapper.unmount()
       wrapper = null
       expect(added().every(isRemoved)).toBe(true)
+    })
+  })
+
+  describe('editOption and the column edit flag (FILL-03)', () => {
+    // date 不可编辑，其余列可编辑
+    const EDIT_COLUMNS = COLUMNS.map(x => (x.field === 'date' ? { ...x } : { ...x, edit: true }))
+
+    function editCallbacks(overrides: Record<string, any> = {}) {
+      return {
+        beforeCellValueChange: vi.fn(),
+        cellValueChange: vi.fn(),
+        afterCellValueChange: vi.fn(),
+        ...overrides,
+      }
+    }
+
+    function mountEditable(
+      editOption: Record<string, any> | null = editCallbacks(),
+      cellAutofillOption: Record<string, any> = {},
+    ) {
+      mockTableLayout()
+      return mountTable({
+        columns: cloneDeep(EDIT_COLUMNS),
+        cellAutofillOption,
+        ...(editOption ? { editOption } : {}),
+      })
+    }
+
+    // "回调名:行 key:列 key:changeValue"
+    function describeCall(name: string, params: any) {
+      return `${name}:${params.row.rowKey}:${params.column.key}:${params.changeValue}`
+    }
+
+    it('fills down only the columns with edit: true', async () => {
+      mountEditable()
+
+      await selectRange('r1', 'name', 'r1', 'hobby')
+      await dragCorner(['r2', 'hobby'], ['r3', 'hobby'])
+      await releaseInTable('r3', 'hobby')
+
+      expect(vueErrors).toEqual([])
+      expect(rowOf('r2')).toMatchObject({ name: 'n1', date: 'd2', hobby: 'h1' })
+      expect(rowOf('r3')).toMatchObject({ name: 'n1', date: 'd3', hobby: 'h1' })
+    })
+
+    it('fills right only the columns with edit: true', async () => {
+      mountEditable()
+
+      await fill(['r1', 'name'], ['r1', 'date'], ['r1', 'hobby'])
+
+      expect(vueErrors).toEqual([])
+      expect(rowOf('r1')).toMatchObject({ name: 'n1', date: 'd1', hobby: 'n1' })
+    })
+
+    it('fires the cell value callbacks once per changed cell, with the editing payload', async () => {
+      const editOption = editCallbacks()
+      mountEditable(editOption)
+      // r2 的 name 已与源单元格相同：不触发回调
+      rowOf('r2').name = 'n1'
+
+      await fill(['r1', 'name'], ['r2', 'name'], ['r3', 'name'])
+
+      expect(rowOf('r3').name).toBe('n1')
+      expect(editOption.beforeCellValueChange).toHaveBeenCalledTimes(1)
+      const beforeParams = editOption.beforeCellValueChange.mock.calls[0][0]
+      expect(beforeParams.column).toMatchObject({ key: 'name', field: 'name' })
+      expect(beforeParams.changeValue).toBe('n1')
+      // before 回调拿到的是修改前的行副本
+      expect(beforeParams.row).toEqual(TABLE_DATA[2])
+      expect(beforeParams.row).not.toBe(rowOf('r3'))
+
+      for (const callback of [editOption.cellValueChange, editOption.afterCellValueChange]) {
+        expect(callback).toHaveBeenCalledTimes(1)
+        const params = callback.mock.calls[0][0]
+        // 与单元格编辑相同，after 回调拿到的是表格中的行对象本身
+        expect(toRaw(params.row)).toBe(toRaw(rowOf('r3')))
+        expect(params.column).toMatchObject({ key: 'name' })
+        expect(params.changeValue).toBe('n1')
+      }
+    })
+
+    it('beforeCellValueChange returning false or throwing skips that cell only', async () => {
+      const error = vi.spyOn(console, 'error').mockImplementation(() => {})
+      const editOption = editCallbacks({
+        beforeCellValueChange: vi.fn(({ row }: any) => {
+          if (row.rowKey === 'r2')
+            throw new Error('boom')
+          if (row.rowKey === 'r3')
+            return false
+        }),
+      })
+      const afterAutofill = vi.fn()
+      mountEditable(editOption, { afterAutofill })
+
+      await fill(['r1', 'name'], ['r2', 'name'], ['r3', 'name'], ['r4', 'name'])
+
+      expect(vueErrors).toEqual([])
+      expect([rowOf('r2').name, rowOf('r3').name, rowOf('r4').name]).toEqual(['n2', 'n3', 'n1'])
+      expect(editOption.beforeCellValueChange).toHaveBeenCalledTimes(3)
+      expect(error).toHaveBeenCalled()
+      expect(editOption.afterCellValueChange).toHaveBeenCalledTimes(1)
+      expect(editOption.afterCellValueChange.mock.calls[0][0].row.rowKey).toBe('r4')
+      // 整个填充仍然完成：选区更新、afterAutofill 照常调用
+      expect(afterAutofill).toHaveBeenCalledTimes(1)
+      expect(wrapper.vm.cellSelectionData.normalEndCell).toEqual({ rowKey: 'r4', colKey: 'name', rowIndex: 3 })
+    })
+
+    it('a throwing afterCellValueChange keeps the change and the remaining callbacks run', async () => {
+      const error = vi.spyOn(console, 'error').mockImplementation(() => {})
+      const editOption = editCallbacks({
+        afterCellValueChange: vi.fn(() => {
+          throw new Error('boom')
+        }),
+      })
+      const afterAutofill = vi.fn()
+      mountEditable(editOption, { afterAutofill })
+
+      await fill(['r1', 'name'], ['r2', 'name'], ['r3', 'name'])
+
+      expect(vueErrors).toEqual([])
+      expect([rowOf('r2').name, rowOf('r3').name]).toEqual(['n1', 'n1'])
+      expect(editOption.afterCellValueChange).toHaveBeenCalledTimes(2)
+      expect(error).toHaveBeenCalledTimes(2)
+      expect(afterAutofill).toHaveBeenCalledTimes(1)
+    })
+
+    it('order: beforeAutofill, per-cell before, selection, per-cell after, afterAutofill', async () => {
+      const calls: string[] = []
+      const editOption = editCallbacks()
+      for (const name of ['beforeCellValueChange', 'cellValueChange', 'afterCellValueChange'] as const) {
+        editOption[name].mockImplementation((params: any) => {
+          calls.push(describeCall(name, params))
+          if (name === 'afterCellValueChange')
+            calls.push(`selection:${wrapper.vm.cellSelectionData.normalEndCell.rowKey}`)
+        })
+      }
+      mountEditable(editOption, {
+        beforeAutofill: () => {
+          calls.push('beforeAutofill')
+        },
+        afterAutofill: () => {
+          calls.push('afterAutofill')
+        },
+      })
+
+      await selectRange('r1', 'name', 'r1', 'date')
+      await dragCorner(['r2', 'date'], ['r3', 'date'])
+      await releaseInTable('r3', 'date')
+
+      expect(calls).toEqual([
+        'beforeAutofill',
+        'beforeCellValueChange:r2:name:n1',
+        'beforeCellValueChange:r3:name:n1',
+        'cellValueChange:r2:name:n1',
+        'afterCellValueChange:r2:name:n1',
+        'selection:r3',
+        'cellValueChange:r3:name:n1',
+        'afterCellValueChange:r3:name:n1',
+        'selection:r3',
+        'afterAutofill',
+      ])
+    })
+
+    it('beforeAutofill returning false fires no cell value callback', async () => {
+      const editOption = editCallbacks()
+      mountEditable(editOption, { beforeAutofill: () => false })
+
+      await fill(['r1', 'name'], ['r2', 'name'])
+
+      expect(rowOf('r2').name).toBe('n2')
+      expect(editOption.beforeCellValueChange).not.toHaveBeenCalled()
+      expect(editOption.afterCellValueChange).not.toHaveBeenCalled()
+    })
+
+    it('without editOption, every data column is filled', async () => {
+      mockTableLayout()
+      mountTable({ columns: cloneDeep(EDIT_COLUMNS), cellAutofillOption: {} })
+
+      await selectRange('r1', 'name', 'r1', 'hobby')
+      await dragCorner(['r2', 'hobby'])
+      await releaseInTable('r2', 'hobby')
+
+      expect(rowOf('r2')).toMatchObject({ name: 'n1', date: 'd1', hobby: 'h1' })
+    })
+  })
+
+  describe('columns that hold no data (FILL-04)', () => {
+    // 操作列（有 field）与没有 field 的列
+    const NON_DATA_COLUMNS: Record<string, any>[] = [
+      { field: 'index', key: 'op', title: '#', operationColumn: true, width: COL_WIDTH },
+      { field: 'name', key: 'name', title: 'Name', width: COL_WIDTH },
+      { key: 'x', title: 'Actions', width: COL_WIDTH },
+      { field: 'date', key: 'date', title: 'Date', width: COL_WIDTH },
+      { field: 'hobby', key: 'hobby', title: 'Hobby', width: COL_WIDTH },
+    ]
+
+    function mountWithNonDataColumns(cellAutofillOption: Record<string, any> = {}) {
+      mockTableLayout(NON_DATA_COLUMNS.map(x => x.key))
+      return mountTable({ columns: cloneDeep(NON_DATA_COLUMNS), cellAutofillOption })
+    }
+
+    function expectNoForeignKeys(row: Record<string, any>) {
+      expect(row).not.toHaveProperty('undefined')
+      expect(row).not.toHaveProperty('index')
+    }
+
+    it('a vertical fill skips them and fills the data columns', async () => {
+      mountWithNonDataColumns()
+
+      await selectRange('r1', 'op', 'r1', 'date')
+      await dragCorner(['r2', 'date'], ['r3', 'date'])
+      await releaseInTable('r3', 'date')
+
+      expect(vueErrors).toEqual([])
+      for (const rowKey of ['r2', 'r3']) {
+        expect(rowOf(rowKey)).toMatchObject({ name: 'n1', date: 'd1' })
+        expectNoForeignKeys(rowOf(rowKey))
+      }
+    })
+
+    it('a horizontal fill skips them as targets and as sources', async () => {
+      mountWithNonDataColumns()
+
+      // 源：name、x（无数据）；目标：date ← name，hobby ← x（没有可填充的值，保持不变）
+      await selectRange('r1', 'name', 'r2', 'x')
+      await dragCorner(['r2', 'date'], ['r2', 'hobby'])
+      await releaseInTable('r2', 'hobby')
+
+      expect(vueErrors).toEqual([])
+      expect(rowOf('r1')).toMatchObject({ date: 'n1', hobby: 'h1' })
+      expect(rowOf('r2')).toMatchObject({ date: 'n2', hobby: 'h2' })
+      expectNoForeignKeys(rowOf('r1'))
+      expectNoForeignKeys(rowOf('r2'))
+    })
+
+    it('a fill over a column without field does not write an "undefined" key', async () => {
+      mountWithNonDataColumns()
+
+      await fill(['r1', 'name'], ['r1', 'x'])
+
+      expect(vueErrors).toEqual([])
+      expectNoForeignKeys(rowOf('r1'))
+    })
+
+    it('the autofill payload has no "undefined" key', async () => {
+      const afterAutofill = vi.fn()
+      mountWithNonDataColumns({ afterAutofill })
+
+      await selectRange('r1', 'name', 'r1', 'x')
+      await dragCorner(['r2', 'x'])
+      await releaseInTable('r2', 'x')
+
+      expect(afterAutofill).toHaveBeenCalledTimes(1)
+      const { sourceSelectionData, targetSelectionData } = afterAutofill.mock.calls[0][0]
+      // toStrictEqual：值为 undefined 的 "undefined" 键也算不相等
+      expect(sourceSelectionData).toStrictEqual([{ rowKey: 'r1', name: 'n1' }])
+      expect(targetSelectionData).toStrictEqual([{ rowKey: 'r2', name: 'n1' }])
     })
   })
 

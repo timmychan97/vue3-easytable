@@ -1148,4 +1148,67 @@ describe('veTable clipboard', () => {
       wrapper.unmount()
     })
   })
+
+  describe('a paste with nothing to write (CLIP-11)', () => {
+    // 粘贴并检查：阻止原生粘贴，但不调用任何回调、不改数据、不改选区
+    function pasteAndExpectNothing(wrapper: any, text: string, callbacks: Record<string, unknown>) {
+      const selection = cloneDeep(wrapper.vm.cellSelectionData)
+      const { event } = createClipboardEvent('paste', text)
+
+      wrapper.vm.editorPaste(event)
+
+      // 文本不能落进隐藏的编辑 textarea（CLIP-09）
+      expect(event.defaultPrevented).toBe(true)
+      for (const callback of Object.values(callbacks))
+        expect(callback).not.toHaveBeenCalled()
+      expect(tableData).toEqual(TABLE_DATA)
+      // 选区没有扩展到粘贴区域
+      expect(wrapper.vm.cellSelectionData).toEqual(selection)
+    }
+
+    it('a paste that only covers columns without data runs no paste flow', async () => {
+      const callbacks = { beforePaste: vi.fn(), afterPaste: vi.fn() }
+      const wrapper = await mountTable(callbacks, { columns: COLUMNS_WITH_NON_DATA })
+      await select(wrapper, '1', 'x')
+      const triggerHook = vi.spyOn(wrapper.vm.hooks, 'triggerHook')
+
+      pasteAndExpectNothing(wrapper, 'p\nq\n', { ...callbacks, triggerHook })
+      wrapper.unmount()
+    })
+
+    it('with editOption, a paste that only covers non-editable columns runs no paste flow', async () => {
+      const callbacks = {
+        beforePaste: vi.fn(),
+        afterPaste: vi.fn(),
+        beforeCellValueChange: vi.fn(),
+        afterCellValueChange: vi.fn(),
+      }
+      const { beforePaste, afterPaste, ...editOption } = callbacks
+      const wrapper = await mountTable({ beforePaste, afterPaste }, {
+        columns: [
+          { field: 'name', key: 'a', title: 'Name', edit: true },
+          { field: 'date', key: 'b', title: 'Date' },
+          { field: 'hobby', key: 'c', title: 'Hobby' },
+        ],
+        editOption,
+      })
+      await select(wrapper, '1', 'b')
+
+      pasteAndExpectNothing(wrapper, 'p\tq\nr\ts\n', callbacks)
+      wrapper.unmount()
+    })
+
+    it('a paste that covers one writable column still runs', async () => {
+      const beforePaste = vi.fn()
+      const wrapper = await mountTable({ beforePaste }, { columns: COLUMNS_WITH_NON_DATA })
+      await select(wrapper, '1', 'x')
+
+      wrapper.vm.editorPaste(createClipboardEvent('paste', 'p\tq\n').event)
+
+      expect(beforePaste).toHaveBeenCalledTimes(1)
+      expect(beforePaste.mock.calls[0][0].data).toEqual([{ date: 'q' }])
+      expect(tableData[0].date).toBe('q')
+      wrapper.unmount()
+    })
+  })
 })
