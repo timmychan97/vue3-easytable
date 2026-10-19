@@ -665,10 +665,12 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
   - **Done:** `handleMouseMove` only stores the latest position and schedules one frame (`raf` / `caf` from `common/utils/animation-frame`); the layout work runs at most once per frame with the last position. The pending frame is cancelled on unmount, on `mouseleave` and on table scroll (the indicator hides while scrolling, so a move from before the scroll must not bring it back). Rows are binary-searched by their top, so a move reads O(log n) row rects (each read once per move) instead of every row's rect.
   - **Verified:** `ve-table-row-insert.spec.ts` › `mousemove cost (INS-02)`: `reads O(log n) row rects per mousemove` (at most 22 reads for 400 rows; 401 before), `handles several mousemoves in one frame once, with the last position` (no layout read until the frame; 802 synchronous reads before), `cancels the pending frame on unmount` (401 reads before, 0 now).
 
-- [ ] **INS-03** 🟢 `afterInsertRow` reads `insertRowIndex` in `nextTick`, after the emit (found in batch 7)
+- [x] ✅ 2026-10-19 · refactor/audit-wave2-util · **INS-03** 🟢 `afterInsertRow` reads `insertRowIndex` in `nextTick`, after the emit (found in batch 7)
   - **Where:** `row-insert-indicator/index.tsx` `handleAddRowClick`: `nextTick(() => afterInsertRow({ insertRowIndex: insertRowIndex.value }))`.
   - **Effect:** `afterInsertRow` gets the value `insertRowIndex` has one tick later, not the index that was inserted. Anything that updates it in between (the parent re-renders with the new row during that tick) makes `afterInsertRow` disagree with `beforeInsertRow` and `on-row-insert`. Fragile rather than an observed bug.
   - **Fix:** read the index into a `const` at the start of the handler and pass that to all three.
+  - **Done:** `handleAddRowClick` reads `insertRowIndex.value` into a `const` once and passes it to `beforeInsertRow`, the `on-row-insert` emit and the `afterInsertRow` call in `nextTick`.
+  - **Verified:** `ve-table-row-insert.spec.ts` › "insert callbacks (INS-03)" › "afterInsertRow gets the inserted index even if the hover state changes in the same tick" (the `on-row-insert` handler sets the indicator's `insertRowIndex` to 7, standing in for any update during that tick; failed before: `afterInsertRow` got 7 while `beforeInsertRow` and `on-row-insert` got 3). The other row insert tests still pass.
 
 - [ ] **INS-04** 🟢 `_realTimeWidth` TS2339 errors in the row-insert indicator's `operationColumn` (found in batch 7)
   - **Where:** `row-insert-indicator/index.tsx` `operationColumn` computed (`operationColumn.value._realTimeWidth`). The `colgroups` prop is untyped, so `vue-tsc` reports TS2339.

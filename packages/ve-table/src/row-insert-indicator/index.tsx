@@ -351,7 +351,10 @@ export default defineComponent({
       event.stopPropagation()
       event.preventDefault()
 
-      if (insertRowIndex.value < 0)
+      // 点击时的插入下标：beforeInsertRow、on-row-insert 与 afterInsertRow 都使用它（INS-03），
+      // afterInsertRow 在下一个 tick 才调用，期间 insertRowIndex 可能已被更新
+      const index = insertRowIndex.value
+      if (index < 0)
         return
 
       const { beforeInsertRow, afterInsertRow } = props.rowInsertOption || {}
@@ -359,7 +362,7 @@ export default defineComponent({
       // Call before insert hook if defined
       if (typeof beforeInsertRow === 'function') {
         const shouldContinue = beforeInsertRow({
-          insertRowIndex: insertRowIndex.value,
+          insertRowIndex: index,
         })
         if (shouldContinue === false)
           return
@@ -367,14 +370,14 @@ export default defineComponent({
 
       // Emit the insert event
       emit(EMIT_EVENTS.ROW_INSERT, {
-        insertRowIndex: insertRowIndex.value,
+        insertRowIndex: index,
       })
 
       // Call after insert hook if defined
       if (typeof afterInsertRow === 'function') {
         nextTick(() => {
           afterInsertRow({
-            insertRowIndex: insertRowIndex.value,
+            insertRowIndex: index,
           })
         })
       }
