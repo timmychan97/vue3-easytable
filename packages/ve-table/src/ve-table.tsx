@@ -1,5 +1,5 @@
-import type { TableEventScope } from './features/table-context'
 import type { PropType } from 'vue'
+import type { TableEventScope } from './features/table-context'
 import type { AutofillingDirection } from './selection/geometry'
 import type { KeyboardMode } from './util/constant.js'
 import type {

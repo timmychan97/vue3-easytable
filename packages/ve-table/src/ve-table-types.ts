@@ -79,7 +79,9 @@ export interface ColumnOption {
   [key: string]: any
 }
 
+// colgroups 里只有叶子列，叶子列一定有 key
 export interface ColgroupData extends ColumnOption {
+  key: string | number
   _realTimeWidth?: number
   _columnResizeWidth?: number
   _keys?: string

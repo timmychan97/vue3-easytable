@@ -33,10 +33,10 @@ export function recursiveRemoveColumnByKey(columns: ColumnOption[], key: ColKey)
 export function initGroupColumns(cloneColumns: ColumnOption[]): {
   isGroupHeader: boolean
   colgroups: ColgroupData[]
-  groupColumns: ColgroupData[][]
+  groupColumns: ColumnOption[][]
 } {
   const colgroups: ColgroupData[] = []
-  const groupColumns: ColgroupData[][] = []
+  const groupColumns: ColumnOption[][] = []
 
   // set column level
   let maxLevel = 1
@@ -108,7 +108,8 @@ export function initGroupColumns(cloneColumns: ColumnOption[]): {
         // set colgroups
         const { ...colgroup } = column
         colgroup._realTimeWidth = colgroup.width
-        colgroups.push(colgroup)
+        // 没有 children 时 key 一定非空（见上面的条件），所以是叶子列
+        colgroups.push(colgroup as ColgroupData)
       }
     }
   }
