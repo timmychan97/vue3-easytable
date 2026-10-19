@@ -491,6 +491,12 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
   - **Done:** both call `endSelectionDrag()`. `tableContainerMouseup` still sets `isAutofillStarting = false` (a release inside the table commits the fill), and `tableClickOutside` still calls `cancelAutofill()` (FILL-02).
   - **Verified:** `ve-table-cell-selection.spec.ts` › "other paths that end a drag remove its listeners (SEL-20)": "a click outside the table during a drag (no mouseup, e.g. a script click)" and "the table container mouseup handler" (both failed before: the flag was reset but the drag's `mouseup` / `blur` listeners were not removed). `ve-table-autofill.spec.ts`, `ve-table-cell-selection-indicator.spec.ts`, `ve-table-column-resize.spec.ts` and `ve-table-keyboard.spec.ts` still pass.
 
+- [x] ✅ 2026-10-19 · fix/audit-pre-mod02 · **SEL-21** 🟢 Cleanups: `setRangeCellSelection` column lookup and the clipboard order comment (found in wave 3)
+  - **Where:** `ve-table.tsx` `[INSTANCE_METHODS.SET_RANGE_CELL_SELECTION]` validated the column keys with `colgroups.some` and looked the start column up again with `colgroups.find`, although `getColumnByColkey` accepts key `0` since SEL-14 (SEL-16 did the same cleanup for `setCellSelection`). The order comment at the top of `methods/clipboard.ts` said only paste, cut and delete trigger `CLIPBOARD_CELL_VALUE_CHANGE`; autofill does too since FILL-06.
+  - **Effect:** none (cleanup).
+  - **Done:** `setRangeCellSelection` looks both columns up with `getColumnByColkey` and passes the start column it found to `columnToVisible`, so the second lookup is gone. The unknown-key check (SEL-06) is unchanged. The clipboard comment now mentions autofill (FILL-06, `setCellSelectionByAutofill`).
+  - **Verified:** `ve-table-cell-selection.spec.ts` › "unknown keys in the selection API (SEL-06)" › "setRangeCellSelection accepts colKey 0 and scrolls that column into view" (new guard; passes before and after: range `0`–`1`, `columnToVisible` gets the key-`0` column, and the string `'0'` or an unknown key still returns `false` without changing the range), plus the existing SEL-06 tests and `ve-table-instance-methods.spec.ts`.
+
 ---
 
 ## CLIP — clipboard

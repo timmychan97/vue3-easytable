@@ -1055,6 +1055,37 @@ describe('veTable cell selection', () => {
       expect(columnToVisible).toHaveBeenCalledWith(expect.objectContaining({ key: 0, field: 'date' }))
       wrapper.unmount()
     })
+
+    // SEL-21：setRangeCellSelection 也使用 getColumnByColkey 检查 / 查找列，0 是有效的列 key
+    it('setRangeCellSelection accepts colKey 0 and scrolls that column into view', async () => {
+      const wrapper = mount(veTable, {
+        propsData: {
+          columns: [
+            { field: 'name', key: 'a', title: 'Name', width: 100 },
+            { field: 'date', key: 0, title: 'Date', width: 100 },
+            { field: 'hobby', key: 1, title: 'Hobby', width: 100 },
+          ],
+          tableData: TABLE_DATA,
+          rowKeyFieldName: 'rowKey',
+        },
+      })
+      const vm = wrapper.vm as any
+      vm.hasXScrollBar = true
+      const columnToVisible = vi.spyOn(vm, 'columnToVisible')
+
+      vm.setRangeCellSelection({ startRowKey: '2', startColKey: 0, endRowKey: '3', endColKey: 1, isScrollToStartCell: true })
+      await later()
+
+      expect(vm.cellSelectionRangeData).toEqual({ leftColKey: 0, rightColKey: 1, topRowKey: '2', bottomRowKey: '3' })
+      expect(columnToVisible).toHaveBeenCalledWith(expect.objectContaining({ key: 0, field: 'date' }))
+
+      // 未知的列 key（包括与数字 key 同名的字符串）仍不改变选区
+      expect(vm.setRangeCellSelection({ startRowKey: '2', startColKey: '0', endRowKey: '3', endColKey: 1 })).toBe(false)
+      expect(vm.setRangeCellSelection({ startRowKey: '2', startColKey: 0, endRowKey: '3', endColKey: 'x' })).toBe(false)
+      await later()
+      expect(vm.cellSelectionRangeData).toEqual({ leftColKey: 0, rightColKey: 1, topRowKey: '2', bottomRowKey: '3' })
+      wrapper.unmount()
+    })
   })
 
   // SEL-03：没有操作列时也从第一列开始（之前跳过了第一列，leftColKey 为 'b'）

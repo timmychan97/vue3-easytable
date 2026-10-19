@@ -1960,11 +1960,12 @@ export default defineComponent({
 
       // 未知的行或列：不改变选区（SEL-06）
       const { allRowKeys, colgroups } = this
+      const startColumn = getColumnByColkey(startColKey, colgroups)
       if (
         !allRowKeys.includes(startRowKey)
         || !allRowKeys.includes(endRowKey)
-        || !colgroups.some(x => x.key === startColKey)
-        || !colgroups.some(x => x.key === endColKey)
+        || !startColumn
+        || !getColumnByColkey(endColKey, colgroups)
       ) {
         return false
       }
@@ -1984,9 +1985,8 @@ export default defineComponent({
 
       // row to visible
       if (isScrollToStartCell) {
-        const column = colgroups.find(x => x.key === startColKey)
         // column to visible
-        this.columnToVisible(column)
+        this.columnToVisible(startColumn)
         this[INSTANCE_METHODS.SCROLL_TO_ROW_KEY]({
           rowKey: startRowKey,
         })
