@@ -137,9 +137,13 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
   - **Fix:** optional chaining plus `typeof fn === 'function'` checks.
   - **Progress (2026-10-16, `fix/audit-batch4-row-state`):** the row checkbox, radio and expand callbacks now go through the MOD-08 composables, which call `selectedRowChange`, `selectedAllChange` and the expand callbacks only when they exist (a missing `selectedRowChange` used to throw `selectedRowChange is not a function` on a checkbox click). The header `sortOption` sites and `hideSelectAll` are still open.
 
-- [ ] **INFRA-09** 🟢 Directive robustness
+- [x] ✅ 2026-10-19 · fix/audit-batch7-common-form-locale · **INFRA-09** 🟢 Directive robustness
   - **Where:** `common/directives/clickoutside.ts` registers a handler even when the value isn't a function (it throws on every click), and has no `updated` hook (the callback captured at mount goes stale). `common/directives/events-outside.ts`: `beforeUnmount` calls `events.forEach` without checking `events`.
   - **Fix:** validate the binding value, add `updated`, and guard the unmount.
+  - **Done:**
+    - `clickoutside`: the latest binding value is kept on the element and updated in a new `updated` hook. The document handler reads it on each click and ignores a value that is not a function, so an invalid value logs one `console.error` when bound (and again only when it changes) instead of throwing on every click. `unmounted` only removes a handler that exists.
+    - `events-outside`: `binding.value` may be missing (no destructuring of `undefined`). State (handler, the events registered on `document`, latest callback) lives on the element. `updated` always takes the latest callback and re-registers only when the event list's content changes (the contextmenu passes a new object literal on every render). `beforeUnmount` unregisters only what was registered, so an invalid value no longer throws on unmount.
+  - **Verified:** `common/__tests__/directives.spec.ts` (9 tests). Failed before: "a value that is not a function logs an error and clicks do not throw" (two `binding.value is not a function` errors from the listener), "uses the latest callback after the binding value changes" (clickoutside called the stale callback), "unmounting with an invalid value does not throw" (`reading 'forEach'`), "mounting and unmounting without a value does not throw" (`Cannot destructure property 'events'`), and "uses the latest callback and events after the binding value changes" (events-outside). The dropdown, contextmenu, cell-edit and cell-selection specs (which use both directives) still pass.
 
 - [x] ✅ 2026-10-19 · fix/audit-batch7-common-form-locale · **INFRA-10** 🟢 `resize-event` listener bookkeeping
   - **Where:** `common/utils/resize-event.ts:36-41`. `splice(indexOf(fn), 1)` with `-1` removes the **last** listener. After `disconnect()` the empty array is kept, so a later `addResizeListener` on the same element never observes again.
