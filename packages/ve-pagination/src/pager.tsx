@@ -90,11 +90,7 @@ export default defineComponent({
 
           {showJumpPrev.value && (
             <li
-              class={[
-                pageIndex === 1 ? 'disabled' : '',
-                clsName('li'),
-                clsName('jump-prev'),
-              ]}
+              class={[clsName('li'), clsName('jump-prev')]}
               title={t('向前N页', pagingCount)}
               onClick={() => jumpPage(pageIndex - pagingCount)}
             >

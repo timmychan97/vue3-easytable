@@ -931,6 +931,12 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
   - **Done:** `pageSizeChangeHandler(pageSize)` now uses its argument. It ignores anything that isn't a positive number. Committed together with DD-04.
   - **Verified:** `ve-pagination.spec.tsx` › "pageSizeChangeHandler uses its argument (PAG-03)". Before the fix, it emitted the current size `5` instead of `15`. With only DD-04 applied, the existing "on-page-size-change emit" failed (`[5]` instead of `[10]`). With both fixes, it passes.
 
+- [x] ✅ 2026-10-19 · fix/audit-small-nontable · **PAG-04** 🟢 The jump-prev button has a dead `disabled` class (found in wave 2)
+  - **Where:** `ve-pagination/src/pager.tsx`, the jump-prev `li`: `pageIndex === 1 ? 'disabled' : ''`.
+  - **Trigger:** none in practice. The button only renders when `pageIndex > pagingCount`, so with the default (or any positive) `pagingCount` it is never on page 1. It could only apply with `pagingCount <= 0`, and even then nothing styles an unprefixed `disabled` class (the theme uses `ve-pagination-disabled`).
+  - **Done:** the class is removed; the `li` keeps `ve-pagination-li ve-pagination-jump-prev`.
+  - **Verified:** the rendered HTML is unchanged: Vue already dropped the empty string, and every snapshot shows `class="ve-pagination-li ve-pagination-jump-prev"`. The ve-pagination and ve-locale specs pass without `-u` (67 tests, no snapshot written).
+
 ---
 
 ## LOAD — loading service
