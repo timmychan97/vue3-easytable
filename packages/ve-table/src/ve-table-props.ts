@@ -1,13 +1,14 @@
-import type { ExtractPropTypes, PropType } from 'vue'
+import type { ComponentObjectPropsOptions, ExtractPropTypes, PropType } from 'vue'
 import type { ColumnOption } from './ve-table-types'
 
 /**
  * ve-table 的 props（MOD-02：从组件中拆出，setup() 与各功能的组合式函数共用这里的类型）
  */
 export const veTableProps = {
+  // 行数据（行对象的结构由使用者决定）
   tableData: {
     required: true,
-    type: Array,
+    type: Array as PropType<any[]>,
   },
   footerData: {
     type: Array,
@@ -196,6 +197,7 @@ export const veTableProps = {
       return null
     },
   },
-}
+  // satisfies：保留 required: true 等字面量类型，ExtractPropTypes 才能区分必填项
+} satisfies ComponentObjectPropsOptions
 
 export type VeTableProps = ExtractPropTypes<typeof veTableProps>

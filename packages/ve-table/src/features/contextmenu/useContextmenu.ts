@@ -76,6 +76,9 @@ export interface UseContextmenu {
   bodyContextmenuItemClick: (type: string) => false | void
 }
 
+type HeaderMenuOption = Parameters<typeof setHeaderContextmenuOptions>[0]['contextmenuHeaderOption']
+type BodyMenuOption = Parameters<typeof setBodyContextmenuOptions>[0]['contextmenuBodyOption']
+
 // 菜单配置中有菜单项时才开启
 function hasContextmenus(option: Record<string, any> | null | undefined) {
   const contextmenus = option?.contextmenus
@@ -120,7 +123,7 @@ export function useContextmenu(options: UseContextmenuOptions): UseContextmenu {
     if (contextMenuType.value === CONTEXTMENU_TYPES.HEADER_CONTEXTMENU) {
       contextmenuOptions.value = setHeaderContextmenuOptions({
         column,
-        contextmenuHeaderOption: props.contextmenuHeaderOption,
+        contextmenuHeaderOption: props.contextmenuHeaderOption as HeaderMenuOption,
         cellSelectionRangeData: cellSelectionRangeData.value,
         colgroups: colgroups.value,
         allRowKeys: allRowKeys.value,
@@ -132,7 +135,7 @@ export function useContextmenu(options: UseContextmenuOptions): UseContextmenu {
     else {
       contextmenuOptions.value = setBodyContextmenuOptions({
         enableBodyContextmenu: enableBodyContextmenu.value,
-        contextmenuBodyOption: props.contextmenuBodyOption,
+        contextmenuBodyOption: props.contextmenuBodyOption as BodyMenuOption,
         cellSelectionRangeData: cellSelectionRangeData.value,
         colgroups: colgroups.value,
         allRowKeys: allRowKeys.value,

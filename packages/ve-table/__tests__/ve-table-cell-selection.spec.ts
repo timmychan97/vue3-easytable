@@ -1034,7 +1034,7 @@ describe('veTable cell selection', () => {
       Object.defineProperty(containerEl, 'clientWidth', { configurable: true, value: 100 })
       containerEl.scrollLeft = 300
       // 纵向滚动到行（scrollToRowKey）不影响横向位置：jsdom 没有 Element.scrollTo，退回的写法会把 scrollLeft 置 0
-      containerEl.scrollTo = vi.fn()
+      Object.defineProperty(containerEl, 'scrollTo', { configurable: true, value: vi.fn() })
       return containerEl
     }
 

@@ -95,9 +95,9 @@ export interface UseClipboardOptions {
 
 export interface UseClipboard {
   enableClipboard: ComputedRef<boolean>
-  editorCopy: (event: ClipboardEvent) => false | void
-  editorPaste: (event: ClipboardEvent) => false | void
-  editorCut: (event: ClipboardEvent) => false | void
+  editorCopy: (event: Event) => false | void
+  editorPaste: (event: Event) => false | void
+  editorCut: (event: Event) => false | void
   contextmenuCopyOrCut: (kind: CopyKind) => Promise<boolean>
   deleteCellSelectionRangeValue: () => false | void
 }
@@ -161,7 +161,7 @@ export function useClipboard(options: UseClipboardOptions): UseClipboard {
     return { option, response, selectionRangeData }
   }
 
-  function editorCopy(event: ClipboardEvent) {
+  function editorCopy(event: Event) {
     const prepared = prepareCopyOrCut('copy')
 
     // 选区失效：不拦截原生复制（CLIP-01）
@@ -180,7 +180,7 @@ export function useClipboard(options: UseClipboardOptions): UseClipboard {
     safeCall('afterCopy', option.afterCopy, response)
   }
 
-  function editorPaste(event: ClipboardEvent) {
+  function editorPaste(event: Event) {
     if (!enableClipboard.value)
       return false
 
@@ -248,7 +248,7 @@ export function useClipboard(options: UseClipboardOptions): UseClipboard {
     safeCall('afterPaste', afterPasteCallback, response)
   }
 
-  function editorCut(event: ClipboardEvent) {
+  function editorCut(event: Event) {
     const prepared = prepareCopyOrCut('cut')
 
     // 选区失效：不拦截原生剪切（CLIP-01）

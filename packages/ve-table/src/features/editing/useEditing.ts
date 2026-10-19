@@ -210,7 +210,7 @@ export function useEditing(options: UseEditingOptions): UseEditing {
 
     // 给当前列赋默认值
     if (isDefined(defaultValue)) {
-      editorInputStartValue.value = defaultValue
+      editorInputStartValue.value = defaultValue as string | number
       // doesn't change cell original value
       currentRow[field] = defaultValue
     }

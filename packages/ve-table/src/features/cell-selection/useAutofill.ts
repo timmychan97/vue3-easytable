@@ -200,8 +200,11 @@ export function useAutofill(options: UseAutofillOptions): UseAutofill {
     let appliedChanges: AppliedCellChange[] = []
     const cellValueCallbacks = getCellValueCallbacks(props.editOption)
 
+    // cellAutofillOption 为 true 时没有回调
+    const autofillCallbacks: Record<string, any> = isBoolean(cellAutofillOption) ? {} : (cellAutofillOption ?? {})
+
     if (cellAutofillOption) {
-      const { beforeAutofill } = cellAutofillOption
+      const { beforeAutofill } = autofillCallbacks
 
       // 源区域、目标区域（也是 beforeAutofill 的参数）
       const { response: beforeAutofillResponse } = cellAutofill({
@@ -253,7 +256,7 @@ export function useAutofill(options: UseAutofillOptions): UseAutofill {
 
     // after autofill
     if (autofillResponse)
-      safeCall('afterAutofill', cellAutofillOption.afterAutofill, autofillResponse)
+      safeCall('afterAutofill', autofillCallbacks.afterAutofill, autofillResponse)
   }
 
   let disposeWindowListeners: (() => void) | null = null

@@ -85,7 +85,7 @@ export function useVirtualScroll(options: UseVirtualScrollOptions): UseVirtualSc
   function getVirtualRowKey(index: number): string | number {
     const row = (props.tableData as any[])?.[index]
     const key = row && props.rowKeyFieldName ? row[props.rowKeyFieldName] : undefined
-    return isDefined(key) ? key : index
+    return isDefined(key) ? key as string | number : index
   }
 
   /*

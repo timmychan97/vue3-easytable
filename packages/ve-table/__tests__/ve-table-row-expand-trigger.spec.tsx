@@ -1,6 +1,7 @@
 import veTable from '@/ve-table'
 import { later } from '@test-utils'
 import { mount } from '@vue/test-utils'
+import { EMIT_EVENTS } from '../src/util/constant'
 
 // ROW-06：点击展开图标时 BODY_CELL_CLICK 只能派发一次
 describe('veTable expand icon click (ROW-06)', () => {
@@ -35,9 +36,10 @@ describe('veTable expand icon click (ROW-06)', () => {
       },
     })
 
-    // 统计表格收到的 BODY_CELL_CLICK 次数（监听器在调用时才读取该方法）
+    // 统计表格收到的 BODY_CELL_CLICK 次数。MOD-02：表格的处理函数在 setup 中注册，
+    // 替换实例上的方法不再生效，所以在表格上下文上另外注册一个监听器
     const bodyCellClick = vi.fn()
-    ;(wrapper.vm as any).bodyCellClick = bodyCellClick
+    ;(wrapper.vm as any).tableContext.on(EMIT_EVENTS.BODY_CELL_CLICK, bodyCellClick)
 
     return { wrapper, afterExpandRowChange, cellClick, rowClick, bodyCellClick }
   }
