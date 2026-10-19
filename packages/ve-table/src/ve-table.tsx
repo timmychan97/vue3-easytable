@@ -749,21 +749,12 @@ export default defineComponent({
         hooks: this.hooks,
         tableContainerEl: this.$refs[this.tableContainerRef] as HTMLElement | undefined,
         tableEl: this.$refs[this.tableRef] as HTMLTableElement | undefined,
-        allRowKeys: this.allRowKeys,
         colgroups: this.colgroups,
-        rowKeyFieldName: this.rowKeyFieldName,
-        tableData: this.tableData,
-        virtualScrollOption: this.virtualScrollOption,
-        isVirtualScroll: this.isVirtualScroll,
-        // Provide compatible virtual scroll data for row-insert-indicator
-        virtualScrollPositions: [],
-        virtualScrollVisibleIndexs: {
-          start: this.virtualItems.length > 0 ? this.virtualItems[0].index : 0,
-          end: this.virtualItems.length > 0 ? this.virtualItems[this.virtualItems.length - 1].index : 0,
-        },
+        // INS-01 / VS-06：插入位置的数据下标直接从行的 <tbody data-index> 读取，
+        // 不再依赖虚拟滚动区间（否则每次滚动都会重新渲染指示器）
         rowInsertOption: this.rowInsertOption,
         fixedHeader: this.fixedHeader,
-        showHeader: this.showHeader,
+        fixedFooter: this.fixedFooter,
         [getEmitEventName(EMIT_EVENTS.ROW_INSERT)]: (params) => {
           this.handleRowInsert(params)
         },
