@@ -1,9 +1,11 @@
+import type { HeaderFilterState } from './header-filter-content'
 import emitter from '@vue3-easytable/common/mixins/emitter'
 import { isEmptyValue } from '@vue3-easytable/common/utils'
 import { markRaw } from 'vue'
 import { clsName } from '../util'
 import { COMPS_NAME, EMIT_EVENTS } from '../util/constant'
 import { safeCall } from '../util/safe-call'
+import { HEADER_FILTER_STATES_KEY } from './header-filter-content'
 import HeaderTr from './header-tr'
 
 export default defineComponent({
@@ -93,6 +95,13 @@ export default defineComponent({
       sortColumns: {} as Record<string, string>,
       // COL-08：上一次看到的列排序配置（key -> sortBy），只用于比较，不需要响应式
       sortConfigsByKey: markRaw(new Map<string, string>()),
+      // DD-09：表头筛选的已确认状态（列 key -> 状态）；表头行重新创建时由筛选组件恢复
+      filterStates: markRaw(new Map<string, HeaderFilterState>()),
+    }
+  },
+  provide() {
+    return {
+      [HEADER_FILTER_STATES_KEY as symbol]: this.filterStates,
     }
   },
   computed: {
