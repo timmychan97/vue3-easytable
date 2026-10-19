@@ -1,3 +1,4 @@
+import type { ColgroupData } from '../ve-table-types'
 import VueDomResizeObserver from '@vue3-easytable/common/comps/resize-observer'
 import { bindCustomEvents, getCustomEvents } from '../features/custom-events/bindCustomEvents'
 import { injectTableContext } from '../features/table-context'
@@ -17,7 +18,7 @@ export default defineComponent({
       required: true,
     },
     colgroups: {
-      type: Array,
+      type: Array as PropType<ColgroupData[]>,
       required: true,
     },
     rowKeyFieldName: {

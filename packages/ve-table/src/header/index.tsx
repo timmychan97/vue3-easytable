@@ -1,3 +1,4 @@
+import type { ColgroupData } from '../ve-table-types'
 import { markRaw } from 'vue'
 import { useTableContext } from '../features/table-context'
 import { clsName } from '../util'
@@ -17,7 +18,7 @@ export default defineComponent({
       required: true,
     },
     colgroups: {
-      type: Array,
+      type: Array as PropType<ColgroupData[]>,
       required: true,
     },
     fixedHeader: {

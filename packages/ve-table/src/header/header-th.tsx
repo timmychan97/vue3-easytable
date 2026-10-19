@@ -1,3 +1,4 @@
+import type { ColgroupData } from '../ve-table-types'
 import { getValByUnit, isEmptyValue } from '@vue3-easytable/common/utils'
 import { ICON_NAMES } from '@vue3-easytable/common/utils/constant'
 import VeIcon from '@vue3-easytable/ve-icon'
@@ -30,7 +31,7 @@ export default defineComponent({
       required: true,
     },
     colgroups: {
-      type: Array,
+      type: Array as PropType<ColgroupData[]>,
       required: true,
     },
     headerRows: {

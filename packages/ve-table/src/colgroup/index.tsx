@@ -1,4 +1,5 @@
 import type { PropType } from 'vue'
+import type { ColgroupData } from '../ve-table-types'
 import { getValByUnit } from '@vue3-easytable/common/utils'
 import { defineComponent } from 'vue'
 import { COMPS_NAME } from '../util/constant'
@@ -7,8 +8,7 @@ export default defineComponent({
   name: COMPS_NAME.VE_TABLE_COLGROUP,
   props: {
     colgroups: {
-      // TODO: ts
-      type: Array as PropType<any[]>,
+      type: Array as PropType<ColgroupData[]>,
       required: true,
     },
     enableColumnResize: {

@@ -6,6 +6,8 @@
 本组件把三者组合起来：按左固定 / 中间 / 右固定三个区域渲染当前单元格、区域选择、填充预览与区域浮层
 */
 import type { PropType, VNode } from 'vue'
+import type { RowKey } from '../util/core'
+import type { ColgroupData } from '../ve-table-types'
 import type { AutofillingDirection, CellSelectionRange, SelectionBorders as SelectionBordersData, SelectionCell } from './geometry'
 import type { SelectionPositionsProps } from './useSelectionPositions'
 import { computed, defineComponent } from 'vue'
@@ -62,11 +64,11 @@ export default defineComponent({
       default: null,
     },
     allRowKeys: {
-      type: Array,
+      type: Array as PropType<RowKey[]>,
       required: true,
     },
     colgroups: {
-      type: Array as PropType<any[]>,
+      type: Array as PropType<ColgroupData[]>,
       required: true,
     },
     parentRendered: {

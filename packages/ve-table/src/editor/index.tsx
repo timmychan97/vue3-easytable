@@ -1,3 +1,4 @@
+import type { ColgroupData } from '../ve-table-types'
 import focus from '@vue3-easytable/common/directives/focus.js'
 import { autoResize } from '@vue3-easytable/common/utils/auto-resize'
 import { getCaretPosition, setCaretPosition } from '@vue3-easytable/common/utils/dom'
@@ -34,7 +35,7 @@ export default defineComponent({
       required: true,
     },
     colgroups: {
-      type: Array,
+      type: Array as PropType<ColgroupData[]>,
       required: true,
     },
     // cell selection option

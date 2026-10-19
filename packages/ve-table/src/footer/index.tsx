@@ -1,3 +1,5 @@
+import type { RowKey } from '../util/core'
+import type { ColgroupData } from '../ve-table-types'
 import { clsName } from '../util'
 import { COMPS_NAME } from '../util/constant'
 import FooterTr from './footer-tr'
@@ -6,7 +8,7 @@ export default {
   name: COMPS_NAME.VE_TABLE_FOOTER,
   props: {
     colgroups: {
-      type: Array,
+      type: Array as PropType<ColgroupData[]>,
       required: true,
     },
     footerData: {
@@ -18,7 +20,7 @@ export default {
       default: false,
     },
     allRowKeys: {
-      type: Array,
+      type: Array as PropType<RowKey[]>,
       required: true,
     },
     rowKeyFieldName: {

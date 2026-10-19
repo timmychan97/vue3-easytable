@@ -1,3 +1,4 @@
+import type { ColgroupData } from '../ve-table-types'
 import { isNumber } from '@vue3-easytable/common/utils'
 import { useTableContext } from '../features/table-context'
 import { clsName } from '../util'
@@ -16,7 +17,7 @@ export default defineComponent({
       default: null,
     },
     colgroups: {
-      type: Array,
+      type: Array as PropType<ColgroupData[]>,
       required: true,
     },
     isColumnResizerHover: {

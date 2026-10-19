@@ -1,3 +1,4 @@
+import type { ColgroupData } from '../ve-table-types'
 import { clsName } from '../util'
 import { COMPS_NAME } from '../util/constant'
 
@@ -16,7 +17,7 @@ export default defineComponent({
       },
     },
     colgroups: {
-      type: Array,
+      type: Array as PropType<ColgroupData[]>,
       required: true,
     },
     // expand row option

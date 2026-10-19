@@ -1,3 +1,5 @@
+import type { RowKey } from '../util/core'
+import type { ColgroupData } from '../ve-table-types'
 import { getTextContentOfVNode, isBoolean, isEmptyValue, isNumber } from '@vue3-easytable/common/utils/index'
 import { h } from 'vue'
 import { bindCustomEvents, getCustomEvents } from '../features/custom-events/bindCustomEvents'
@@ -33,7 +35,7 @@ export default defineComponent({
       required: true,
     },
     colgroups: {
-      type: Array,
+      type: Array as PropType<ColgroupData[]>,
       required: true,
     },
     rowKeyFieldName: {
@@ -41,7 +43,7 @@ export default defineComponent({
       default: null,
     },
     allRowKeys: {
-      type: Array,
+      type: Array as PropType<RowKey[]>,
       required: true,
     },
     /*

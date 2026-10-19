@@ -1,4 +1,6 @@
 import type { VNode } from 'vue'
+import type { RowKey } from '../util/core'
+import type { ColgroupData } from '../ve-table-types'
 import { cloneVNode, defineComponent } from 'vue'
 import { injectRowState } from '../features/row-state'
 import { useTableContext } from '../features/table-context'
@@ -37,7 +39,7 @@ export default defineComponent({
       default: 0,
     },
     colgroups: {
-      type: Array,
+      type: Array as PropType<ColgroupData[]>,
       required: true,
     },
     actualRenderTableData: {
@@ -49,7 +51,7 @@ export default defineComponent({
       default: false,
     },
     allRowKeys: {
-      type: Array,
+      type: Array as PropType<RowKey[]>,
       required: true,
     },
     // expand row option

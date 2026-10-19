@@ -121,14 +121,15 @@ export function getAutofillChanges({
         continue
 
       const sourceCell = getSourceCellIndex({ direction, source, rowIndex, colIndex })
-      const sourceColumn = sourceCell && colgroups[sourceCell.colIndex]
+      const sourceColumn = sourceCell ? colgroups[sourceCell.colIndex] : undefined
       const sourceRow = sourceCell && tableData[sourceCell.rowIndex]
 
       // 源列不对应数据字段（横向填充时）：没有可填充的值，目标单元格保持不变
-      if (!sourceRow || !isDataColumn(sourceColumn))
+      if (!sourceRow || !sourceColumn || !isDataColumn(sourceColumn))
         continue
 
-      changes.push({ rowIndex, column, value: sourceRow[sourceColumn.field] })
+      // isDataColumn 已确认 field 非空
+      changes.push({ rowIndex, column, value: sourceRow[sourceColumn.field as string] })
     }
   }
 
@@ -153,7 +154,7 @@ function getRangeData({
   const fieldNames: string[] = colgroups
     .slice(range.startColIndex, range.endColIndex + 1)
     .filter(x => isDataColumn(x))
-    .map(x => x.field)
+    .map(x => x.field as string)
 
   return tableData
     .slice(range.startRowIndex, range.endRowIndex + 1)

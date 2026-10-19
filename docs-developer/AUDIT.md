@@ -198,6 +198,17 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
     - `filter.filterConfirm` / `filterReset` (`header-filter-content.tsx`): only the two calls changed.
   - **Verified:** `ve-table-callback-guards.spec.tsx` › "more throwing callbacks go through safeCall (INFRA-13)" (16 tests). Failed before: "a throwing sortChange is logged and the sort still changes" (the error reached the app `errorHandler`), "a throwing bodyCellClass is logged and the body still renders" and "a throwing eventCustomOption.* is logged and the table still renders" (×6; the render threw), "a truthy eventCustomOption.* that is not a function is ignored" (×6; `… is not a function`), "a throwing cell event handler is logged and the table still handles the click" (the error escaped and `BODY_CELL_CLICK` was not dispatched), "throwing filterConfirm / filterReset are logged". `ve-table-bind-custom-events.spec.ts` covers `getCustomEvents` directly.
 
+- [x] ✅ 2026-10-19 · refactor/audit-wave3-table-context · **INFRA-15** 🟢 Untyped `colgroups` / `allRowKeys` props in the table's child components (found in wave 2)
+  - **Where:** `colgroups` in `header` (`index`, `header-tr`, `header-th`), `body` (`index`, `body-tr`, `body-td`, `expand-tr`), `footer` (`index`, `footer-tr`, `footer-td`), `editor`, `column-resizer`, `colgroup` and `selection`; `allRowKeys` in `body` (`index`, `body-tr`, `body-td`), `footer/index` and `selection`. They were declared `type: Array` (`unknown[]`), or `Array as PropType<any[]>` in `colgroup` and `selection`.
+  - **Effect:** the column objects were `unknown` inside these components. Because of that, the `util/` modules split out by MOD-03 had to type their `colgroups` / `allRowKeys` parameters with the loose aliases `ColgroupsParam` / `RowKeysParam` (`any[]`), so nothing checked how they used the column objects.
+  - **Fix:** declare `PropType<ColgroupData[]>` / `PropType<RowKey[]>` (`ColgroupData` from `ve-table-types.ts`, `RowKey` from `util/core.ts`), then tighten the two aliases.
+  - **Done:** all the props above are typed (`row-insert-indicator` already was, since INS-04). `ColgroupsParam` is now `ColgroupData[]` and `RowKeysParam` is `RowKey[]`. The stricter aliases exposed a few spots in `util/` that relied on `any`, all fixed with type-only changes:
+    - `cell-autofill.ts`: the source column is `undefined` (not `null`) when there is no source cell, and is checked before `isDataColumn`. The field lookups after `isDataColumn` are cast to `string`.
+    - `selection-range/range.ts`: the same cast for `getSelectionRangeData`. A column without `field` still reads `rowData[undefined]`, as before.
+    - `clipboard/handlers.ts`: its column type is now `ColgroupData`, which still satisfies `CellValueColumn`.
+    No runtime change.
+  - **Verified:** the full suite passes unchanged (71 files, 891 tests) with no snapshot change. eslint is clean. vue-tsc went from 253 to 242: the `unknown` column errors in body, footer, editor, column-resizer and header-th are gone, and there are no new errors. The remaining messages in those files changed only their wording (for example `currentResizingColumn` is declared `null` in `data()`, and `footer/index.tsx` is a plain object without `defineComponent`).
+
 ---
 
 ## COL — columns (fixed, hide/show, resize)
