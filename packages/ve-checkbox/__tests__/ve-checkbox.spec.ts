@@ -34,7 +34,7 @@ describe('veCheckbox', () => {
     expect(wrapper.html()).toMatchSnapshot()
   })
 
-  it('render with indeterminate', () => {
+  it('render with disabled', () => {
     const wrapper = mount(veCheckbox, {
       props: {
         modelValue: true,
@@ -46,7 +46,7 @@ describe('veCheckbox', () => {
     expect(wrapper.html()).toMatchSnapshot()
   })
 
-  it('render with disabled', () => {
+  it('render with indeterminate', () => {
     const wrapper = mount(veCheckbox, {
       props: {
         modelValue: true,

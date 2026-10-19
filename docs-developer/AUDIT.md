@@ -989,6 +989,12 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
   - **Done:** both places treat a non-array model as `[]`. A `null` model unchecks every checkbox, and a click on one starts a new array with that label. `initModel` and `syncAfterChange` already had this guard.
   - **Verified:** `ve-checkbox.spec.ts` › "checkbox-group model set to null (FORM-06)": "a group model set to null unchecks every checkbox" (failed before: `Cannot read properties of null (reading 'includes')`) and "clicking a checkbox in a group whose model is null selects it" (failed before: the model stayed `null` and the click threw `props.modelValue is not iterable`).
 
+- [x] ✅ 2026-10-19 · fix/audit-small-nontable · **FORM-07** 🟢 Two checkbox snapshot tests have swapped names (found in wave 2)
+  - **Where:** `ve-checkbox/__tests__/ve-checkbox.spec.ts` (noted in FORM-05).
+  - **Trigger:** "render with disabled" rendered the indeterminate checkbox and "render with indeterminate" rendered the disabled one, so a failure would point at the wrong feature.
+  - **Done:** the two test names are swapped, so each name matches what it renders. The two snapshot entries are re-keyed by hand (and reordered to vitest's sorted order); their contents are unchanged.
+  - **Verified:** a script compared the old and new `.snap` files: same keys, the two bodies exactly swapped, every other entry identical. The "render with disabled" snapshot has `ve-checkbox-disabled` and `disabled=""`, the "render with indeterminate" one has `ve-checkbox-indeterminate`. `ve-checkbox.spec.ts` passes without `-u` (no snapshot written or obsolete).
+
 ---
 
 ## I18N — locale and ConfigProvider
