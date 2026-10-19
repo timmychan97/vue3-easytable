@@ -936,6 +936,12 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
   - **Done:** `reset()` always clears the options and emits `update:modelValue` and `on-filter-reset`, then hides. The dropdown can't reliably know the caller's confirmed state (a caller may not bind `update:modelValue`), so it no longer guesses. The reset button now looks disabled only when neither the pending options nor `modelValue` have a selection. ve-table's header filter needed no change: its `filterReset` already stores the emitted (empty) list as `confirmedFilterList`. Behaviour change: reset with no selection at all now also calls `filterReset` (with an all-unselected list).
   - **Verified:** `ve-dropdown.spec.tsx` › "reset with nothing ticked (DD-08)": "reset after unticking the confirmed item still emits the reset" (failed before: no `on-filter-reset`), "reset is not shown as disabled while a confirmed selection exists" (failed before: the class was set after the untick), "reset with no selection at all still emits and closes" (failed before: no `on-filter-reset`). `ve-table-header-filter.spec.tsx` › "reset with nothing ticked (DD-08)" › "reset after unticking the applied filter calls filterReset and clears the ticks" (failed before: `filterReset` called 0 times).
 
+- [x] ✅ 2026-10-19 · fix/audit-wave3-small-types · **DD-10** 🟢 Two TS2322 errors in the dropdown render (found in wave 3)
+  - **Where:** `ve-dropdown/src/index.tsx` `render()`: `let content = []` is inferred as `never[]`, so both `content = internalOptions.map(...)` assignments (multiple and single select) fail.
+  - **Trigger:** `pnpm vue-tsc --noEmit` reports `TS2322: Type 'Element[]' is not assignable to type 'never[]'` twice. No runtime effect.
+  - **Done:** `content` is declared as `VNode[]` (type-only import from `vue`, as in ve-table's body `rows`). No runtime change.
+  - **Verified:** vue-tsc 252 → 250, with no errors left in `packages/ve-dropdown`. The ve-dropdown, ve-select and ve-pagination specs pass unchanged (no snapshot written).
+
 ---
 
 ## PAG — pagination
