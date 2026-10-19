@@ -1297,4 +1297,79 @@ describe('veTable virtual scroll', () => {
       wrapper.unmount()
     })
   })
+
+  // VS-08：开启虚拟滚动但没有 maxHeight 时只提示一次，不在每次重新计算容器样式时都打印
+  describe('missing maxHeight warning (VS-08)', () => {
+    const MESSAGE = 'maxHeight prop is required when \'virtualScrollOption.enable = true\''
+
+    function countWarnings(spy: ReturnType<typeof vi.spyOn>) {
+      return spy.mock.calls.filter((args: unknown[]) => args[0] === MESSAGE).length
+    }
+
+    it('is logged once, not again on re-renders, layout changes or another empty maxHeight', async () => {
+      const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+      const wrapper = mount(veTable, {
+        propsData: {
+          columns: COLUMNS,
+          tableData: TABLE_DATA_SAME_ROW_HEIGHT.slice(0, 20),
+          virtualScrollOption: { enable: true },
+          rowKeyFieldName: 'rowKey',
+        },
+      })
+      await later()
+      expect(countWarnings(errorSpy)).toBe(1)
+
+      const vm = wrapper.vm as any
+      // 表格高度、横向滚动条、数据和虚拟滚动配置的变化都不再重复提示
+      vm.hasXScrollBar = !vm.hasXScrollBar
+      await later()
+      expect(countWarnings(errorSpy)).toBe(1)
+      wrapper.triggerResizeObserver({ width: MAX_HEIGHT })
+      await later()
+      expect(countWarnings(errorSpy)).toBe(1)
+      await wrapper.setProps({ tableData: TABLE_DATA_SAME_ROW_HEIGHT.slice(0, 30) })
+      expect(countWarnings(errorSpy)).toBe(1)
+      await wrapper.setProps({ virtualScrollOption: { enable: true, minRowHeight: 50 } })
+      expect(countWarnings(errorSpy)).toBe(1)
+      // maxHeight 仍然为空（undefined → ''）
+      await wrapper.setProps({ maxHeight: '' })
+      await later()
+      expect(countWarnings(errorSpy)).toBe(1)
+
+      wrapper.unmount()
+      errorSpy.mockRestore()
+    })
+
+    it('is logged each time virtual scroll is turned on without maxHeight, and not with maxHeight', async () => {
+      const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+      const wrapper = mount(veTable, {
+        propsData: {
+          columns: COLUMNS,
+          tableData: TABLE_DATA_SAME_ROW_HEIGHT.slice(0, 20),
+          rowKeyFieldName: 'rowKey',
+        },
+      })
+      await later()
+      expect(countWarnings(errorSpy)).toBe(0)
+
+      await wrapper.setProps({ virtualScrollOption: { enable: true } })
+      await later()
+      expect(countWarnings(errorSpy)).toBe(1)
+
+      // 关闭后再次开启（仍然没有 maxHeight）是一次新的错误配置，再提示一次
+      await wrapper.setProps({ virtualScrollOption: { enable: false } })
+      await wrapper.setProps({ virtualScrollOption: { enable: true } })
+      await later()
+      expect(countWarnings(errorSpy)).toBe(2)
+
+      // 补上 maxHeight 后不再提示
+      await wrapper.setProps({ maxHeight: MAX_HEIGHT })
+      await wrapper.setProps({ tableData: TABLE_DATA_SAME_ROW_HEIGHT.slice(0, 30) })
+      await later()
+      expect(countWarnings(errorSpy)).toBe(2)
+
+      wrapper.unmount()
+      errorSpy.mockRestore()
+    })
+  })
 })

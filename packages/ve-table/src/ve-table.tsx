@@ -12,7 +12,7 @@ import {
   isEmptyValue,
 } from '@vue3-easytable/common/utils'
 import VeContextmenu from '@vue3-easytable/ve-contextmenu'
-import { computed, defineComponent, inject, markRaw, nextTick, onMounted, provide, ref, shallowRef } from 'vue'
+import { computed, defineComponent, inject, markRaw, nextTick, onMounted, provide, ref, shallowRef, watch } from 'vue'
 import Body from './body'
 import Colgroup from './colgroup'
 import ColumnResizer from './column-resizer'
@@ -272,15 +272,25 @@ export default defineComponent({
 
     const tableContainerWrapperStyle = computed(() => ({ width: '100%' }))
 
+    // VS-08：开启虚拟滚动但没有 maxHeight 时提示一次（进入这种配置时），不在计算属性里打印：
+    // 之前每次重新计算容器样式（例如 maxHeight 仍为空但值变了）都会再打印一次
+    watch(
+      () => virtualScroll.isVirtualScroll.value && !getValByUnit(props.maxHeight),
+      (isMaxHeightMissing) => {
+        if (isMaxHeightMissing)
+          console.error('maxHeight prop is required when \'virtualScrollOption.enable = true\'')
+      },
+      { immediate: true },
+    )
+
     const tableContainerStyle = computed(() => {
       const maxHeight = getValByUnit(props.maxHeight)
 
       let tableContainerHeight: string | number | undefined
       if (virtualScroll.isVirtualScroll.value) {
+        // 没有 maxHeight 时不设置高度（提示见上面的 watch）
         if (maxHeight)
           tableContainerHeight = maxHeight as string | number
-        else
-          console.error('maxHeight prop is required when \'virtualScrollOption.enable = true\'')
       }
       else {
         let h = layout.tableHeight.value

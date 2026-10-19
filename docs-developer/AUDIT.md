@@ -777,6 +777,12 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
   - **Fix:** call `virtualizer._willUpdate()` right after `_didMount()`.
   - **Verified:** `ve-table-virtual-scroll.spec.tsx`. All 13 specs now render real rows under jsdom: `tests/utils` `mockVirtualScrollLayout` stubs `offsetHeight` for the container and the per-row `<tbody data-index>`, and `getVirtualRenderRange` computes the expected range. New specs: `scrolls to the middle and renders the rows around the scroll offset`, plus spacer-height and scrolled-range assertions in `same row height` and `scrolling callback`. Plus the browser check above.
 
+- [x] ✅ 2026-10-19 · fix/audit-final-sweep · **VS-08** 🟢 `tableContainerStyle` logs the missing-`maxHeight` error from inside a computed (found in wave 4)
+  - **Where:** `ve-table.tsx` `tableContainerStyle` computed: with virtual scroll on and an empty `maxHeight`, it called `console.error('maxHeight prop is required when …')` each time it was evaluated.
+  - **Trigger:** every re-evaluation of the computed while the configuration stays wrong logs again. The audit note expected this on every table-height or scroll-bar change; that is not the case on Vue 3.5, because the virtual branch reads only `maxHeight` and `isVirtualScroll`, so those are its only dependencies. What does repeat it is a `maxHeight` change that keeps it empty (e.g. `undefined` → `''`). Either way a side effect inside a computed depends on when Vue happens to re-evaluate it.
+  - **Done:** the error moved to a `watch` (with `immediate`) on `isVirtualScroll && !getValByUnit(maxHeight)`: it is logged when a table enters that state (at setup, or when virtual scroll is turned on later without `maxHeight`) and not again while it stays there. Turning virtual scroll off and on again without `maxHeight` logs once more. The computed only computes the style (no height is set without `maxHeight`, as before).
+  - **Verified:** `ve-table-virtual-scroll.spec.tsx` › "missing maxHeight warning (VS-08)": "is logged once, not again on re-renders, layout changes or another empty maxHeight" failed before (2 errors after `maxHeight` went from `undefined` to `''`; toggling `hasXScrollBar`, a resize, new `tableData` and a new `virtualScrollOption` object did not log, before or after); "is logged each time virtual scroll is turned on without maxHeight, and not with maxHeight" (0 for a normal table, 1 when it is turned on, 2 after off / on, none once `maxHeight` is set) passes before and after.
+
 ---
 
 ## ROW — row checkbox, radio and expand
