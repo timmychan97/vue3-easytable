@@ -989,9 +989,11 @@ Each batch is roughly one PR. Within a batch, fix the 🔴 items first.
   - **Effect:** the app keeps its previous language, with no error in production.
   - **Fix:** document it: pass the language to `useVeTable({ locale })`, or switch later with `this.$veLocale.use()` / `VeConfigProvider`.
 
-- [ ] **I18N-07** 🟢 Unused `createLocale` in `common/utils/index.ts` (found in batch 7)
+- [x] ✅ 2026-10-19 · refactor/audit-wave2-misc · **I18N-07** 🟢 Unused `createLocale` in `common/utils/index.ts` (found in batch 7)
   - **Where:** `common/utils/index.ts` `createLocale`. Nothing imports it, and it reads the global language, so it would bypass the per-app language (I18N-02) and `VeConfigProvider`.
   - **Fix:** delete it.
+  - **Done:** deleted, together with its two imports (`LocaleMessage`, `createI18N`). `common/utils/index.ts` no longer imports `common/locale`, which removes one import cycle (`common/locale` imports `isFunction` from `common/utils`).
+  - **Verified:** a repo-wide search for `createLocale` outside `node_modules` finds only this entry. The common, ve-locale, ve-pagination and vue specs pass, and `vue-tsc` stays at 426 errors.
 
 ---
 

@@ -1,14 +1,5 @@
 import type { VNode, VNodeNormalizedChildren } from 'vue'
-import type { LocaleMessage } from '../locale/types'
 import { Comment } from 'vue'
-import { createI18N } from '../locale'
-
-/**
- * @desc create locale namespace by component name
- */
-export function createLocale(compName: keyof LocaleMessage) {
-  return createI18N(compName)
-}
 
 export function isArray(arr: unknown) {
   return Array.isArray(arr)
