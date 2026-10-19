@@ -11,6 +11,10 @@ describe('veDropdown', () => {
     { value: 2, label: 'Banana' },
   ]
 
+  // 打开后弹出层由 <Teleport> 渲染到 body，不在组件自身的 DOM 中，只能从 document 查找
+  const findInDocument = (selector: string) => document.querySelector<HTMLElement>(selector)
+  const findAllInDocument = (selector: string) => [...document.querySelectorAll<HTMLElement>(selector)]
+
   it('render normal', () => {
     const wrapper = mount(veDropdown, {
       propsData: {
@@ -203,17 +207,17 @@ describe('veDropdown', () => {
 
     wrapper.find('.btn').trigger('click')
     await later(100)
-    expect(wrapper.find('.ve-dropdown-dd-show').exists()).toBe(true)
+    expect(findInDocument('.ve-dropdown-dd-show')).not.toBeNull()
 
-    wrapper.find('.ve-dropdown-items-li').trigger('click')
+    findInDocument('.ve-dropdown-popper .ve-dropdown-items-li')!.click()
     await later(150)
-    expect(wrapper.find('.ve-dropdown-dd-show').exists()).toBe(true)
+    expect(findInDocument('.ve-dropdown-dd-show')).not.toBeNull()
 
     wrapper.setProps({ hideByItemClick: true })
     await later(100)
-    wrapper.find('.ve-dropdown-items-li').trigger('click')
+    findInDocument('.ve-dropdown-popper .ve-dropdown-items-li')!.click()
     await later(150)
-    expect(wrapper.find('.ve-dropdown-dd-show').exists()).toBe(false)
+    expect(findInDocument('.ve-dropdown-dd-show')).toBeNull()
     wrapper.unmount()
   })
 
@@ -246,7 +250,7 @@ describe('veDropdown', () => {
     await later(100)
 
     // 改变选项
-    wrapper.findAll('.ve-dropdown-items-li')[1].trigger('click')
+    findAllInDocument('.ve-dropdown-popper .ve-dropdown-items-li')[1].click()
 
     await later()
 
@@ -467,16 +471,16 @@ describe('veDropdown', () => {
 
     wrapper.find('.btn').trigger('click')
     await later(100)
-    expect(wrapper.find('.ve-dropdown-dd-show').exists()).toBe(true)
+    expect(findInDocument('.ve-dropdown-dd-show')).not.toBeNull()
 
     expect(mockBeforeVisibleChangeFn).toHaveBeenCalledWith({
       nextVisible: true,
     })
 
-    wrapper.find('.ve-dropdown-items-li').trigger('click')
+    findInDocument('.ve-dropdown-popper .ve-dropdown-items-li')!.click()
     await later(150)
 
-    expect(wrapper.find('.ve-dropdown-dd-show').exists()).toBe(false)
+    expect(findInDocument('.ve-dropdown-dd-show')).toBeNull()
     expect(mockBeforeVisibleChangeFn).toHaveBeenCalledWith({
       nextVisible: false,
     })
@@ -574,7 +578,7 @@ describe('veDropdown', () => {
           props: { modelValue: DROPDOWN_ITEMS as any },
           slots: { default: `<div class="btn">click me</div>` },
         })
-        // 在 addRootElementToElement 的 nextTick 执行前卸载
+        // 挂载后立即卸载
         wrapper.unmount()
       }
       await later()
@@ -735,15 +739,22 @@ describe('veDropdown', () => {
     })
   })
 
+  // 弹出层只在打开后才进入目标元素（之前没有单独的容器），所以先打开再检查
   describe('popperAppendTo (DD-06, INFRA-05)', () => {
-    it('appends the container to body by default', async () => {
+    async function open(wrapper: any) {
+      wrapper.find('.btn').trigger('click')
+      await later()
+      return document.getElementById(wrapper.vm.rootId)!
+    }
+
+    it('appends the popper to body by default', async () => {
       const wrapper = mount(veDropdown, {
         props: { modelValue: DROPDOWN_ITEMS },
         slots: { default: `<div class="btn">click me</div>` },
       })
       await later()
 
-      expect(document.getElementById((wrapper.vm as any).rootId)!.parentElement).toBe(document.body)
+      expect((await open(wrapper)).parentElement).toBe(document.body)
       wrapper.unmount()
     })
 
@@ -756,7 +767,7 @@ describe('veDropdown', () => {
       })
       await later()
 
-      expect(document.getElementById((wrapper.vm as any).rootId)!.parentElement).toBe(target)
+      expect((await open(wrapper)).parentElement).toBe(target)
       wrapper.unmount()
       target.remove()
     })
@@ -769,15 +780,71 @@ describe('veDropdown', () => {
       })
       await later()
 
-      expect(document.getElementById((wrapper.vm as any).rootId)!.parentElement).toBe(document.body)
       expect(warn).toHaveBeenCalledWith(expect.stringContaining('#no-such-element'))
 
       // 仍然可以正常打开
-      wrapper.find('.btn').trigger('click')
-      await later()
+      expect((await open(wrapper)).parentElement).toBe(document.body)
       expect(wrapper.emitted('on-dropdown-visible-change')).toEqual([[true]])
       wrapper.unmount()
       warn.mockRestore()
+    })
+  })
+
+  // MOD-09：弹出层由 <Teleport> 渲染，组件不再自己创建容器或移动 DOM
+  describe('teleported popper (MOD-09)', () => {
+    it('lives in the component until opened, in body while open, and back in the component when closed', async () => {
+      const wrapper = mount(veDropdown, {
+        props: { modelValue: DROPDOWN_ITEMS },
+        slots: { default: `<div class="btn">click me</div>` },
+      })
+      await later()
+      const ddParent = () => document.querySelector('.ve-dropdown-dd')!.parentElement!
+
+      expect(wrapper.find('.ve-dropdown-dd').exists()).toBe(true)
+      expect(document.querySelector('.ve-dropdown-popper')).toBeNull()
+
+      wrapper.find('.btn').trigger('click')
+      await later()
+      expect(ddParent().classList.contains('ve-dropdown-popper')).toBe(true)
+      expect(ddParent().parentElement).toBe(document.body)
+
+      document.body.click()
+      await later()
+      expect(document.querySelector('.ve-dropdown-popper')).toBeNull()
+      expect(wrapper.find('.ve-dropdown-dd').exists()).toBe(true)
+      wrapper.unmount()
+    })
+
+    it('keeps the custom content state while it is closed and reopened', async () => {
+      let mounts = 0
+      const Counter = defineComponent({
+        setup() {
+          const count = ref(0)
+          onMounted(() => mounts++)
+          return () => h('button', { class: 'counter', onClick: () => count.value++ }, String(count.value))
+        },
+      })
+      const wrapper = mount(veDropdown, {
+        props: { isCustomContent: true },
+        slots: { 'default': `<div class="btn">click me</div>`, 'custom-content': () => h(Counter) },
+      })
+      await later()
+
+      wrapper.find('.btn').trigger('click')
+      await later()
+      findInDocument('.ve-dropdown-popper .counter')!.click()
+      await later()
+      expect(findInDocument('.ve-dropdown-popper .counter')!.textContent).toBe('1')
+
+      // 关闭再打开：内容没有被重新创建
+      wrapper.find('.btn').trigger('click')
+      await later()
+      wrapper.find('.btn').trigger('click')
+      await later()
+      expect(findInDocument('.ve-dropdown-popper .counter')!.textContent).toBe('1')
+      // 第一次打开时从组件内部切换到 <Teleport>，内容创建一次；之后不再重新创建
+      expect(mounts).toBe(2)
+      wrapper.unmount()
     })
   })
 })

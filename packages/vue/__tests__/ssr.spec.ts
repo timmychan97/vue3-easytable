@@ -174,8 +174,43 @@ describe('sSR (INFRA-05)', () => {
       expect(html).toContain('ve-table')
     })
 
-    // VeContextmenu 的 options / eventTarget 是 immediate watcher，在 setup 阶段就访问 document（MENU-02 处理）
-    it.todo('veContextmenu')
+    // MENU-08：VeContextmenu 在 setup 阶段不能访问 document
+    it('veContextmenu', async () => {
+      const { VeContextmenu } = await import('../src/index')
+      const html = await render(VeContextmenu, {
+        eventTarget: '#app',
+        options: [
+          { label: 'menu1', type: 'menu1' },
+          { label: 'menu2', children: [{ label: 'menu2-1', type: 'menu2-1' }] },
+        ],
+      })
+      expect(html).toContain('ve-contextmenu')
+      // 菜单在挂载前隐藏在组件内部，不会被移到 body
+      expect(html).toContain('menu1')
+    })
+
+    it('veContextmenu with an element-less eventTarget and empty options', async () => {
+      const { VeContextmenu } = await import('../src/index')
+      const html = await render(VeContextmenu, { eventTarget: '', options: [] })
+      expect(html).toContain('ve-contextmenu')
+    })
+
+    it('veTable with contextmenu options', async () => {
+      const { VeTable } = await import('../src/index')
+      const html = await render(VeTable, {
+        columns: [
+          { field: 'name', key: 'a', title: 'Name' },
+          { field: 'age', key: 'b', title: 'Age' },
+        ],
+        tableData: [{ rowKey: 1, name: 'John', age: 20 }],
+        rowKeyFieldName: 'rowKey',
+        cellSelectionOption: { enable: true },
+        contextmenuHeaderOption: { contextmenus: [{ type: 'SEPARATOR' }, { type: 'CUSTOM', label: 'custom' }] },
+        contextmenuBodyOption: { contextmenus: [{ type: 'INSERT_ROW_ABOVE' }, { type: 'REMOVE_ROW' }] },
+      })
+      expect(html).toContain('ve-table')
+      expect(html).toContain('ve-contextmenu')
+    })
 
     it('veConfigProvider', async () => {
       const { VeConfigProvider, VePagination } = await import('../src/index')

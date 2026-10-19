@@ -375,13 +375,14 @@ describe('veTable header filter', () => {
       nextVisible: true,
     })
 
+    // 打开后下拉框由 <Teleport> 渲染到 body，不在组件自身的 DOM 中
     // 改变选项
-    wrapper.findAll('.ve-dropdown-items-li')[0].trigger('click')
+    ;(document.querySelectorAll('.ve-dropdown-popper .ve-dropdown-items-li')[0] as HTMLElement).click()
 
     await later()
 
     // confirm btn click
-    wrapper.findAll('.ve-dropdown-operation-item')[1].trigger('click')
+    ;(document.querySelectorAll('.ve-dropdown-popper .ve-dropdown-operation-item')[1] as HTMLElement).click()
 
     await later()
 
